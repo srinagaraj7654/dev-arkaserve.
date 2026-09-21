@@ -37,11 +37,25 @@ const PaymentComingSoon  = lazy(() => import('./pages/PaymentComingSoon.jsx'))
 // Sections rendered by the LandingPage (single-page tabs)
 const LANDING_TABS  = ['home','about','success','career','blog']
 const PUBLIC_PAGES  = [...LANDING_TABS,'courses','contact','privacy','terms','auth','cutoffs','papers','exams']
+
+// Real URL path ↔ page name mapping (enables indexable URLs for each page)
+const PAGE_PATH = {
+  home:'/', about:'/about', success:'/success', career:'/career', blog:'/blog',
+  courses:'/courses', contact:'/contact', privacy:'/privacy', terms:'/terms',
+  cutoffs:'/cutoffs', papers:'/papers', exams:'/exams',
+  auth:'/auth', 'reset-password':'/reset-password',
+  dashboard:'/dashboard', practice:'/practice', examhome:'/examhome',
+  exam:'/exam', result:'/result', payment:'/payment',
+  admin:'/admin', 'how-prediction-works':'/how-prediction-works',
+}
+const PATH_PAGE = Object.fromEntries(Object.entries(PAGE_PATH).map(([k,v]) => [v,k]))
+const pathToPage = (p) => PATH_PAGE[p] || (p === '/' ? 'home' : null)
+const pageToPath = (p) => PAGE_PATH[p] || '/'
 const IDLE_TIMEOUT  = 15 * 60 * 1000
 const IDLE_WARNING  = 60 * 1000
 
 export default function App() {
-  const [page,        setPage]        = useState('home')
+  const [page,        setPage]        = useState(() => pathToPage(window.location.pathname) || 'home')
   useSEO(page)
   const [user,        setUser]        = useState(null)
   const [testData,    setTestData]    = useState(null)
@@ -212,7 +226,7 @@ export default function App() {
   // fall back to a safe page so Back can never land on a blank/crashing view.
   useEffect(() => {
     const onPop = (e) => {
-      const target = e.state?.appPage
+      const target = e.state?.appPage || pathToPage(window.location.pathname)
       skipPushRef.current = true
       // Logged in: Back always returns to the Dashboard (never a blank/loading
       // page or a stranded public/test screen).
@@ -222,14 +236,14 @@ export default function App() {
     }
     window.addEventListener('popstate', onPop)
     // seed state on the current entry so the first Back has somewhere to go
-    try { window.history.replaceState({ appPage: page }, '') } catch {}
+    try { window.history.replaceState({ appPage: page }, '', pageToPath(page)) } catch {}
     return () => window.removeEventListener('popstate', onPop)
   }, [user, testData, resultData])  // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!historyMounted.current) { historyMounted.current = true; return }
     if (skipPushRef.current) { skipPushRef.current = false; return }  // change came from Back
-    try { window.history.pushState({ appPage: page }, '') } catch {}
+    try { window.history.pushState({ appPage: page }, '', pageToPath(page)) } catch {}
   }, [page])
 
   // ── Free-trial gating ───────────────────────────────────────────────
