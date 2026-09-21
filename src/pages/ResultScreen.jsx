@@ -60,6 +60,158 @@ function MathText({ text }) {
 /* ── helpers ── */
 const tName    = t => (t||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
 const subLabel = s => (s||'').replace(/\bPct\b/g,'Percentage')
+
+const EXAM_DISPLAY = {
+  bank_clerk_prelims:'IBPS Clerk Prelims', bank_clerk_mains:'IBPS Clerk Mains',
+  bank_po_prelims:'IBPS PO Prelims',       bank_po_mains:'IBPS PO Mains',
+  sbi_clerk_prelims:'SBI Clerk Prelims',   sbi_clerk_mains:'SBI Clerk Mains',
+  sbi_po_prelims:'SBI PO Prelims',         sbi_po_mains:'SBI PO Mains',
+  rrb_office_assistant_prelims:'RRB Office Assistant Prelims',
+  rrb_office_assistant_mains:'RRB Office Assistant Mains',
+  rrb_officer_scale1_prelims:'RRB Officer Scale-I Prelims',
+  rrb_officer_scale1_mains:'RRB Officer Scale-I Mains',
+  rbi_assistant_pre:'RBI Assistant Prelims', rbi_gradeb_p1:'RBI Grade B Phase 1',
+  lic_aao_pre:'LIC AAO Prelims',            lic_assistant_pre:'LIC Assistant Prelims',
+  niacl_assistant_pre:'NIACL Assistant Prelims', nicl_ao_pre:'NICL AO Prelims',
+  coal_india_mt:'Coal India MT',
+}
+const examDisplay = id => EXAM_DISPLAY[id] || (id||'Mock Test').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
+
+/* ── WhatsApp share card ── */
+function ShareModal({ result, studentName, onClose }) {
+  const [copied, setCopied] = useState(false)
+  const pct      = result.percentage ?? 0
+  const score    = result.score ?? 0
+  const maxScore = result.max_score ?? 100
+  const correct  = result.correct_count ?? 0
+  const wrong    = result.wrong_count ?? 0
+  const skipped  = result.skipped_count ?? 0
+  const readiness= result.exam_readiness ?? 0
+  const examName = examDisplay(result.exam)
+  const name     = (studentName || 'Student').replace(/\b\w/g, c => c.toUpperCase())
+
+  const scoreColor = pct >= 60 ? '#10b981' : pct >= 35 ? '#f59e0b' : '#FF653F'
+  const grade = pct >= 80 ? 'A+' : pct >= 60 ? 'A' : pct >= 40 ? 'B' : 'C'
+  const gradeMsg = pct >= 80 ? 'Excellent!' : pct >= 60 ? 'Great Score!' : pct >= 40 ? 'Good Effort' : 'Keep Practising'
+
+  const waText = [
+    `🎯 I scored *${pct.toFixed(1)}%* on *${examName}* Mock Test!`,
+    ``,
+    `✅ ${correct} correct  ❌ ${wrong} wrong  ⏭ ${skipped} skipped`,
+    `📊 Marks: ${score.toFixed(1)} / ${maxScore}`,
+    readiness ? `🏆 Exam Readiness: ${readiness.toFixed(1)}%` : '',
+    ``,
+    `Take free mock tests 👉 https://prep.arkaserve.com`,
+    `#MockTest #BankingExam #IBPS #SBI #FreeStudy`,
+  ].filter(l => l !== null).join('\n')
+
+  const shareWA = () => {
+    window.open('https://wa.me/?text=' + encodeURIComponent(waText), '_blank', 'noopener')
+  }
+  const copyText = async () => {
+    try { await navigator.clipboard.writeText(waText) } catch { }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter:'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        className="w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl"
+        style={{ fontFamily:"'Inter',system-ui,sans-serif" }}
+      >
+        {/* Card — designed to look great when screenshotted */}
+        <div style={{ background:'linear-gradient(145deg,#111 0%,#1a1a2e 100%)', padding:'32px 24px 24px' }}>
+          {/* Branding */}
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background:'#FF653F' }}>
+              <span className="text-white font-black text-xs">MT</span>
+            </div>
+            <span className="text-white/60 text-sm font-semibold">MockTest by Arkaserve</span>
+          </div>
+
+          {/* Score ring + grade */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <div className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-1">{examName}</div>
+              <div className="text-white text-3xl font-black leading-none mb-1">{pct.toFixed(1)}%</div>
+              <div className="text-sm font-bold" style={{ color: scoreColor }}>{gradeMsg}</div>
+            </div>
+            <div className="relative w-24 h-24">
+              <svg viewBox="0 0 36 36" className="w-24 h-24 -rotate-90">
+                <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="3.5"/>
+                <circle cx="18" cy="18" r="15.9" fill="none" strokeWidth="3.5" strokeLinecap="round"
+                  stroke={scoreColor}
+                  strokeDasharray={`${Math.min(pct,100)} ${100-Math.min(pct,100)}`}/>
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-2xl font-black text-white leading-none">{grade}</span>
+                <span className="text-white/50 text-[10px]">grade</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-2 mb-6">
+            {[
+              { label:'Correct', value:correct, color:'#10b981', icon:'✓' },
+              { label:'Wrong',   value:wrong,   color:'#ef4444', icon:'✗' },
+              { label:'Skipped', value:skipped, color:'#94a3b8', icon:'—' },
+            ].map(s => (
+              <div key={s.label} className="rounded-xl py-3 text-center" style={{ background:'rgba(255,255,255,.07)' }}>
+                <div className="text-xl font-black" style={{ color:s.color }}>{s.value}</div>
+                <div className="text-[10px] text-white/50 mt-0.5">{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Marks + readiness */}
+          <div className="flex items-center justify-between rounded-xl px-4 py-3 mb-2" style={{ background:'rgba(255,255,255,.07)' }}>
+            <div className="text-center">
+              <div className="text-white text-lg font-black">{score.toFixed(1)}<span className="text-white/40 text-sm font-medium">/{maxScore}</span></div>
+              <div className="text-white/50 text-[10px]">Marks</div>
+            </div>
+            {readiness > 0 && (
+              <div className="text-center">
+                <div className="text-lg font-black" style={{ color: readiness>=70?'#10b981':readiness>=40?'#f59e0b':'#FF653F' }}>{readiness.toFixed(0)}%</div>
+                <div className="text-white/50 text-[10px]">Exam Readiness</div>
+              </div>
+            )}
+            <div className="text-center">
+              <div className="text-white/60 text-[11px] font-semibold">prep.arkaserve.com</div>
+              <div className="text-white/30 text-[9px]">Free Mock Tests</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="bg-white p-4 space-y-3">
+          <p className="text-xs text-gray-500 text-center">Screenshot the card above, then share it — or share directly:</p>
+          <button onClick={shareWA}
+            className="w-full flex items-center justify-center gap-3 py-3 rounded-xl font-bold text-white text-sm transition-all"
+            style={{ background:'#25D366' }}
+            onMouseOver={e=>e.currentTarget.style.background='#1ebe5e'}
+            onMouseOut={e=>e.currentTarget.style.background='#25D366'}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+            </svg>
+            Share on WhatsApp
+          </button>
+          <button onClick={copyText}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all">
+            {copied ? '✓ Copied!' : '📋 Copy text'}
+          </button>
+          <button onClick={onClose} className="w-full text-xs text-gray-400 py-1 hover:text-gray-600">Close</button>
+        </div>
+      </div>
+    </div>
+  )
+}
 const fmt   = n  => (n??0).toFixed(1)
 const SEC   = { english:'English', numerical_ability:'Numerical Ability', reasoning:'Reasoning', quantitative_aptitude:'Quant' }
 const CUTOFF_CLS = {
@@ -622,6 +774,7 @@ function RecoBanner({ children }) {
 export default function ResultScreen({ result, studentName, onRetry, onHome, onStartTest = null, user = null }) {
   const [tab, setTab] = useState('feedback')
   const [expIdx, setExpIdx] = useState(0)   // selected question in the Explanations viewer
+  const [shareOpen, setShareOpen] = useState(false)
 
   if (!result) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -694,6 +847,7 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
 
   return (
     <div className="min-h-screen bg-[#ffffff]" style={{fontFamily:"'Inter',system-ui,sans-serif"}}>
+      {shareOpen && <ShareModal result={result} studentName={studentName} onClose={() => setShareOpen(false)} />}
 
       {/* ── HEADER ── */}
       <header style={{background:'#111'}}
@@ -826,6 +980,16 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
                       <span>Rank #{rankNum} of {rankTotal} students</span>
                     </div>
                   )}
+                  <button onClick={() => setShareOpen(true)}
+                    className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-white text-xs font-bold transition-all"
+                    style={{ background:'#25D366' }}
+                    onMouseOver={e=>e.currentTarget.style.background='#1ebe5e'}
+                    onMouseOut={e=>e.currentTarget.style.background='#25D366'}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                    </svg>
+                    Share Result
+                  </button>
                   {!isFullMock && curDiff && DIFF_BADGE[curDiff] && (
                     <div className="mt-2 flex items-center gap-2 flex-wrap">
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold"
