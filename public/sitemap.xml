@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
+  <!-- Core pages -->
   <url>
     <loc>https://prep.arkaserve.com/</loc>
     <lastmod>2026-09-21</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
-
   <url>
     <loc>https://prep.arkaserve.com/exams</loc>
     <lastmod>2026-09-21</lastmod>
@@ -15,48 +15,75 @@
     <priority>0.9</priority>
   </url>
 
+  <!-- Exam category pages -->
   <url>
-    <loc>https://prep.arkaserve.com/about</loc>
+    <loc>https://prep.arkaserve.com/exams/banking</loc>
+    <lastmod>2026-09-21</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://prep.arkaserve.com/exams/insurance</loc>
+    <lastmod>2026-09-21</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://prep.arkaserve.com/exams/ssc</loc>
     <lastmod>2026-09-21</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.8</priority>
   </url>
-
   <url>
-    <loc>https://prep.arkaserve.com/contact</loc>
+    <loc>https://prep.arkaserve.com/exams/engineering</loc>
     <lastmod>2026-09-21</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <priority>0.8</priority>
   </url>
 
+  <!-- Content pages -->
+  <url>
+    <loc>https://prep.arkaserve.com/blog</loc>
+    <lastmod>2026-09-21</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
   <url>
     <loc>https://prep.arkaserve.com/papers</loc>
     <lastmod>2026-09-21</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
-
   <url>
     <loc>https://prep.arkaserve.com/cutoffs</loc>
     <lastmod>2026-09-21</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
-
   <url>
     <loc>https://prep.arkaserve.com/courses</loc>
     <lastmod>2026-09-21</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
-
+  <url>
+    <loc>https://prep.arkaserve.com/about</loc>
+    <lastmod>2026-09-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://prep.arkaserve.com/contact</loc>
+    <lastmod>2026-09-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
   <url>
     <loc>https://prep.arkaserve.com/privacy</loc>
     <lastmod>2026-09-21</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
-
   <url>
     <loc>https://prep.arkaserve.com/terms</loc>
     <lastmod>2026-09-21</lastmod>

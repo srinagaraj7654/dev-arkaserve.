@@ -21,6 +21,7 @@ const TermsPage          = lazy(() => import('./pages/TermsPage.jsx'))
 const CutoffsPage        = lazy(() => import('./pages/CutoffsPage.jsx'))
 const PreviousPapersPage = lazy(() => import('./pages/PreviousPapersPage.jsx'))
 const ExamsPage          = lazy(() => import('./pages/ExamsPage.jsx'))
+const BlogPage           = lazy(() => import('./pages/BlogPage.jsx'))
 const AuthScreen         = lazy(() => import('./pages/AuthScreen.jsx'))
 const ResetPasswordPage  = lazy(() => import('./pages/ResetPasswordPage.jsx'))
 const AdminPage          = lazy(() => import('./pages/AdminPage.jsx'))
@@ -35,14 +36,21 @@ const OnboardingWizard   = lazy(() => import('./pages/OnboardingWizard.jsx'))
 const PaymentComingSoon  = lazy(() => import('./pages/PaymentComingSoon.jsx'))
 
 // Sections rendered by the LandingPage (single-page tabs)
-const LANDING_TABS  = ['home','about','success','career','blog']
-const PUBLIC_PAGES  = [...LANDING_TABS,'courses','contact','privacy','terms','auth','cutoffs','papers','exams']
+const LANDING_TABS  = ['home','about','success','career']
+const PUBLIC_PAGES  = [
+  ...LANDING_TABS,
+  'courses','contact','privacy','terms','auth','cutoffs','papers',
+  'exams','exams-banking','exams-insurance','exams-ssc','exams-engineering',
+  'blog',
+]
 
 // Real URL path ↔ page name mapping (enables indexable URLs for each page)
 const PAGE_PATH = {
   home:'/', about:'/about', success:'/success', career:'/career', blog:'/blog',
   courses:'/courses', contact:'/contact', privacy:'/privacy', terms:'/terms',
   cutoffs:'/cutoffs', papers:'/papers', exams:'/exams',
+  'exams-banking':'/exams/banking', 'exams-insurance':'/exams/insurance',
+  'exams-ssc':'/exams/ssc', 'exams-engineering':'/exams/engineering',
   auth:'/auth', 'reset-password':'/reset-password',
   dashboard:'/dashboard', practice:'/practice', examhome:'/examhome',
   exam:'/exam', result:'/result', payment:'/payment',
@@ -262,7 +270,7 @@ export default function App() {
   }
 
   const nav = (target, examId) => {
-    const publicList = [...LANDING_TABS,'courses','contact','privacy','terms','auth','practice','cutoffs','papers','exams']
+    const publicList = [...LANDING_TABS,'courses','contact','privacy','terms','auth','practice','cutoffs','papers','exams','exams-banking','exams-insurance','exams-ssc','exams-engineering','blog']
     if (!user && !publicList.includes(target)) { setPage('auth'); return }
     if (target === 'mocktest' && !guardTrial()) return
 
@@ -422,7 +430,12 @@ export default function App() {
         {page === 'terms'          && <TermsPage />}
         {page === 'cutoffs'        && <CutoffsPage onNav={nav} />}
         {page === 'papers'         && <PreviousPapersPage onNav={nav} />}
-        {page === 'exams'          && <ExamsPage onNav={nav} />}
+        {page === 'exams'              && <ExamsPage onNav={nav} />}
+        {page === 'exams-banking'     && <ExamsPage onNav={nav} category="banking" />}
+        {page === 'exams-insurance'   && <ExamsPage onNav={nav} category="insurance" />}
+        {page === 'exams-ssc'         && <ExamsPage onNav={nav} category="ssc" />}
+        {page === 'exams-engineering' && <ExamsPage onNav={nav} category="engineering" />}
+        {page === 'blog'              && <BlogPage onNav={nav} />}
         {page === 'auth'           && <AuthScreen onAuth={handleAuth} onBack={() => setPage('home')} />}
         {page === 'reset-password' && <ResetPasswordPage onBack={() => setPage('auth')} />}
         {page === 'payment'        && (
@@ -494,8 +507,10 @@ export default function App() {
 		{page === 'how-prediction-works' && <PredictionExplainer />}
         {![
           ...LANDING_TABS,
-          'courses','contact','privacy','terms','cutoffs','papers','exams',
-          'auth','reset-password','payment','dashboard','examhome','exam',
+          'courses','contact','privacy','terms','cutoffs','papers',
+          'exams','exams-banking','exams-insurance','exams-ssc','exams-engineering',
+          'blog',
+          'auth','reset-password','payment','dashboard','practice','examhome','exam',
           'result','admin','how-prediction-works',
         ].includes(page) && <NotFoundPage onNav={nav} />}
         </Suspense>
