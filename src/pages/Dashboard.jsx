@@ -1040,14 +1040,36 @@ export default function Dashboard({ user, planData, onStartTest, onLogout, onNav
 
             {/* ── HOME tab (existing dashboard content — unchanged) ── */}
             {activeTab === 'home' && <>
-              {/* Welcome */}
-              <div className="mb-5">
-                <h1 className="text-2xl font-black text-gray-900">Welcome, {(userName||'').replace(/\b\w/g,c=>c.toUpperCase())}!</h1>
-                <p className="text-gray-500 text-sm mt-0.5">Your expert-crafted exam prep dashboard</p>
+              {/* Welcome + Hero CTA */}
+              <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-black text-gray-900">Welcome, {(userName||'').replace(/\b\w/g,c=>c.toUpperCase())}!</h1>
+                  <p className="text-gray-500 text-sm mt-0.5">
+                    {selectedExam?.name
+                      ? `${selectedGroup?.label || 'Exam'} · ${selectedExam.name}`
+                      : 'Your expert-crafted exam prep dashboard'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => onStartTest?.('mock', selectedExamId)}
+                    className="flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl text-white transition-all hover:opacity-90 active:scale-95"
+                    style={{ background:'#FF653F' }}>
+                    {history.length > 0 ? '▶ Resume Mock Test' : '▶ Start Mock Test'}
+                  </button>
+                  <button
+                    onClick={() => onStartTest?.('topic', selectedExamId)}
+                    className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-all active:scale-95">
+                    ◈ Topic Practice
+                  </button>
+                </div>
               </div>
 
-              {/* ── KPI strip — always visible ── */}
-              <h2 className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color:'#FF653F' }}>Your Progress</h2>
+              {/* ── KPI strip — all-time across all exams ── */}
+              <div className="flex items-baseline gap-2 mb-4">
+                <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color:'#FF653F' }}>All-time Stats</h2>
+                <span className="text-xs text-gray-400">· across all exams</span>
+              </div>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
                 {[
                   { label:'Tests Taken',    value:String(history.length),          hex:'#111827', icon:'📝', bg:'#f1f5f9' },
