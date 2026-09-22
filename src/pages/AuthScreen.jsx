@@ -244,7 +244,7 @@ export default function AuthScreen({ onAuth, onBack }) {
             <div style={{ width:28, height:28, background:'#FF653F', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}>
               <span style={{ color:'#fff', fontSize:10, fontWeight:800 }}>AK</span>
             </div>
-            <span style={{ color:'#888', fontSize:11 }}>Anil Kumar Mikkili, Founder</span>
+            <span style={{ color:'#888', fontSize:11 }}>Arkaserve Team</span>
           </div>
         </div>
       </div>

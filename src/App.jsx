@@ -458,7 +458,6 @@ export default function App() {
             initialTab={dashTab}
             onStartTest={(mode, examId) => {
               if (!guardTrial()) return
-              if (mode === 'topic') { setPage('topic-practice'); return }
               setStartMode(mode || 'mock')
               setStartExamId(examId || '')
               setPage('examhome')

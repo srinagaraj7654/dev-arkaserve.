@@ -532,19 +532,18 @@ function LandingPage({ onNav, initialTab='home' }) {
             </div>
 
             <div style={{marginTop:24,background:'#fafafa',border:'1.5px solid #e5e5e5',borderRadius:20,padding:28,display:'flex',gap:24,flexWrap:'wrap',alignItems:'center'}}>
-              <div style={{width:96,height:96,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#e5512f)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:34,fontWeight:900,flexShrink:0,boxShadow:'0 8px 24px rgba(255,101,63,.3)'}}>AK</div>
+              <div style={{width:96,height:96,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#e5512f)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:34,fontWeight:900,flexShrink:0,boxShadow:'0 8px 24px rgba(255,101,63,.3)'}}>AS</div>
               <div style={{flex:1,minWidth:260}}>
-                <div style={{fontSize:20,fontWeight:800,color:'#111'}}>Anil Kumar Mikkili</div>
-                <div style={{fontSize:14,fontWeight:700,color:'#FF653F',marginBottom:10}}>Founder &amp; CEO</div>
+                <div style={{fontSize:20,fontWeight:800,color:'#111'}}>Arkaserve Team</div>
+                <div style={{fontSize:14,fontWeight:700,color:'#FF653F',marginBottom:10}}>Engineers &amp; Educators</div>
                 <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:14}}>
-                  <span style={{fontSize:12,fontWeight:600,background:'#fff',border:'1px solid #e5e5e5',borderRadius:20,padding:'5px 12px',color:'#444'}}>🎓 Post Graduate — NIT Durgapur</span>
-                  <span style={{fontSize:12,fontWeight:600,background:'#fff',border:'1px solid #e5e5e5',borderRadius:20,padding:'5px 12px',color:'#444'}}>💼 10+ years in IT</span>
+                  <span style={{fontSize:12,fontWeight:600,background:'#fff',border:'1px solid #e5e5e5',borderRadius:20,padding:'5px 12px',color:'#444'}}>🎓 IITs &amp; NITs</span>
+                  <span style={{fontSize:12,fontWeight:600,background:'#fff',border:'1px solid #e5e5e5',borderRadius:20,padding:'5px 12px',color:'#444'}}>💼 10+ years in IT &amp; EdTech</span>
                 </div>
                 <p style={{fontSize:14,color:'#555',lineHeight:1.8}}>
-                  Anil brings over a decade of experience building scalable software and data systems across the IT industry.
-                  A Post Graduate from NIT Durgapur, he founded MockTest to bridge the gap between expensive coaching and
-                  quality preparation — delivering unlimited, exam-accurate practice for every student, free to start with a 7-day trial.
-                  He leads the platform's product vision, architecture and overall direction.
+                  The Arkaserve team brings together engineers and educators with decades of combined experience in software and exam preparation.
+                  We built MockTest to bridge the gap between expensive coaching and quality preparation — delivering unlimited,
+                  exam-accurate practice for every student, free to start.
                 </p>
               </div>
             </div>

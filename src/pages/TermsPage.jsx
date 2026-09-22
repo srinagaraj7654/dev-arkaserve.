@@ -38,7 +38,7 @@ export default function TermsPage() {
               ))}</div>}
               {sec.contact&&<div style={{background:'#F8F8F8',border:'1px solid #EBEBEB',borderRadius:11,padding:18,fontSize:13,color:'#555',display:'flex',flexDirection:'column',gap:6}}>
                 <div><strong>Arkaserve</strong></div>
-                <div><strong>Founder:</strong> Anil Kumar Mikkili</div>
+                <div><strong>Team:</strong> Arkaserve Team</div>
                 <div><strong>Website:</strong> www.arkaserve.com</div>
                 <div><strong>Platform:</strong> mocktest.arkaserve.com</div>
               </div>}
