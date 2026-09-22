@@ -934,7 +934,22 @@ export default function Dashboard({ user, planData, onStartTest, onLogout, onNav
           </div>
         </div>
         <div className="flex-1"/>
-        {/* Right section — kept from existing */}
+        {/* Trial pill — inline in header */}
+        {(trialActive || trialExpired) && (
+          <div className="hidden sm:flex items-center gap-2 text-xs text-white/80 flex-shrink-0">
+            <span>
+              {trialExpired
+                ? 'Trial ended.'
+                : <><b style={{color:'#FF653F'}}>{trialDaysLeft}d</b> left in trial.</>}
+            </span>
+            <button onClick={() => setActiveTab('subscriptions')}
+              className="text-white text-xs font-bold px-3 py-1 rounded-lg flex-shrink-0"
+              style={{ background:'#FF653F' }}>
+              Upgrade
+            </button>
+          </div>
+        )}
+        {/* Right section */}
         <div className="flex items-center gap-2 ml-3">
           {adminUser && (
             <button onClick={() => onNav?.('admin')}
@@ -956,24 +971,6 @@ export default function Dashboard({ user, planData, onStartTest, onLogout, onNav
           </button>
         </div>
       </header>
-
-      {/* ══ TRIAL COUNTDOWN BANNER ══ */}
-      {(trialActive || trialExpired) && (
-        <div className="px-5 py-2.5 flex items-center justify-center gap-3 text-sm flex-wrap text-white"
-          style={{ background: trialExpired ? '#7f1d1d' : '#1a1a2e' }}>
-          <span>
-            {trialExpired
-              ? 'Your free trial has ended.'
-              : <>You have <b style={{color:'#FF653F'}}>{trialDaysLeft}</b> day{trialDaysLeft>1?'s':''} left in your free trial.</>}
-            {' '}Upgrade for unlimited mocks, all exams & PDF solutions.
-          </span>
-          <button onClick={() => setActiveTab('subscriptions')}
-            className="text-white text-xs font-bold px-4 py-1.5 rounded-lg flex-shrink-0"
-            style={{ background:'#FF653F' }}>
-            Upgrade Now
-          </button>
-        </div>
-      )}
 
       <div className="flex flex-1 min-h-0">
 

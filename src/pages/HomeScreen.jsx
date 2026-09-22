@@ -572,6 +572,17 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
           </div>
         </div>
         <div className="flex-1" />
+        {/* Trial pill — inline in header */}
+        {trialActive && (
+          <div className="hidden sm:flex items-center gap-2 text-xs text-white/80 flex-shrink-0">
+            <span><b style={{color:'#FF653F'}}>{trialDaysLeft}d</b> left in trial.</span>
+            <button onClick={()=>onNav?.('subscriptions')}
+              className="text-white text-xs font-bold px-3 py-1 rounded-lg flex-shrink-0"
+              style={{ background:'#FF653F' }}>
+              Upgrade
+            </button>
+          </div>
+        )}
         <button onClick={onBack}
           className="text-sm text-white/90 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl px-4 py-1.5 font-medium transition-colors">
           ← Exit
@@ -581,14 +592,6 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
           Log out
         </button>
       </header>
-
-      {/* ── Trial banner ── */}
-      {trialActive && (
-        <div className="px-5 py-2.5 flex items-center justify-center gap-3 text-sm flex-wrap text-white flex-shrink-0" style={{ background:'#1a1a2e' }}>
-          <span>You have <b style={{color:'#FF653F'}}>{trialDaysLeft}</b> day{trialDaysLeft>1?'s':''} left in your free trial. Upgrade for unlimited mocks, all exams &amp; PDF solutions.</span>
-          <button onClick={()=>onNav?.('subscriptions')} className="text-white text-xs font-bold px-4 py-1.5 rounded-lg flex-shrink-0" style={{ background:'#FF653F' }}>Upgrade Now</button>
-        </div>
-      )}
 
       <div className="flex flex-1 min-h-0">
 
