@@ -575,7 +575,7 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
         {/* Trial pill — inline in header */}
         {trialActive && (
           <div className="hidden sm:flex items-center gap-2 text-xs text-white/80 flex-shrink-0">
-            <span><b style={{color:'#FF653F'}}>{trialDaysLeft}d</b> left in trial.</span>
+            <span>{trialDaysLeft === 1 ? 'Last day' : <><b style={{color:'#FF653F'}}>{trialDaysLeft} days</b> left</>} of your free trial.</span>
             <button onClick={()=>onNav?.('subscriptions')}
               className="text-white text-xs font-bold px-3 py-1 rounded-lg flex-shrink-0"
               style={{ background:'#FF653F' }}>
