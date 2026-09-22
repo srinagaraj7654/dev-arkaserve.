@@ -34,6 +34,7 @@ const ExamScreen         = lazy(() => import('./pages/ExamScreen.jsx'))
 const ResultScreen       = lazy(() => import('./pages/ResultScreen.jsx'))
 const OnboardingWizard   = lazy(() => import('./pages/OnboardingWizard.jsx'))
 const PaymentComingSoon  = lazy(() => import('./pages/PaymentComingSoon.jsx'))
+const TopicPractice      = lazy(() => import('./pages/TopicPractice.jsx'))
 
 // Sections rendered by the LandingPage (single-page tabs)
 const LANDING_TABS  = ['home','about','success','career']
@@ -52,7 +53,7 @@ const PAGE_PATH = {
   'exams-banking':'/exams/banking', 'exams-insurance':'/exams/insurance',
   'exams-ssc':'/exams/ssc', 'exams-engineering':'/exams/engineering',
   auth:'/auth', 'reset-password':'/reset-password',
-  dashboard:'/dashboard', practice:'/practice', examhome:'/examhome',
+  dashboard:'/dashboard', practice:'/practice', 'topic-practice':'/topic-practice', examhome:'/examhome',
   exam:'/exam', result:'/result', payment:'/payment',
   admin:'/admin', 'how-prediction-works':'/how-prediction-works',
 }
@@ -451,6 +452,7 @@ export default function App() {
             initialTab={dashTab}
             onStartTest={(mode, examId) => {
               if (!guardTrial()) return
+              if (mode === 'topic') { setPage('topic-practice'); return }
               setStartMode(mode || 'mock')
               setStartExamId(examId || '')
               setPage('examhome')
@@ -471,6 +473,18 @@ export default function App() {
             }}
             onLogout={handleLogout}
             onNav={nav}
+          />
+        )}
+        {page === 'topic-practice' && (
+          <TopicPractice
+            onBack={() => setPage('dashboard')}
+            onStartTest={(mode, engineKey, options) => {
+              if (!guardTrial()) return
+              setStartMode('topic')
+              setStartExamId(engineKey || '')
+              setPage('examhome')
+            }}
+            studentScores={{}}
           />
         )}
         {page === 'examhome'       && (
@@ -510,7 +524,7 @@ export default function App() {
           'courses','contact','privacy','terms','cutoffs','papers',
           'exams','exams-banking','exams-insurance','exams-ssc','exams-engineering',
           'blog',
-          'auth','reset-password','payment','dashboard','practice','examhome','exam',
+          'auth','reset-password','payment','dashboard','practice','topic-practice','examhome','exam',
           'result','admin','how-prediction-works',
         ].includes(page) && <NotFoundPage onNav={nav} />}
         </Suspense>
