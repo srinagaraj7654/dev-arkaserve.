@@ -1269,52 +1269,6 @@ export default function Dashboard({ user, planData, onStartTest, onLogout, onNav
                   </div>
                 )}
 
-                {/* Cut-off comparison — your best vs your category's cut-off */}
-                {examResults.length > 0 && (() => {
-                  const cat    = (user?.user_metadata?.category || 'UR')
-                  const cutoff = (CUTOFF_BY_GROUP[selectedGroup.id] || CUTOFF_BY_GROUP.ibps)[cat]
-                  if (cutoff == null || examBest == null) return null
-                  const diff   = +(examBest - cutoff).toFixed(1)
-                  const clears = diff >= 0
-                  return (
-                    <div className="mt-4 rounded-2xl overflow-hidden" style={{ background: clears ? 'linear-gradient(135deg,#ecfdf5,#f0fdf4)' : 'linear-gradient(135deg,#fff7ed,#fff3e6)', border: `1.5px solid ${clears?'#6ee7b7':'#fec9b0'}` }}>
-                      {/* Header */}
-                      <div className="flex items-center justify-between px-4 pt-4 pb-2">
-                        <div>
-                          <div className="text-[10px] font-bold uppercase tracking-widest" style={{ color: clears?'#059669':'#d97706' }}>Cut-off Check · {cat} category</div>
-                          <div className="text-lg font-black mt-0.5" style={{ color: clears?'#065f46':'#92400e' }}>
-                            {clears ? `+${diff} marks safe` : `${Math.abs(diff)} marks to go`}
-                          </div>
-                        </div>
-                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0" style={{ background: clears?'#d1fae5':'#ffedd5' }}>
-                          {clears ? '🎯' : '📈'}
-                        </div>
-                      </div>
-                      {/* Progress track */}
-                      <div className="px-4 pb-1">
-                        <div className="relative h-5 rounded-full overflow-hidden" style={{ background: clears?'#d1fae5':'#ffe4cc' }}>
-                          {/* Fill up to user score */}
-                          <div className="absolute left-0 top-0 h-full rounded-full transition-all"
-                            style={{ width:`${Math.min(examBest,100)}%`, background: clears ? 'linear-gradient(90deg,#34d399,#059669)' : 'linear-gradient(90deg,#fb923c,#FF653F)' }}/>
-                          {/* Cut-off marker */}
-                          <div className="absolute top-0 h-full w-0.5" style={{ left:`${Math.min(cutoff,99)}%`, background:'rgba(0,0,0,0.35)', zIndex:2 }}>
-                            <div className="absolute -top-0.5 -translate-x-1/2 text-[8px] font-black text-white bg-gray-700 rounded px-0.5">{cutoff}</div>
-                          </div>
-                        </div>
-                        <div className="flex justify-between text-[10px] mt-1.5 font-semibold" style={{ color: clears?'#059669':'#d97706' }}>
-                          <span>Your best: {examBest.toFixed(1)}%</span>
-                          <span>{cat} cut-off ≈ {cutoff}</span>
-                        </div>
-                      </div>
-                      {/* Message */}
-                      <div className="px-4 pb-4 pt-1 text-[11px] leading-relaxed" style={{ color: clears?'#047857':'#b45309' }}>
-                        {clears
-                          ? `Great — you're ${diff} marks above the ${cat} cut-off for ${selectedGroup.label}. Keep practising to stay safe.`
-                          : `You need ${Math.abs(diff)} more marks to clear the ${cat} cut-off. Focus on your weak topics above.`}
-                      </div>
-                    </div>
-                  )
-                })()}
               </div>
               )}
 
