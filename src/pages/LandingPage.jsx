@@ -166,7 +166,7 @@ function LandingPage({ onNav, initialTab='home' }) {
 
             <div className="fu" style={{display:'inline-flex',alignItems:'center',gap:8,background:'#FFF3EE',border:'1px solid #fec9b0',color:'#FF653F',borderRadius:24,padding:'6px 18px',fontSize:13,fontWeight:600,marginBottom:28}}>
               <span style={{width:7,height:7,background:'#FF653F',borderRadius:'50%',display:'inline-block',animation:'pulse 2s infinite'}}/>
-              Expert-Crafted Competitive Exam Preparation · Trusted by 5,000+ Aspirants
+              Expert-Crafted Competitive Exam Preparation
             </div>
 
             <h1 className="fu" style={{fontSize:'clamp(30px,5vw,54px)',fontWeight:900,color:'#111',lineHeight:1.12,marginBottom:22,letterSpacing:'-1.5px',animationDelay:'.05s'}}>

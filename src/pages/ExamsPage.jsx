@@ -219,7 +219,7 @@ function removeJsonLD(id) {
   if (el) el.remove()
 }
 
-export default function ExamsPage({ onNav, category }) {
+export default function ExamsPage({ onNav, category, isAdmin = false }) {
   const catKey  = category || 'banking'
   const meta    = CATEGORY_META[catKey] || CATEGORY_META.banking
   const faqs    = CATEGORY_FAQ[catKey] || []
@@ -273,7 +273,7 @@ export default function ExamsPage({ onNav, category }) {
     { key:'exams-banking',     label:'Banking',     icon:'🏦' },
     { key:'exams-insurance',   label:'Insurance',   icon:'🛡' },
     { key:'exams-ssc',         label:'SSC',         icon:'📋', soon:true },
-    { key:'exams-engineering', label:'Engineering', icon:'⚙',  soon:true },
+    ...(isAdmin ? [{ key:'exams-engineering', label:'Engineering', icon:'⚙', soon:true }] : []),
   ]
 
   const isComingSoon = !visibleExams.length

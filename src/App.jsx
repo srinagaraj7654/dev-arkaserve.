@@ -62,6 +62,7 @@ const pathToPage = (p) => PATH_PAGE[p] || (p === '/' ? 'home' : null)
 const pageToPath = (p) => PAGE_PATH[p] || '/'
 const IDLE_TIMEOUT  = 15 * 60 * 1000
 const IDLE_WARNING  = 60 * 1000
+const ADMIN_EMAILS  = ['anil.mikkili@stacknexus.io','amikkili@gmail.com','anil.mikkili@gmail.com']
 
 export default function App() {
   const [page,        setPage]        = useState(() => pathToPage(window.location.pathname) || 'home')
@@ -431,11 +432,16 @@ export default function App() {
         {page === 'terms'          && <TermsPage />}
         {page === 'cutoffs'        && <CutoffsPage onNav={nav} />}
         {page === 'papers'         && <PreviousPapersPage onNav={nav} />}
-        {page === 'exams'              && <ExamsPage onNav={nav} />}
-        {page === 'exams-banking'     && <ExamsPage onNav={nav} category="banking" />}
-        {page === 'exams-insurance'   && <ExamsPage onNav={nav} category="insurance" />}
-        {page === 'exams-ssc'         && <ExamsPage onNav={nav} category="ssc" />}
-        {page === 'exams-engineering' && <ExamsPage onNav={nav} category="engineering" />}
+        {(() => { const ia = ADMIN_EMAILS.includes((user?.email||'').toLowerCase()); return (<>
+        {page === 'exams'              && <ExamsPage onNav={nav} isAdmin={ia} />}
+        {page === 'exams-banking'     && <ExamsPage onNav={nav} category="banking"     isAdmin={ia} />}
+        {page === 'exams-insurance'   && <ExamsPage onNav={nav} category="insurance"   isAdmin={ia} />}
+        {page === 'exams-ssc'         && <ExamsPage onNav={nav} category="ssc"         isAdmin={ia} />}
+        </>) })()}
+        {page === 'exams-engineering' && (ADMIN_EMAILS.includes((user?.email||'').toLowerCase())
+          ? <ExamsPage onNav={nav} category="engineering" />
+          : (() => { nav('exams'); return null })()
+        )}
         {page === 'blog'              && <BlogPage onNav={nav} />}
         {page === 'auth'           && <AuthScreen onAuth={handleAuth} onBack={() => setPage('home')} />}
         {page === 'reset-password' && <ResetPasswordPage onBack={() => setPage('auth')} />}
