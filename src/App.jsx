@@ -62,12 +62,12 @@ const pathToPage = (p) => PATH_PAGE[p] || (p === '/' ? 'home' : null)
 const pageToPath = (p) => PAGE_PATH[p] || '/'
 const IDLE_TIMEOUT  = 15 * 60 * 1000
 const IDLE_WARNING  = 60 * 1000
-const ADMIN_EMAILS  = ['anil.mikkili@stacknexus.io','amikkili@gmail.com','anil.mikkili@gmail.com']
 
 export default function App() {
   const [page,        setPage]        = useState(() => pathToPage(window.location.pathname) || 'home')
   useSEO(page)
   const [user,        setUser]        = useState(null)
+  const [userRole,    setUserRole]    = useState('student')
   const [testData,    setTestData]    = useState(null)
   const [resultData,  setResultData]  = useState(null)
   const [authChecked, setAuthChecked] = useState(false)
@@ -93,10 +93,24 @@ export default function App() {
     setIdleWarning(false)
     await supabase.auth.signOut()
     setUser(null)
+    setUserRole('student')
     setPlanData(null)
     setDashTab('home')
     setPage('home')
   }, [clearTimers])
+
+  // Fetch role from user_roles table whenever the logged-in user changes.
+  // Falls back to 'student' on any error so the app never breaks.
+  useEffect(() => {
+    if (!user) { setUserRole('student'); return }
+    supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single()
+      .then(({ data }) => setUserRole(data?.role || 'student'))
+      .catch(() => setUserRole('student'))
+  }, [user?.id])
 
   const resetIdleTimer = useCallback(() => {
     if (!user) return
@@ -432,13 +446,11 @@ export default function App() {
         {page === 'terms'          && <TermsPage />}
         {page === 'cutoffs'        && <CutoffsPage onNav={nav} />}
         {page === 'papers'         && <PreviousPapersPage onNav={nav} />}
-        {(() => { const ia = ADMIN_EMAILS.includes((user?.email||'').toLowerCase()); return (<>
-        {page === 'exams'              && <ExamsPage onNav={nav} isAdmin={ia} />}
-        {page === 'exams-banking'     && <ExamsPage onNav={nav} category="banking"     isAdmin={ia} />}
-        {page === 'exams-insurance'   && <ExamsPage onNav={nav} category="insurance"   isAdmin={ia} />}
-        {page === 'exams-ssc'         && <ExamsPage onNav={nav} category="ssc"         isAdmin={ia} />}
-        </>) })()}
-        {page === 'exams-engineering' && (ADMIN_EMAILS.includes((user?.email||'').toLowerCase())
+        {page === 'exams'              && <ExamsPage onNav={nav} isAdmin={userRole === 'super_admin'} />}
+        {page === 'exams-banking'     && <ExamsPage onNav={nav} category="banking"     isAdmin={userRole === 'super_admin'} />}
+        {page === 'exams-insurance'   && <ExamsPage onNav={nav} category="insurance"   isAdmin={userRole === 'super_admin'} />}
+        {page === 'exams-ssc'         && <ExamsPage onNav={nav} category="ssc"         isAdmin={userRole === 'super_admin'} />}
+        {page === 'exams-engineering' && (userRole === 'super_admin'
           ? <ExamsPage onNav={nav} category="engineering" />
           : (() => { nav('exams'); return null })()
         )}
@@ -454,6 +466,7 @@ export default function App() {
         {page === 'dashboard'      && (
           <Dashboard
             user={user}
+            isAdmin={userRole === 'super_admin'}
             planData={planData}
             initialTab={dashTab}
             onStartTest={(mode, examId) => {
@@ -467,9 +480,10 @@ export default function App() {
             onOpenResult={openSavedResult}
           />
         )}
-		{page === 'practice'       && (
+        {page === 'practice'       && (
           <PracticePage
             user={user}
+            isAdmin={userRole === 'super_admin'}
             onStartTest={(mode, examId) => {
               if (!guardTrial()) return
               setStartMode(mode || 'mock')

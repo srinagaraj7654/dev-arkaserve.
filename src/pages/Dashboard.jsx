@@ -13,11 +13,7 @@ import {
 /* ─────────────────────────────────────────────
    CONSTANTS  (merged from both files)
 ───────────────────────────────────────────── */
-const ADMIN_EMAILS = [
-  'anil.mikkili@stacknexus.io',
-  'amikkili@gmail.com',
-  'anil.mikkili@gmail.com',
-]
+// Admin status is passed as a prop from App.jsx (resolved via user_roles DB table)
 
 export const EXAM_GROUPS = [
   {
@@ -527,7 +523,7 @@ function PlanScheduleView({ plan, onStartTest, onTopicPractice, onRebuild, today
 }
 
 
-export default function Dashboard({ user, planData, onStartTest, onLogout, onNav, onOpenResult, initialTab = 'home' }) {
+export default function Dashboard({ user, isAdmin = false, planData, onStartTest, onLogout, onNav, onOpenResult, initialTab = 'home' }) {
 
   /* ── existing state ── */
   const [history,    setHistory]   = useState([])
@@ -690,7 +686,7 @@ export default function Dashboard({ user, planData, onStartTest, onLogout, onNav
   const rawName  = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Student'
   const generic  = ['admin','test','user','testuser','administrator']
   const userName = generic.includes(rawName.toLowerCase()) ? (user?.email?.split('@')[0] || rawName) : rawName
-  const adminUser = ADMIN_EMAILS.includes((user?.email || '').toLowerCase())
+  const adminUser = isAdmin
   const today    = new Date().toISOString().split('T')[0]
   // Free users can't plan past their trial expiry; everyone is capped at 7 days.
   const trialCap = (!isPro && trialActive) ? trialEnd.toISOString().split('T')[0] : ''

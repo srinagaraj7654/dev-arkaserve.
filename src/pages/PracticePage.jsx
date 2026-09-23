@@ -104,13 +104,11 @@ const ALL_PRODUCTS = [
   { cat:'MEDICAL',     items:['NEET UG','NEET PG','AIIMS','Blog'] },
 ]
 
-const ADMIN_EMAILS = ['anil.mikkili@stacknexus.io','amikkili@gmail.com','anil.mikkili@gmail.com']
-
 /* ─── TAG STYLES ────────────────────────────────────────────── */
 const TAG = { Popular:'bg-amber-100 text-amber-700', New:'bg-emerald-100 text-emerald-700' }
 
 /* ─── MAIN COMPONENT ────────────────────────────────────────── */
-export default function PracticePage({ user, onStartTest, onLogout, onNav }) {
+export default function PracticePage({ user, isAdmin = false, onStartTest, onLogout, onNav }) {
   const [activeNav,  setActiveNav]  = useState('mock')
   const [mobileSide, setMobileSide] = useState(false)
 
@@ -118,7 +116,7 @@ export default function PracticePage({ user, onStartTest, onLogout, onNav }) {
   const skip    = ['admin','test','user','testuser','administrator']
   const uName   = skip.includes(raw.toLowerCase()) ? (user?.email?.split('@')[0] || raw) : raw
   const initials= uName.slice(0,2).toUpperCase()
-  const isAdmin = ADMIN_EMAILS.includes((user?.email||'').toLowerCase())
+  // isAdmin is passed as a prop from App.jsx (resolved via user_roles DB table)
 
   /* registration + subscription → which exams the user may see */
   const plan  = (user?.user_metadata?.plan || user?.user_metadata?.subscription || 'free').toLowerCase()
