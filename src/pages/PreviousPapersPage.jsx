@@ -209,11 +209,11 @@ export default function PreviousPapersPage({ onNav }) {
           </div>
 
           <h2 className="text-lg font-black text-gray-900 mb-3">{fam.name}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {shownPapers.map((p, i) => (
-              <div key={i} className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4"
+              <div key={i} className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
                 style={{ boxShadow: '0 2px 10px rgba(17,17,17,.05)' }}>
-                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
                   <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: '#FFF3EE' }}>📄</div>
                   <div className="min-w-0">
                     <div className="text-sm font-bold text-gray-900">{fam.name} {p.year} · {p.stage}</div>

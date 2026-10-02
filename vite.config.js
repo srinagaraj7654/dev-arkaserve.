@@ -47,10 +47,19 @@ export default defineConfig({
             handler: 'NetworkFirst',
             options: { cacheName: 'api-cache', networkTimeoutSeconds: 10, expiration: { maxEntries: 50, maxAgeSeconds: 60 * 5 } },
           },
+          {
+            // Navigation requests: network-first, fall back to offline.html only when truly offline
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'navigation-cache',
+              networkTimeoutSeconds: 10,
+              plugins: [{
+                handlerDidError: async () => caches.match('/offline.html'),
+              }],
+            },
+          },
         ],
-        // Show offline.html when a navigation request fails
-        navigateFallback: '/offline.html',
-        navigateFallbackDenylist: [/^\/api\//],
       },
       devOptions: { enabled: true },
     }),

@@ -4,14 +4,12 @@ export default function Navbar({ currentPage, onNav, user, onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
   const navItems = [
-    { id: 'about',   label: 'About Us'        },
-    { id: 'home',    label: 'Home'            },
-    { id: 'success', label: 'Success Stories' },
-    // { id: 'career',  label: 'Career'          }, // hidden — no open roles currently
-    { id: 'blog',    label: 'Blog'            },
-    { id: 'exams',   label: 'Exam Patterns'  },
-    { id: 'cutoffs', label: 'Cut-off Trends' },
-    { id: 'papers',  label: 'Past Papers'    },
+    { id: 'home',     label: 'Home'           },
+    { id: 'blog',     label: 'Blog'           },
+    { id: 'exams',    label: 'Exam Patterns'  },
+    { id: 'cutoffs',  label: 'Cut-off Trends' },
+    { id: 'papers',   label: 'Past Papers'    },
+    { id: 'us-exams', label: 'US Exams'       },
   ]
 
   return (
