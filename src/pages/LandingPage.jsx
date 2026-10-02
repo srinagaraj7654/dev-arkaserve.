@@ -1,6 +1,5 @@
 import { useState, memo, useRef, useEffect } from 'react'
 import api from '../api'
-import VisitorCounter from '../components/VisitorCounter'
 
 /* ─── DATA — outside component, created once ─── */
 const ALL_EXAMS = [
@@ -524,31 +523,7 @@ function LandingPage({ onNav, initialTab='home' }) {
               </div>
             </div>
 
-            {/* ── Our Leadership ── */}
-            <div style={{marginTop:48,marginBottom:8,textAlign:'center'}}>
-              <div style={{display:'inline-flex',alignItems:'center',gap:7,background:'#FFF3EE',color:'#FF653F',border:'1px solid #fec9b0',borderRadius:22,padding:'6px 16px',fontSize:12,fontWeight:700,marginBottom:12}}>OUR LEADERSHIP</div>
-              <h3 style={{fontSize:28,fontWeight:800,color:'#111',letterSpacing:'-0.4px'}}>The minds behind <span style={{color:'#FF653F'}}>MockTest</span></h3>
-              <p style={{fontSize:14,color:'#888',marginTop:6,maxWidth:560,margin:'6px auto 0'}}>Engineers and educators on a mission to make world-class exam prep free for every aspirant.</p>
-            </div>
-
-            <div style={{marginTop:24,background:'#fafafa',border:'1.5px solid #e5e5e5',borderRadius:20,padding:28,display:'flex',gap:24,flexWrap:'wrap',alignItems:'center'}}>
-              <div style={{width:96,height:96,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#e5512f)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:34,fontWeight:900,flexShrink:0,boxShadow:'0 8px 24px rgba(255,101,63,.3)'}}>AS</div>
-              <div style={{flex:1,minWidth:260}}>
-                <div style={{fontSize:20,fontWeight:800,color:'#111'}}>Arkaserve Team</div>
-                <div style={{fontSize:14,fontWeight:700,color:'#FF653F',marginBottom:10}}>Engineers &amp; Educators</div>
-                <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:14}}>
-                  <span style={{fontSize:12,fontWeight:600,background:'#fff',border:'1px solid #e5e5e5',borderRadius:20,padding:'5px 12px',color:'#444'}}>🎓 IITs &amp; NITs</span>
-                  <span style={{fontSize:12,fontWeight:600,background:'#fff',border:'1px solid #e5e5e5',borderRadius:20,padding:'5px 12px',color:'#444'}}>💼 10+ years in IT &amp; EdTech</span>
-                </div>
-                <p style={{fontSize:14,color:'#555',lineHeight:1.8}}>
-                  The Arkaserve team brings together engineers and educators with decades of combined experience in software and exam preparation.
-                  We built MockTest to bridge the gap between expensive coaching and quality preparation — delivering unlimited,
-                  exam-accurate practice for every student, free to start.
-                </p>
-              </div>
-            </div>
-
-            <div style={{marginTop:28,background:'#111',borderRadius:18,padding:32,textAlign:'center'}}>
+            <div style={{marginTop:48,background:'#111',borderRadius:18,padding:32,textAlign:'center'}}>
               <div style={{fontSize:22,fontWeight:800,color:'#fff',marginBottom:10}}>Ready to start?</div>
               <div style={{fontSize:14,color:'rgba(255,255,255,.6)',marginBottom:24}}>Create a free account and take your first expert-crafted mock test right now.</div>
               <button onClick={()=>onNav('auth')} className="btn-orange" style={{padding:'14px 32px',fontSize:15}}>Create Free Account →</button>
@@ -703,11 +678,6 @@ function LandingPage({ onNav, initialTab='home' }) {
           </div>
         </section>
       )}
-
-      {/* ── Visitor counter ── */}
-      <section style={{ padding: '32px 24px 48px', textAlign: 'center' }}>
-        <VisitorCounter />
-      </section>
 
     </div>
   )
