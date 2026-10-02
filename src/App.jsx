@@ -88,8 +88,79 @@ export default function App() {
   const [idleWarning, setIdleWarning] = useState(false)
   const idleTimer    = useRef(null)
   const warningTimer = useRef(null)
-  const skipPushRef    = useRef(false)   // true when a page change came from Back (popstate)
+  const skipPushRef    = useRef(false)
   const historyMounted = useRef(false)
+  const pendingNavRef    = useRef(null)
+  const navClaimedRef   = useRef(false)  // first handler to navigate after login claims this
+  const regionSavedRef  = useRef(false)  // prevent duplicate updateUser calls per session
+
+  // Save the destination before redirecting to auth.
+  // sessionStorage persists across OAuth page redirects; the ref covers same-session logins.
+  const _savePendingNav = (target, examId, region) => {
+    const v = { target, examId: examId || null, region: region || null }
+    pendingNavRef.current = v
+    navClaimedRef.current = false
+    try { sessionStorage.setItem('postAuthNav', JSON.stringify(v)) } catch {}
+  }
+
+  const _consumePendingNav = () => {
+    const fromRef = pendingNavRef.current
+    if (fromRef) {
+      pendingNavRef.current = null
+      try { sessionStorage.removeItem('postAuthNav') } catch {}
+      return fromRef
+    }
+    try {
+      const raw = sessionStorage.getItem('postAuthNav')
+      if (raw) { sessionStorage.removeItem('postAuthNav'); return JSON.parse(raw) }
+    } catch {}
+    return null
+  }
+
+  // Peek at the pending nav without consuming it (used before _navigateOnce eats it).
+  const _peekPendingNav = () => {
+    if (pendingNavRef.current) return pendingNavRef.current
+    try {
+      const raw = sessionStorage.getItem('postAuthNav')
+      return raw ? JSON.parse(raw) : null
+    } catch { return null }
+  }
+
+  // Tag the user's exam region in Supabase metadata once per session.
+  // Call BEFORE _navigateOnce so the pending nav hasn't been consumed yet.
+  // Rule: always save when exam_region is unset; overwrite only when the pending
+  // context is explicitly 'us' (e.g. user just logged in from the US Exams page).
+  const _saveExamRegion = (u) => {
+    if (regionSavedRef.current) return
+    const existingRegion = u?.user_metadata?.exam_region
+    const pending = _peekPendingNav()
+    const pendingRegion = pending?.region
+    if (!existingRegion || pendingRegion === 'us') {
+      regionSavedRef.current = true
+      const regionToSave = pendingRegion || 'in'
+      supabase.auth.updateUser({ data: { exam_region: regionToSave } }).then(({ data }) => {
+        if (data?.user) setUser(data.user)
+      })
+    }
+  }
+
+  // First handler to navigate after login claims navClaimedRef.
+  // Subsequent handlers (handleAuth, onAuthStateChange, getSession) skip.
+  const _navigateOnce = (u) => {
+    if (navClaimedRef.current) return
+    navClaimedRef.current = true
+    const pending = _consumePendingNav()
+    if (pending) {
+      if (pending.target === 'mocktest') {
+        setStartMode('mock'); setStartExamId(pending.examId || ''); setPage('examhome')
+      } else {
+        setPage(pending.target)
+      }
+      window.scrollTo(0, 0)
+    } else {
+      setDashTab('home'); setPage(resolvePostAuthPage(u))
+    }
+  }
 
   const clearTimers = useCallback(() => {
     if (idleTimer.current)    clearTimeout(idleTimer.current)
@@ -104,6 +175,8 @@ export default function App() {
     setUserRole('student')
     setPlanData(null)
     setDashTab('home')
+    navClaimedRef.current = false
+    regionSavedRef.current = false
     setPage('home')
   }, [clearTimers])
 
@@ -157,8 +230,8 @@ export default function App() {
       if (data.session?.user) {
         const u = data.session.user
         setUser(u)
-        setDashTab('home')
-        setPage(resolvePostAuthPage(u))
+        _saveExamRegion(u)
+        _navigateOnce(u)
       }
       setAuthChecked(true)
       // Strip any leftover auth token from the URL so pressing Back can't
@@ -170,19 +243,32 @@ export default function App() {
     const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => {
       if (session?.user) {
         setUser(session.user)
-        if (page === 'auth') setPage(resolvePostAuthPage(session.user))
+        _saveExamRegion(session.user)
+        _navigateOnce(session.user)
       } else {
         setUser(null)
+        navClaimedRef.current = false
+        regionSavedRef.current = false
       }
     })
     return () => listener.subscription.unsubscribe()
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
-  const resolvePostAuthPage = (_u) => {
-    // Everyone → Dashboard. Users browse and pick exams from the dashboard's
-    // "Explore Exams" view whenever they're ready (no forced onboarding step).
+  const resolvePostAuthPage = (u) => {
+    const region = u?.user_metadata?.exam_region
+    if (region === 'us') return 'us-exams'
     return 'dashboard'
   }
+
+  // Failsafe for Google OAuth redirect: after OAuth the page lands at http://localhost:3000/
+  // (page='home'). If the async Supabase handlers haven't fired _navigateOnce yet,
+  // this effect catches it once authChecked=true and user is set.
+  // navClaimedRef guards against double-navigation — if _navigateOnce already ran, this skips.
+  useEffect(() => {
+    if (!authChecked || !user || page !== 'home') return
+    _saveExamRegion(user)
+    _navigateOnce(user)
+  }, [authChecked, user?.id, page])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reconcile the plan from the authoritative subscriptions table (the DB is the
   // source of truth). If there's an active, non-expired subscription → stamp it
@@ -295,7 +381,32 @@ export default function App() {
 
   const nav = (target, examId) => {
     const publicList = [...LANDING_TABS,'courses','contact','privacy','terms','auth','practice','cutoffs','papers','exams','exams-banking','exams-insurance','exams-ssc','exams-engineering','blog','us-exams']
-    if (!user && !publicList.includes(target)) { setPage('auth'); return }
+
+    // US-region users: block only pure Indian exam category pages.
+    // Dashboard, Study Planner, Results, Subscriptions, Profile, Settings, Billing are shared.
+    if (user?.user_metadata?.exam_region === 'us') {
+      const indiaOnlyTargets = ['exams','exams-banking','exams-insurance','exams-ssc','exams-engineering','cutoffs','papers']
+      if (indiaOnlyTargets.includes(target)) {
+        setPage('us-exams'); window.scrollTo(0, 0); return
+      }
+      // Launching a mock/topic test without a SAT id → treat as sat_full
+      if (target === 'mocktest' && !examId?.startsWith('sat_')) {
+        setStartMode('mock'); setStartExamId('sat_full'); setPage('examhome'); window.scrollTo(0, 0); return
+      }
+    }
+
+    // When user clicks "Sign In" from us-exams, preserve that context so
+    // they return to the US Exams page (not the generic dashboard) after login.
+    if (target === 'auth' && !user && page === 'us-exams') {
+      _savePendingNav('us-exams', null, 'us')
+    }
+
+    if (!user && !publicList.includes(target)) {
+      const region = (page === 'us-exams' || (examId && examId.startsWith('sat_'))) ? 'us' : 'in'
+      _savePendingNav(target, examId, region)
+      setPage('auth')
+      return
+    }
     if (target === 'mocktest' && !guardTrial()) return
 
     // Dashboard inner tabs reached from other pages (e.g. Practice sidebar)
@@ -324,8 +435,8 @@ export default function App() {
 
   const handleAuth = (u) => {
     setUser(u)
-    setDashTab('home')
-    setPage(resolvePostAuthPage(u))
+    _saveExamRegion(u)
+    _navigateOnce(u)
   }
 
   const handleOnboardingDone = (wizardOutput) => {
@@ -481,6 +592,7 @@ export default function App() {
             isAdmin={userRole === 'super_admin'}
             planData={planData}
             initialTab={dashTab}
+            examRegion={user?.user_metadata?.exam_region || 'in'}
             onStartTest={(mode, examId) => {
               if (!guardTrial()) return
               setStartMode(mode || 'mock')

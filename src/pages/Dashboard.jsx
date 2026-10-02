@@ -99,6 +99,66 @@ export const EXAM_GROUPS = [
   },
 ]
 
+export const SAT_EXAM_GROUPS = [
+  {
+    id: 'sat', label: 'SAT Exams',
+    color: 'from-blue-600 to-blue-700', hex: '#2563eb',
+    exams: [
+      { id: 'sat_full',             name: 'SAT Full Test',           sub: '98Q · 134 min',  tag: 'Popular', tagColor: 'bg-blue-100 text-blue-700' },
+      { id: 'sat_math',             name: 'SAT Math',                sub: '44Q · 70 min',   tag: null },
+      { id: 'sat_reading_writing',  name: 'SAT Reading & Writing',   sub: '54Q · 64 min',   tag: null },
+    ],
+  },
+  {
+    id: 'act', label: 'ACT Exams',
+    color: 'from-red-500 to-red-600', hex: '#ef4444',
+    exams: [
+      { id: 'act_full',     name: 'ACT Full Test',  sub: '215Q · 175 min', tag: 'Popular', tagColor: 'bg-red-100 text-red-700' },
+      { id: 'act_english',  name: 'ACT English',    sub: '75Q · 45 min',   tag: null },
+      { id: 'act_math',     name: 'ACT Math',       sub: '60Q · 60 min',   tag: null },
+      { id: 'act_reading',  name: 'ACT Reading',    sub: '40Q · 35 min',   tag: null },
+      { id: 'act_science',  name: 'ACT Science',    sub: '40Q · 35 min',   tag: null },
+    ],
+  },
+  {
+    id: 'psat', label: 'PSAT / NMSQT',
+    color: 'from-violet-500 to-violet-600', hex: '#8b5cf6',
+    exams: [
+      { id: 'psat_full',            name: 'PSAT Full Test',          sub: '98Q · 134 min', tag: 'Popular', tagColor: 'bg-violet-100 text-violet-700' },
+      { id: 'psat_math',            name: 'PSAT Math',               sub: '44Q · 70 min',  tag: null },
+      { id: 'psat_reading_writing', name: 'PSAT Reading & Writing',  sub: '54Q · 64 min',  tag: null },
+    ],
+  },
+  {
+    id: 'ap_math_science', label: 'AP Math & Science',
+    color: 'from-emerald-600 to-emerald-700', hex: '#059669',
+    exams: [
+      { id: 'ap_calc_ab',      name: 'AP Calculus AB',         sub: '45Q · 105 min', tag: 'Popular', tagColor: 'bg-emerald-100 text-emerald-700' },
+      { id: 'ap_calc_bc',      name: 'AP Calculus BC',         sub: '45Q · 105 min', tag: null },
+      { id: 'ap_statistics',   name: 'AP Statistics',          sub: '40Q · 90 min',  tag: null },
+      { id: 'ap_physics1',     name: 'AP Physics 1',           sub: '50Q · 90 min',  tag: null },
+      { id: 'ap_chemistry',    name: 'AP Chemistry',           sub: '60Q · 90 min',  tag: null },
+      { id: 'ap_biology',      name: 'AP Biology',             sub: '60Q · 90 min',  tag: null },
+      { id: 'ap_env_science',  name: 'AP Environmental Sci.',  sub: '80Q · 90 min',  tag: null },
+      { id: 'ap_comp_sci_a',   name: 'AP Computer Science A',  sub: '40Q · 90 min',  tag: null },
+    ],
+  },
+  {
+    id: 'ap_humanities', label: 'AP Humanities & Social Studies',
+    color: 'from-amber-500 to-amber-600', hex: '#f59e0b',
+    exams: [
+      { id: 'ap_us_history',   name: 'AP U.S. History',        sub: '55Q · 55 min',  tag: 'Popular', tagColor: 'bg-amber-100 text-amber-700' },
+      { id: 'ap_world_history',name: 'AP World History',       sub: '55Q · 55 min',  tag: null },
+      { id: 'ap_gov_politics', name: 'AP Gov. & Politics',     sub: '55Q · 80 min',  tag: null },
+      { id: 'ap_english_lang', name: 'AP English Language',    sub: '45Q · 60 min',  tag: null },
+      { id: 'ap_english_lit',  name: 'AP English Literature',  sub: '55Q · 60 min',  tag: null },
+      { id: 'ap_psychology',   name: 'AP Psychology',          sub: '100Q · 70 min', tag: null },
+      { id: 'ap_macro_econ',   name: 'AP Macroeconomics',      sub: '60Q · 70 min',  tag: null },
+      { id: 'ap_micro_econ',   name: 'AP Microeconomics',      sub: '60Q · 70 min',  tag: null },
+    ],
+  },
+]
+
 const CATEGORIES = [
   { value:'UR',   label:'General / UR' },
   { value:'OBC',  label:'OBC' },
@@ -130,6 +190,12 @@ const MODES = [
   { id:'section', label:'Section Test',    desc:'Pick one section · 20 min timed · full score',  Icon:SvgTimer,  bg:'bg-emerald-600', light:'bg-emerald-50', text:'text-emerald-700', border:'border-emerald-200' },
 ]
 
+const SAT_MODES = [
+  { id:'mock',    label:'Full SAT Practice', desc:'98Q · both sections · 134 min · score 400–1600',    Icon:SvgDoc,    bg:'bg-blue-600',    light:'bg-blue-50',    text:'text-blue-700',    border:'border-blue-200'    },
+  { id:'topic',   label:'Topic Practice',    desc:'8 SAT topics · unique questions · any difficulty',   Icon:SvgTarget, bg:'bg-violet-600',  light:'bg-violet-50',  text:'text-violet-700',  border:'border-violet-200'  },
+  { id:'section', label:'Section Test',      desc:'Reading & Writing or Math · timed · full score',     Icon:SvgTimer,  bg:'bg-emerald-600', light:'bg-emerald-50', text:'text-emerald-700', border:'border-emerald-200' },
+]
+
 const SIDEBAR_NAV = [
   { id:'home',          Icon:SvgHome,  label:'Dashboard'     },
   { id:'explore',       Icon:SvgDoc,   label:'Explore Exams' },
@@ -147,6 +213,20 @@ const TOPIC_GROUPS = [
   { section:'English Language',      color:'#0891b2', topics:['Reading Comprehension','Cloze Test','Error Detection','Para Jumbles','Fill in the Blanks','Sentence Improvement'] },
   { section:'General Awareness',     color:'#d97706', topics:['Current Affairs','Banking Awareness','RBI & Monetary Policy','Financial Terms','Government Schemes','Static GK'] },
   { section:'Insurance Awareness',   color:'#0e7490', topics:['IRDAI & Regulations','LIC Products','Insurance Principles','Government Schemes (PMJJBY/PMSBY/PMFBY)','Health Insurance & PM-JAY','Reinsurance','Bancassurance','ULIP & Investment Plans','Insurance Terminology','Solvency & Capital Norms'] },
+]
+
+const SAT_TOPIC_GROUPS = [
+  { section:'Algebra & Functions',          color:'#1d4ed8', topics:['Linear Equations','Systems of Equations','Linear Inequalities','Quadratic Equations','Polynomials','Rational & Radical Expressions','Nonlinear Functions','Exponential Growth'] },
+  { section:'Advanced Math',                color:'#7c3aed', topics:['Coordinate Geometry','Plane Geometry','Trigonometry','Circles','Area & Volume','Right Triangle Trig','3D Geometry'] },
+  { section:'Statistics & Data Analysis',   color:'#059669', topics:['Ratios & Proportions','Percentages','Unit Conversions','Probability','Descriptive Statistics','Data Interpretation','Two-Variable Data'] },
+  { section:'Reading Comprehension',        color:'#0891b2', topics:['Central Ideas & Details','Command of Evidence','Inference','Literary Narrative','Social Studies Passages','Humanities Passages','Natural Science Passages','Cross-Text Connections'] },
+  { section:'Writing & Language',           color:'#db2777', topics:['Words in Context','Rhetorical Purpose','Text Structure','Transitions','Style & Tone','Organization','Strategy'] },
+  { section:'English Conventions',          color:'#e11d48', topics:['Grammar & Usage','Punctuation','Sentence Structure','Subject-Verb Agreement','Pronoun Usage','Modifier Placement','Parallel Structure'] },
+  { section:'ACT Science',                  color:'#0e7490', topics:['Data Representation','Research Summaries','Conflicting Viewpoints','Scientific Reasoning','Experimental Design'] },
+  { section:'AP Calculus & Statistics',     color:'#059669', topics:['Limits & Continuity','Derivatives','Integrals','Differential Equations','Series & Sequences','Sampling Methods','Probability Distributions','Hypothesis Testing','Statistical Inference'] },
+  { section:'AP Sciences',                  color:'#16a34a', topics:['Forces & Motion','Energy & Waves','Chemical Reactions','Stoichiometry','Cell Biology','Genetics & Evolution','Ecosystems','Environmental Systems'] },
+  { section:'AP History & Social Studies',  color:'#f59e0b', topics:['Argumentation & Evidence','Causation & Effect','Continuity & Change','Comparison','Contextualization','Primary Source Analysis','Economic Systems','Political Systems'] },
+  { section:'AP English & Economics',       color:'#d97706', topics:['Rhetorical Analysis','Argumentation','Close Reading','Literary Devices','Supply & Demand','Market Structures','Fiscal Policy','Monetary Policy'] },
 ]
 
 const WEEKDAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
@@ -201,9 +281,9 @@ const SECTION_KEY = {
   'English Language':      'english',
   'General Awareness':     'general_awareness',
 }
-function groupWeakTopics(weakTopics) {
+function groupWeakTopics(weakTopics, topicGroups = TOPIC_GROUPS) {
   const grouped = {}
-  TOPIC_GROUPS.forEach(g => {
+  topicGroups.forEach(g => {
     const picked = g.topics.filter(t => weakTopics.includes(t))
     if (picked.length) grouped[SECTION_KEY[g.section] || g.section] = picked
   })
@@ -213,13 +293,13 @@ function groupWeakTopics(weakTopics) {
 /* ─────────────────────────────────────────────
    PLAN GENERATOR  (pure JS, no API needed)
 ───────────────────────────────────────────── */
-function generatePlan({ startDate, endDate, studyDays, hoursPerDay, dayHours = {}, weakTopics }) {
+function generatePlan({ startDate, endDate, studyDays, hoursPerDay, dayHours = {}, weakTopics, topicGroups = TOPIC_GROUPS }) {
   const start = new Date(startDate)
   const end   = new Date(endDate)
   const total = Math.round((end - start) / (1000 * 60 * 60 * 24))
   if (total < 1) return null
 
-  const allTopics = TOPIC_GROUPS.flatMap(g => g.topics)
+  const allTopics = topicGroups.flatMap(g => g.topics)
   const priority  = allTopics.filter(t => weakTopics.includes(t))
   const rest      = allTopics.filter(t => !weakTopics.includes(t))
   const ordered   = [...priority, ...rest]
@@ -523,7 +603,7 @@ function PlanScheduleView({ plan, onStartTest, onTopicPractice, onRebuild, today
 }
 
 
-export default function Dashboard({ user, isAdmin = false, planData, onStartTest, onLogout, onNav, onOpenResult, initialTab = 'home' }) {
+export default function Dashboard({ user, isAdmin = false, planData, onStartTest, onLogout, onNav, onOpenResult, initialTab = 'home', examRegion = 'in' }) {
 
   /* ── existing state ── */
   const [history,    setHistory]   = useState([])
@@ -594,7 +674,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
   const [profileCategory, setProfileCategory] = useState(user?.user_metadata?.category || 'UR')
   const [profileState,    setProfileState]    = useState(user?.user_metadata?.state || '')
   const [profileLevel,    setProfileLevel]    = useState(user?.user_metadata?.level || '')
-  const [profileExam,     setProfileExam]     = useState(user?.user_metadata?.target_exam || 'bank_clerk_prelims')
+  const [profileExam,     setProfileExam]     = useState(user?.user_metadata?.target_exam || (examRegion === 'us' ? 'sat_full' : 'bank_clerk_prelims'))
   const [eduEdit,         setEduEdit]         = useState(false)
   const [eduSaving,       setEduSaving]       = useState(false)
   // password change
@@ -609,7 +689,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
 
   /* ── selected / target exam state ── */
   const [selectedExamId, setSelectedExamId] = useState(
-    user?.user_metadata?.target_exam || 'bank_clerk_prelims'
+    user?.user_metadata?.target_exam || (examRegion === 'us' ? 'sat_full' : 'bank_clerk_prelims')
   )
   // true only once the user has actually picked an exam (not skipped onboarding)
   const [examChosen,     setExamChosen]     = useState(!!user?.user_metadata?.target_exam)
@@ -617,10 +697,15 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
   const [changingExam,   setChangingExam]   = useState(false)
   const [examSaving,     setExamSaving]     = useState(false)
 
+  /* region-aware exam groups, practice modes, and topic groups */
+  const ACTIVE_GROUPS       = examRegion === 'us' ? SAT_EXAM_GROUPS  : EXAM_GROUPS
+  const ACTIVE_MODES        = examRegion === 'us' ? SAT_MODES        : MODES
+  const ACTIVE_TOPIC_GROUPS = examRegion === 'us' ? SAT_TOPIC_GROUPS : TOPIC_GROUPS
+
   /* flatten all exams + find the selected one and its group */
-  const ALL_EXAMS_FLAT = EXAM_GROUPS.flatMap(g => g.exams.map(e => ({ ...e, groupId: g.id, groupLabel: g.label, groupColor: g.color })))
+  const ALL_EXAMS_FLAT = ACTIVE_GROUPS.flatMap(g => g.exams.map(e => ({ ...e, groupId: g.id, groupLabel: g.label, groupColor: g.color })))
   const selectedExam   = ALL_EXAMS_FLAT.find(e => e.id === selectedExamId) || ALL_EXAMS_FLAT[0]
-  const selectedGroup  = EXAM_GROUPS.find(g => g.id === selectedExam?.groupId) || EXAM_GROUPS[0]
+  const selectedGroup  = ACTIVE_GROUPS.find(g => g.id === selectedExam?.groupId) || ACTIVE_GROUPS[0]
 
   /* persist a new target exam to Supabase user_metadata */
   const handleChangeExam = async (examId) => {
@@ -669,12 +754,13 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
 
   /* Derived live each render (not one-time state) so the "pick an exam" hero
      never flashes for returning users while their data is still loading. */
-  const hasChosenExam = examChosen
+  const hasChosenExam = examRegion === 'us'
+    || examChosen
     || !!user?.user_metadata?.target_exam
     || (Array.isArray(user?.user_metadata?.selected_exams) && user.user_metadata.selected_exams.length > 0)
     || history.length > 0
   const FREE_OPEN_IDS = new Set(['ap_eamcet_engg', 'ts_eamcet_engg'])
-  const visibleGroupExams = isPro
+  const visibleGroupExams = (examRegion === 'us' || isPro)
     ? selectedGroup.exams
     : selectedGroup.exams.filter(e => registeredExamIds.includes(e.id) || e.id === selectedExamId || FREE_OPEN_IDS.has(e.id))
   const examBest    = examResults.length ? Math.max(...examResults.map(r => r.percentage || 0)) : null
@@ -799,7 +885,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
     if (!isPro && trialActive && new Date(endDate) > trialEnd) {
       toast(`Your free trial ends on ${trialEndStr}. Pick an end date within your trial, or upgrade for longer plans.`, 'error'); return
     }
-    const plan = generatePlan({ startDate, endDate, studyDays, hoursPerDay, dayHours, weakTopics })
+    const plan = generatePlan({ startDate, endDate, studyDays, hoursPerDay, dayHours, weakTopics, topicGroups: ACTIVE_TOPIC_GROUPS })
     if (!plan) return
     setGeneratedPlan(plan)
     await handleSavePlan(plan)
@@ -846,7 +932,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
         selected_exams:  [planExam],
         exam_date:       endDate || null,
         hours_per_day:   hoursPerDay,
-        weak_topics:     groupWeakTopics(weakTopics),
+        weak_topics:     groupWeakTopics(weakTopics, ACTIVE_TOPIC_GROUPS),
         onboarding_done: true,
         updated_at:      new Date().toISOString(),
       }, { onConflict: 'student_id' })
@@ -1271,7 +1357,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
               {/* Quick practice */}
               <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Quick Practice</h2>
               <div className="flex gap-2 mb-8">
-                {MODES.map(m => (
+                {ACTIVE_MODES.map(m => (
                   <button key={m.id} onClick={() => onStartTest(m.id)}
                     className={`flex-1 flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all hover:shadow-sm ${m.light} ${m.border}`}
                     onMouseOver={e=>e.currentTarget.style.opacity='0.85'}
@@ -1308,7 +1394,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     <p className="text-xs font-semibold text-gray-500 mb-3">Pick the exam you want to prepare for:</p>
                     <div className="space-y-4">
                       {/* Free users only see their current group; Pro users see all */}
-                      {(isPro ? EXAM_GROUPS : EXAM_GROUPS.filter(g => g.id === selectedGroup.id)).map(g => (
+                      {(isPro ? ACTIVE_GROUPS : ACTIVE_GROUPS.filter(g => g.id === selectedGroup.id)).map(g => (
                         <div key={g.id}>
                           <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{g.label}</div>
                           <div className="flex flex-wrap gap-2">
@@ -1335,7 +1421,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                         style={{ background:'#1a1a2e' }}>
                         <div className="text-center sm:text-left">
                           <div className="text-sm font-bold text-white">Want to prepare for more exams?</div>
-                          <div className="text-xs text-gray-300 mt-0.5">Free covers one exam. Upgrade to Pro to unlock SBI, RRB, PSU and more.</div>
+                          <div className="text-xs text-gray-300 mt-0.5">{examRegion === 'us' ? 'Free covers one exam. Upgrade to Pro for unlimited SAT practice, PDF solutions and more.' : 'Free covers one exam. Upgrade to Pro to unlock SBI, RRB, PSU and more.'}</div>
                         </div>
                         <button onClick={() => onNav?.('subscriptions')}
                           className="text-white text-xs font-bold px-5 py-2.5 rounded-xl flex-shrink-0 transition-all"
@@ -1387,7 +1473,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
 
                 {showAllExams && (() => {
                   // only exams the user has actually attempted, outside the current group
-                  const otherGroups = EXAM_GROUPS
+                  const otherGroups = ACTIVE_GROUPS
                     .filter(g => g.id !== selectedGroup.id)
                     .map(g => ({ ...g, exams: g.exams.filter(e => attemptedExamIds.includes(e.id)) }))
                     .filter(g => g.exams.length > 0)
@@ -1470,7 +1556,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
               <h2 className="text-xl font-black text-gray-900 mb-1">Practice</h2>
               <p className="text-sm text-gray-500 mb-6">Choose a mode and launch your test</p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                {MODES.map(m => (
+                {ACTIVE_MODES.map(m => (
                   <button key={m.id} onClick={() => onStartTest(m.id)}
                     className="text-left bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-md transition-all group"
                     onMouseOver={e=>e.currentTarget.style.borderColor='#fec9b0'}
@@ -1483,7 +1569,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                 ))}
               </div>
               <div className="space-y-4">
-                {EXAM_GROUPS.map(g => (
+                {ACTIVE_GROUPS.map(g => (
                   <div key={g.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                     <div className={`bg-gradient-to-r ${g.color} px-5 py-3 flex items-center justify-between`}>
                       <span className="font-bold text-white text-sm">{g.label}</span>
@@ -1510,7 +1596,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
 
             {/* ── EXPLORE EXAMS tab — list → exam detail (pricing + start mock) ── */}
             {activeTab === 'explore' && (() => {
-              const groupOf = (id) => EXAM_GROUPS.find(g => g.exams.some(e => e.id === id))
+              const groupOf = (id) => ACTIVE_GROUPS.find(g => g.exams.some(e => e.id === id))
               const grp  = exploreExam ? groupOf(exploreExam) : null
               const exam = grp ? grp.exams.find(e => e.id === exploreExam) : null
               const cut  = grp ? (CUTOFF_BY_GROUP[grp.id] || CUTOFF_BY_GROUP.ibps) : null
@@ -1529,7 +1615,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                   <>
                     <h2 className="text-xl font-black text-gray-900 mb-1">Explore Exams</h2>
                     <p className="text-sm text-gray-500 mb-6">Pick an exam to see its pattern, cut-offs, pricing and start a mock test</p>
-                    {EXAM_GROUPS.map(g => (
+                    {ACTIVE_GROUPS.map(g => (
                       <div key={g.id} className="mb-5">
                         <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color:g.hex }}>{g.label}</div>
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
@@ -1653,7 +1739,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                         </div>
                       ) : (
                         <div className="space-y-3">
-                          {TOPIC_GROUPS.map(group => (
+                          {ACTIVE_TOPIC_GROUPS.map(group => (
                             <div key={group.section}>
                               <p className="text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color:group.color }}>{group.section}</p>
                               <div className="flex flex-wrap gap-1.5">
@@ -1759,7 +1845,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                         <select value={planExam} onChange={e=>setPlanExam(e.target.value)}
                           className="sm:hidden w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 bg-white outline-none focus:border-blue-500">
                           <option value="">Select an exam…</option>
-                          {EXAM_GROUPS.map(g => (
+                          {ACTIVE_GROUPS.map(g => (
                             <optgroup key={g.id} label={g.label}>
                               {g.exams.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                             </optgroup>
@@ -1767,7 +1853,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                         </select>
                         {/* Desktop: chips (colored by exam family) */}
                         <div className="hidden sm:grid grid-cols-2 md:grid-cols-3 gap-2">
-                          {EXAM_GROUPS.flatMap(g => g.exams.map(e => {
+                          {ACTIVE_GROUPS.flatMap(g => g.exams.map(e => {
                             const sel = planExam===e.id
                             return (
                             <button key={e.id} onClick={() => setPlanExam(e.id)}
@@ -1797,7 +1883,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                         )}
                       </div>
                       {(() => {
-                        const sections = TOPIC_GROUPS.map(group => (
+                        const sections = ACTIVE_TOPIC_GROUPS.map(group => (
                           <div key={group.section}>
                             <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{color:group.color}}>{group.section}</p>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -2212,7 +2298,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
               const fieldCls = (on) => `w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${on ? 'bg-white text-gray-900 focus:ring-2' : 'border-gray-200 bg-gray-50 text-gray-500'}`
               const fieldStyle = (on) => on ? { borderColor:'#FF653F' } : {}
               const examName = (id) => ALL_EXAMS_FLAT.find(e=>e.id===id)?.name
-              const examLabel = (id) => { const e=ALL_EXAMS_FLAT.find(x=>x.id===id); const g=EXAM_GROUPS.find(gr=>gr.exams.some(x=>x.id===id)); return e? `${g?.label?.replace(' Exams','')||''} ${e.name}`.trim() : id }
+              const examLabel = (id) => { const e=ALL_EXAMS_FLAT.find(x=>x.id===id); const g=ACTIVE_GROUPS.find(gr=>gr.exams.some(x=>x.id===id)); return e? `${g?.label?.replace(' Exams','')||''} ${e.name}`.trim() : id }
               return (
               <div className="max-w-2xl">
                 <h2 className="text-xl font-black text-gray-900 mb-1">Profile</h2>
@@ -2278,7 +2364,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                       <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Target Exam</label>
                         <select value={profileExam} onChange={e=>setProfileExam(e.target.value)} className={fieldCls(true)+' cursor-pointer'} style={fieldStyle(true)}>
-                          {EXAM_GROUPS.flatMap(g=>g.exams.map(e=>(
+                          {ACTIVE_GROUPS.flatMap(g=>g.exams.map(e=>(
                             <option key={e.id} value={e.id}>{g.label.replace(' Exams','')} — {e.name}</option>
                           )))}
                         </select>
@@ -2487,7 +2573,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                 ))}
               </div>
               <div className="px-5 pt-1 md:pt-1 pb-2 text-xs font-bold uppercase tracking-widest" style={{ color:'#FF653F' }}>Practice Modes</div>
-              {MODES.map(m => (
+              {ACTIVE_MODES.map(m => (
                 <button key={m.id} onClick={()=>{setPanelOpen(false);onStartTest(m.id)}}
                   className="w-full flex items-center gap-3 px-5 py-3 text-white transition-colors"
                   style={{ borderRadius:0 }}
@@ -2499,7 +2585,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                   </div>
                 </button>
               ))}
-              {EXAM_GROUPS.map(g => (
+              {ACTIVE_GROUPS.map(g => (
                 <div key={g.id} className="mt-2">
                   <div className="px-5 py-2 text-xs font-bold uppercase tracking-widest" style={{ color:'#FF653F', borderTop:'1px solid rgba(255,255,255,.08)' }}>{g.label}</div>
                   {g.exams.map(e => (

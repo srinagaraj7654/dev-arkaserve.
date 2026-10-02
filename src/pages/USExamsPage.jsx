@@ -214,6 +214,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
         }
         @media(max-width:480px){
           .ue-toggle button { padding:9px 20px; }
+          .ue-exam-sub { display:none; }
         }
         @keyframes ue-drop-in {
           from { opacity:0; transform:translateY(-6px); }
@@ -332,7 +333,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
                 )}
               </div>
 
-              <span style={{ fontSize:11, color:'rgba(255,255,255,.3)' }}>{selectedExam.sub}</span>
+              <span className="ue-exam-sub" style={{ fontSize:11, color:'rgba(255,255,255,.3)' }}>{selectedExam.sub}</span>
             </div>
           </div>
         )}
@@ -341,12 +342,31 @@ export default function USExamsPage({ onNav, user, onLogout }) {
       {/* ════════════ HERO ════════════ */}
       <div className="ue-hero">
         <div style={{ maxWidth:680, margin:'0 auto' }}>
-          <h1 style={{ fontSize:'clamp(1.4rem,3vw,2.2rem)', fontWeight:900, color:'#fff', lineHeight:1.2, marginBottom:14, letterSpacing:'-0.5px', whiteSpace:'nowrap' }}>
+          <h1 style={{ fontSize:'clamp(1.4rem,4.5vw,2.2rem)', fontWeight:900, color:'#fff', lineHeight:1.2, marginBottom:14, letterSpacing:'-0.5px' }}>
             Crack the <span style={{ color:'#FF653F' }}>SAT & ACT</span> with Expert Mock Tests
           </h1>
-          <p style={{ fontSize:'clamp(11px,1.5vw,15px)', color:'rgba(255,255,255,.65)', lineHeight:1.7, margin:'0 auto 28px', whiteSpace:'nowrap' }}>
-            Adaptive practice tests, section drills, and score prediction — built for students growth.
+          <p style={{ fontSize:'clamp(12px,1.8vw,15px)', color:'rgba(255,255,255,.65)', lineHeight:1.7, margin:'0 auto 20px' }}>
+            Adaptive practice tests, section drills, and score prediction — built for student growth.
           </p>
+          {/* Hero CTA buttons */}
+          <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
+            <button
+              onClick={() => onNav('mocktest', 'sat_full')}
+              style={{ background:'#FF653F', color:'#fff', border:'none', padding:'13px 28px', borderRadius:10, fontSize:14, fontWeight:800, cursor:'pointer', boxShadow:'0 4px 16px rgba(255,101,63,.45)', transition:'background .15s' }}
+              onMouseOver={e => e.currentTarget.style.background='#e5512f'}
+              onMouseOut={e => e.currentTarget.style.background='#FF653F'}
+            >
+              🎓 Start SAT Practice Test
+            </button>
+            <button
+              onClick={() => setTab('syllabus')}
+              style={{ background:'rgba(255,255,255,.1)', color:'#fff', border:'1px solid rgba(255,255,255,.2)', padding:'13px 22px', borderRadius:10, fontSize:13, fontWeight:600, cursor:'pointer', transition:'background .15s' }}
+              onMouseOver={e => e.currentTarget.style.background='rgba(255,255,255,.16)'}
+              onMouseOut={e => e.currentTarget.style.background='rgba(255,255,255,.1)'}
+            >
+              View Syllabus →
+            </button>
+          </div>
         </div>
       </div>
 
@@ -371,6 +391,47 @@ export default function USExamsPage({ onNav, user, onLogout }) {
                   </div>
                 ))}
               </div>
+
+              {/* SAT: Take test strip */}
+              {examToggle === 'sat' && (
+                <div style={{ background:'linear-gradient(135deg,#1e3a5f,#0f172a)', borderRadius:16, padding:'20px 24px', marginBottom:24, display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', gap:16 }}>
+                  <div>
+                    <div style={{ fontSize:15, fontWeight:800, color:'#fff', marginBottom:4 }}>Ready to practise? Jump straight in.</div>
+                    <div style={{ fontSize:12.5, color:'rgba(255,255,255,.55)', lineHeight:1.5 }}>All three options are free. No sign-up required to preview questions.</div>
+                  </div>
+                  <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                    <button
+                      onClick={() => onNav('mocktest', 'sat_full')}
+                      style={{ background:'#FF653F', color:'#fff', border:'none', padding:'10px 20px', borderRadius:9, fontSize:13, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 4px 12px rgba(255,101,63,.4)' }}
+                    >
+                      Full SAT — 98 Qs
+                    </button>
+                    <button
+                      onClick={() => onNav('mocktest', 'sat_math')}
+                      style={{ background:'rgba(255,101,63,.15)', color:'#FF653F', border:'1px solid rgba(255,101,63,.4)', padding:'10px 18px', borderRadius:9, fontSize:13, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}
+                    >
+                      Math Only — 44 Qs
+                    </button>
+                    <button
+                      onClick={() => onNav('mocktest', 'sat_reading_writing')}
+                      style={{ background:'rgba(59,130,246,.12)', color:'#93c5fd', border:'1px solid rgba(59,130,246,.3)', padding:'10px 18px', borderRadius:9, fontSize:13, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}
+                    >
+                      R&W Only — 54 Qs
+                    </button>
+                  </div>
+                </div>
+              )}
+              {examToggle === 'act' && (
+                <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:14, padding:'18px 24px', marginBottom:24, display:'flex', alignItems:'center', gap:14 }}>
+                  <div style={{ fontSize:28, flexShrink:0 }}>🚧</div>
+                  <div>
+                    <div style={{ fontSize:14, fontWeight:700, color:'#0f172a', marginBottom:3 }}>ACT Practice Tests — Coming Soon</div>
+                    <div style={{ fontSize:12.5, color:'#6b7280', lineHeight:1.5 }}>
+                      ACT engines are in development. Meanwhile, <button onClick={() => onNav('mocktest','sat_full')} style={{ background:'none', border:'none', color:'#FF653F', fontWeight:700, cursor:'pointer', padding:0, fontSize:'inherit' }}>try the SAT full test →</button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Section cards */}
               {(examToggle==='sat' ? SAT_SECTIONS : ACT_SECTIONS).map(sec => (
@@ -602,9 +663,9 @@ export default function USExamsPage({ onNav, user, onLogout }) {
               <div style={{ background:'#FF653F', borderRadius:14, padding:'18px', textAlign:'center' }}>
                 <div style={{ fontSize:24, marginBottom:8 }}>🎯</div>
                 <div style={{ fontSize:14, fontWeight:800, color:'#fff', marginBottom:6 }}>Practice Makes Perfect</div>
-                <div style={{ fontSize:12, color:'rgba(255,255,255,.8)', marginBottom:14, lineHeight:1.6 }}>Start your first adaptive mock test — free.</div>
-                <button onClick={() => onNav('auth')} style={{ background:'#fff', color:'#FF653F', border:'none', padding:'10px 20px', borderRadius:8, fontSize:13, fontWeight:800, cursor:'pointer', width:'100%' }}>
-                  Get Early Access
+                <div style={{ fontSize:12, color:'rgba(255,255,255,.8)', marginBottom:14, lineHeight:1.6 }}>Start your first adaptive SAT mock — free.</div>
+                <button onClick={() => onNav('mocktest', 'sat_full')} style={{ background:'#fff', color:'#FF653F', border:'none', padding:'10px 20px', borderRadius:8, fontSize:13, fontWeight:800, cursor:'pointer', width:'100%' }}>
+                  Start SAT Test →
                 </button>
               </div>
             </div>
@@ -661,15 +722,18 @@ export default function USExamsPage({ onNav, user, onLogout }) {
               {/* CTA */}
               <div className="ue-cta">
                 <div style={{ fontSize:36, marginBottom:12 }}>🚀</div>
-                <h3 style={{ fontSize:22, fontWeight:900, color:'#fff', marginBottom:10 }}>Be First When We Launch</h3>
+                <h3 style={{ fontSize:22, fontWeight:900, color:'#fff', marginBottom:10 }}>SAT Practice Tests Are Live</h3>
                 <p style={{ fontSize:14, color:'rgba(255,255,255,.65)', lineHeight:1.7, maxWidth:440, margin:'0 auto 24px' }}>
-                  Digital SAT adaptive tests and ACT section drills are in development. Early access is completely free.
+                  Digital SAT adaptive tests are ready. Take a full test, Math-only, or Reading & Writing — all free.
                 </p>
                 <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
-                  <button onClick={() => onNav('auth')} style={{ background:'#FF653F', color:'#fff', border:'none', padding:'13px 32px', borderRadius:10, fontSize:14, fontWeight:700, cursor:'pointer' }}>
-                    Notify Me — It's Free
+                  <button onClick={() => onNav('mocktest', 'sat_full')} style={{ background:'#FF653F', color:'#fff', border:'none', padding:'13px 32px', borderRadius:10, fontSize:14, fontWeight:700, cursor:'pointer' }}>
+                    Start Full SAT Test →
                   </button>
-                  <button onClick={() => onNav('exams')} style={{ background:'rgba(255,255,255,.1)', color:'#fff', border:'1px solid rgba(255,255,255,.2)', padding:'13px 24px', borderRadius:10, fontSize:13, fontWeight:600, cursor:'pointer' }}>
+                  <button onClick={() => onNav('mocktest', 'sat_math')} style={{ background:'rgba(255,255,255,.1)', color:'#fff', border:'1px solid rgba(255,255,255,.2)', padding:'13px 24px', borderRadius:10, fontSize:13, fontWeight:600, cursor:'pointer' }}>
+                    Math Only (44 Qs)
+                  </button>
+                  <button onClick={() => onNav('exams')} style={{ background:'rgba(255,255,255,.07)', color:'rgba(255,255,255,.7)', border:'1px solid rgba(255,255,255,.12)', padding:'13px 20px', borderRadius:10, fontSize:13, fontWeight:600, cursor:'pointer' }}>
                     Browse India Exams →
                   </button>
                 </div>

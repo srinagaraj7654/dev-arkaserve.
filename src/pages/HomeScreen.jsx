@@ -196,6 +196,121 @@ const LEVEL = { Prelims:'bg-sky-100 text-sky-700', Mains:'bg-amber-100 text-ambe
 // Exams always visible to all users (free or paid) regardless of registration
 const FREE_OPEN_EXAMS = new Set(['ap_eamcet_engg', 'ts_eamcet_engg', 'jee_mains', 'jee_advanced_p1', 'jee_advanced_p2'])
 
+// ── SAT exam definitions ──────────────────────────────────────
+const SAT_EXAMS = [
+  {
+    id: 'sat_full', badge: 'Full SAT',
+    name: 'Digital SAT — Full Practice Test',
+    questions: 98, duration: '2 hr 14 min', score: '400–1600',
+    desc: 'Complete simulation: both Reading & Writing and Math sections with adaptive difficulty.',
+    sections: [
+      { key: 'reading_writing', label: 'Reading & Writing', q: 54, mins: 64, cls: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+      { key: 'math',           label: 'Math',              q: 44, mins: 70, cls: 'text-blue-700 bg-blue-50 border-blue-200' },
+    ],
+  },
+  {
+    id: 'sat_math', badge: 'Math Only',
+    name: 'SAT — Math Section',
+    questions: 44, duration: '70 min', score: '200–800',
+    desc: 'Algebra, Advanced Math, Problem-Solving & Data, Geometry & Trig.',
+    sections: [
+      { key: 'algebra',         label: 'Algebra',                  q: 14, cls: 'text-blue-700 bg-blue-50 border-blue-200' },
+      { key: 'advanced_math',   label: 'Advanced Math',            q: 14, cls: 'text-indigo-700 bg-indigo-50 border-indigo-200' },
+      { key: 'problem_solving', label: 'Problem-Solving & Data',   q: 10, cls: 'text-violet-700 bg-violet-50 border-violet-200' },
+      { key: 'geometry',        label: 'Geometry & Trig',          q:  6, cls: 'text-sky-700 bg-sky-50 border-sky-200' },
+    ],
+  },
+  {
+    id: 'sat_reading_writing', badge: 'R&W Only',
+    name: 'SAT — Reading & Writing Section',
+    questions: 54, duration: '64 min', score: '200–800',
+    desc: 'Information & Ideas, Craft & Structure, Standard English, Words in Context.',
+    sections: [
+      { key: 'info_ideas',      label: 'Information & Ideas',      q: 26, cls: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+      { key: 'craft_structure', label: 'Craft & Structure',        q: 13, cls: 'text-teal-700 bg-teal-50 border-teal-200' },
+      { key: 'std_english',     label: 'Standard English',         q: 11, cls: 'text-lime-700 bg-lime-50 border-lime-200' },
+      { key: 'words_context',   label: 'Words in Context',         q:  4, cls: 'text-amber-700 bg-amber-50 border-amber-200' },
+    ],
+  },
+]
+
+function SATExamTab({ studentName, onStart, initialExamId = 'sat_full' }) {
+  const [selected, setSelected] = useState(
+    SAT_EXAMS.find(e => e.id === initialExamId) || SAT_EXAMS[0]
+  )
+  const [loading, setLoading] = useState(false)
+  const [error,   setError]   = useState('')
+
+  const start = async () => {
+    setError(''); setLoading(true)
+    try { const d = await generateTest(studentName, selected.id); onStart(d) }
+    catch(e) { setError(e.friendlyMessage || 'Server error. Please try again.'); setLoading(false) }
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center gap-3 pb-1 border-b border-gray-100">
+        <span className="text-2xl">🎓</span>
+        <div>
+          <div className="font-black text-gray-900 text-lg leading-tight">Digital SAT Practice</div>
+          <div className="text-xs text-gray-400">College Board · USA · No negative marking · 400–1600</div>
+        </div>
+      </div>
+
+      {/* 3 option cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {SAT_EXAMS.map(exam => {
+          const active = selected.id === exam.id
+          return (
+            <button key={exam.id} onClick={() => { setSelected(exam); setError('') }}
+              className={`text-left p-4 rounded-2xl border-2 transition-all ${active ? '' : 'border-gray-200 bg-white hover:border-orange-200'}`}
+              style={active ? { borderColor:'#FF653F', background:'#FFF3EE' } : {}}>
+              <div className="flex items-center justify-between mb-2">
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${active ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600'}`}>{exam.badge}</span>
+                {active && <span className="text-orange-500 text-sm">✓</span>}
+              </div>
+              <div className="font-bold text-sm text-gray-900 leading-tight mb-1">{exam.name.split('—')[1]?.trim() || exam.name}</div>
+              <div className="text-xs text-gray-500">{exam.questions}Q · {exam.duration} · Score {exam.score}</div>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Section breakdown */}
+      <div className="rounded-2xl border p-4 space-y-2" style={{ background:'#f9fafb', borderColor:'#e5e7eb' }}>
+        <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">{selected.name} — Sections</div>
+        {selected.sections.map(s => (
+          <div key={s.key} className={`flex justify-between items-center px-3 py-2 rounded-xl border text-xs font-medium ${s.cls}`}>
+            <span>{s.label}</span>
+            <span>{s.q} questions{s.mins ? ` · ${s.mins} min` : ''}</span>
+          </div>
+        ))}
+        <div className="text-xs text-gray-400 pt-1">{selected.desc}</div>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800 space-y-0.5">
+        <div className="font-semibold mb-1">Before you start:</div>
+        <div>• Digital SAT uses adaptive modules — Module 2 difficulty depends on Module 1 performance</div>
+        <div>• No negative marking — attempt every question</div>
+        <div>• Calculator is permitted for all Math questions</div>
+      </div>
+
+      {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>}
+
+      <button onClick={start} disabled={loading}
+        className="w-full py-3.5 rounded-2xl text-white font-bold text-sm disabled:opacity-60 transition-all"
+        style={{ background:'#FF653F' }}
+        onMouseOver={e => !loading && (e.currentTarget.style.background = '#e5512f')}
+        onMouseOut={e => (e.currentTarget.style.background = '#FF653F')}>
+        {loading
+          ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Generating test…</span>
+          : `Start ${selected.badge} · ${selected.questions}Q · ${selected.duration}`}
+      </button>
+    </div>
+  )
+}
+
 // ── Tab: Full Mock ────────────────────────────────────────────
 function FullMockTab({ studentName, onStart, initialExamId = '', registeredExamIds = [], isPro = false }) {
   // Restrict the tree to the exams the user registered for (free users).
@@ -519,7 +634,11 @@ function SectionTestTab({ studentName, onStart, user = null }) {
 
 // ── Main HomeScreen ───────────────────────────────────────────
 export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogout, startMode = 'mock', startExamId = '', user = null }) {
-  const [tab,        setTab]        = useState(startMode)
+  const isUSUser = user?.user_metadata?.exam_region === 'us'
+  const isSAT = isUSUser || startExamId?.startsWith('sat_')
+  // US users default to sat_full when no specific SAT exam was requested
+  const effectiveExamId = (isUSUser && !startExamId?.startsWith('sat_')) ? 'sat_full' : startExamId
+  const [tab,        setTab]        = useState(isSAT ? 'sat' : startMode)
   const [topicSecId, setTopicSecId] = useState('numerical_ability')
   const mainRef = useRef(null)
 
@@ -541,11 +660,20 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
   const trialActive   = !isPro && trialDaysLeft > 0
 
   const initials = (studentName||'U').slice(0,2).toUpperCase()
-  const tabs = [
-    { id:'mock',    label:'Full Mock Test',  icon:'📝' },
-    { id:'topic',   label:'Topic Practice',  icon:'🎯' },
-    { id:'section', label:'Section Test',    icon:'⏱' },
-  ]
+  const tabs = isUSUser
+    ? [
+        { id:'sat', label:'SAT Practice', icon:'🎓' },
+      ]
+    : isSAT
+      ? [
+          { id:'sat',     label:'SAT Practice',    icon:'🎓' },
+          { id:'mock',    label:'India Exams',      icon:'📝' },
+        ]
+      : [
+          { id:'mock',    label:'Full Mock Test',  icon:'📝' },
+          { id:'topic',   label:'Topic Practice',  icon:'🎯' },
+          { id:'section', label:'Section Test',    icon:'⏱' },
+        ]
   const SIDE = [
     { id:'dashboard',     label:'Dashboard',     Icon:SvgHome  },
     { id:'explore',       label:'Explore Exams', Icon:SvgDoc   },
@@ -668,7 +796,8 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
             )}
 
             <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm mb-6">
-              {tab==='mock'    && <FullMockTab    studentName={studentName} onStart={onStart} initialExamId={startExamId} registeredExamIds={registeredExamIds} isPro={isPro} />}
+              {tab==='sat'     && <SATExamTab studentName={studentName} onStart={onStart} initialExamId={effectiveExamId} />}
+              {tab==='mock'    && <FullMockTab studentName={studentName} onStart={onStart} initialExamId={isSAT ? '' : startExamId} registeredExamIds={registeredExamIds} isPro={isPro} />}
               {tab==='topic'   && <TopicPracticeTab key={topicSecId} studentName={studentName} onStart={onStart} user={user} sectionId={topicSecId} />}
               {tab==='section' && <SectionTestTab studentName={studentName} onStart={onStart} user={user} />}
             </div>

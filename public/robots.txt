@@ -2,13 +2,22 @@ User-agent: *
 Allow: /
 
 # Block private/auth/internal pages
+Disallow: /auth
+Disallow: /reset-password
 Disallow: /dashboard
+Disallow: /studyplan
+Disallow: /results
+Disallow: /subscriptions
+Disallow: /profile
+Disallow: /settings
+Disallow: /billing
+Disallow: /examhome
 Disallow: /exam
 Disallow: /result
-Disallow: /admin
-Disallow: /reset-password
-Disallow: /payment
-Disallow: /api/
+Disallow: /topic-practice
 Disallow: /practice
+Disallow: /payment
+Disallow: /admin
+Disallow: /api/
 
 Sitemap: https://prep.arkaserve.com/sitemap.xml
