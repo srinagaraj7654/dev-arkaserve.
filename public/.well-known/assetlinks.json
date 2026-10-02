@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.arkaserve.prep",
+      "sha256_cert_fingerprints": [
+        "D6:46:73:52:77:3C:C4:04:7A:17:C5:69:CC:4F:54:29:2B:DE:B8:1C:CF:68:E6:F0:C9:D7:5B:BB:DA:BE:0D:20"
+      ]
+    }
+  }
+]

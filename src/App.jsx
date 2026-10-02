@@ -9,6 +9,7 @@ import Navbar              from './components/Navbar.jsx'
 import Footer              from './components/Footer.jsx'
 import ToastHost           from './components/ToastHost.jsx'
 import CookieConsent       from './components/CookieConsent.jsx'
+import InstallPrompt       from './components/InstallPrompt.jsx'
 
 // Landing page loads eagerly (first paint); everything else is code-split and
 // loaded on demand so the initial bundle stays tiny and the site loads fast.
@@ -552,6 +553,7 @@ export default function App() {
       {isPublic && page !== 'auth' && <Footer onNav={nav} />}
       <CookieConsent />
       <ToastHost />
+      <InstallPrompt />
     </div>
   )
 }
