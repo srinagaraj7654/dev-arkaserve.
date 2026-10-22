@@ -1,5 +1,27 @@
 import { useState } from 'react'
 
+/* ─────────────────── ICONS ─────────────────── */
+const _sv = (c) => ({fill:'none',stroke:c||'currentColor',strokeWidth:'1.5',strokeLinecap:'round',strokeLinejoin:'round'})
+const UIcGrad   = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+const UIcDoc    = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+const UIcClip   = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+const UIcBrain  = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.07-4.15A3 3 0 0 1 4 11.5a3 3 0 0 1 1.5-2.6 2.5 2.5 0 0 1 4-2.9z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.07-4.15A3 3 0 0 0 20 11.5a3 3 0 0 0-1.5-2.6 2.5 2.5 0 0 0-4-2.9z"/></svg>
+const UIcRobot  = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M12 7V5M8 7h8M2 15h2M20 15h2"/><circle cx="9" cy="15.5" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="15.5" r="1" fill="currentColor" stroke="none"/><path d="M9 19h6"/></svg>
+const UIcChart  = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+const UIcTarget = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+const UIcTimer  = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3l-1 2M19 3l1 2M9 3h6"/></svg>
+const UIcHelp   = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+const UIcBook   = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+const UIcLap    = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+const UIcRuler  = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M3 3l18 18M3 7V3h4M7 3l-4 4M3 13v4h4M7 21H3v-4M13 3h4v4M17 3l4 4M13 21h4v-4M21 13v4"/></svg>
+const UIcRepeat = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+const UIcCal    = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+const UIcBell   = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+const UIcStar   = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+const UIcFree   = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+const UIcCons   = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+const UIcWarn   = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+
 /* ─────────────────── DATA ─────────────────── */
 
 const SAT_SECTIONS = [
@@ -78,19 +100,19 @@ const HOW_STEPS = [
 ]
 
 const OWNPREP_PLAN = [
-  { week:'Week 1–2',   phase:'Diagnose',  icon:'🔍', tasks:['Take diagnostic mock','Review score report','Identify top 3 weak topics'] },
-  { week:'Week 3–6',   phase:'Build',     icon:'📚', tasks:['Concept videos for weak areas','50 topic drills per day','Weekly section test (timed)'] },
-  { week:'Week 7–10',  phase:'Practice',  icon:'⚡', tasks:['2 full mocks per week','Deep error analysis after each mock','Score-prediction review'] },
-  { week:'Week 11–12', phase:'Peak',      icon:'🏆', tasks:['Light revision only','1 mock at week 11','Rest + sleep week 12'] },
+  { week:'Week 1–2',   phase:'Diagnose',  icon:<UIcHelp s={30} c='#FF653F'/>,   tasks:['Take diagnostic mock','Review score report','Identify top 3 weak topics'] },
+  { week:'Week 3–6',   phase:'Build',     icon:<UIcBook s={30} c='#3b82f6'/>,   tasks:['Concept videos for weak areas','50 topic drills per day','Weekly section test (timed)'] },
+  { week:'Week 7–10',  phase:'Practice',  icon:<UIcCons s={30} c='#8b5cf6'/>,   tasks:['2 full mocks per week','Deep error analysis after each mock','Score-prediction review'] },
+  { week:'Week 11–12', phase:'Peak',      icon:<UIcStar s={30} c='#f59e0b'/>,   tasks:['Light revision only','1 mock at week 11','Rest + sleep week 12'] },
 ]
 
 const FEATURES = [
-  { icon:'🤖', title:'Adaptive Engine',      desc:'Questions adjust to your live performance — just like the real Digital SAT. Harder questions unlock as you improve.' },
-  { icon:'🎯', title:'Targeted Drills',       desc:'Practise only the topics your diagnostic flagged as weak. No wasted repetition on what you already know.' },
-  { icon:'📊', title:'Score Prediction',      desc:'After every mock, see a projected band (e.g. 1320–1380 SAT) and the exact topics to fix for the next 50 points.' },
-  { icon:'📝', title:'Step-by-step Solutions',desc:'Every question has a written solution that explains the reasoning — not just the answer.' },
-  { icon:'📅', title:'Study Calendar',        desc:'Pick your test date. We generate a day-by-day calendar with tasks, rest days, and mock-test slots baked in.' },
-  { icon:'🔔', title:'Daily Reminders',       desc:'Push notifications keep your streak alive. Students who practise daily outperform cramming students by 180+ points on average.' },
+  { icon:<UIcRobot s={30} c='#3b82f6'/>, title:'Adaptive Engine',      desc:'Questions adjust to your live performance — just like the real Digital SAT. Harder questions unlock as you improve.' },
+  { icon:<UIcTarget s={30} c='#8b5cf6'/>, title:'Targeted Drills',       desc:'Practise only the topics your diagnostic flagged as weak. No wasted repetition on what you already know.' },
+  { icon:<UIcChart s={30} c='#FF653F'/>, title:'Score Prediction',      desc:'After every mock, see a projected band (e.g. 1320–1380 SAT) and the exact topics to fix for the next 50 points.' },
+  { icon:<UIcDoc s={30} c='#0891b2'/>, title:'Step-by-step Solutions',desc:'Every question has a written solution that explains the reasoning — not just the answer.' },
+  { icon:<UIcCal s={30} c='#10b981'/>, title:'Study Calendar',        desc:'Pick your test date. We generate a day-by-day calendar with tasks, rest days, and mock-test slots baked in.' },
+  { icon:<UIcBell s={30} c='#f59e0b'/>, title:'Daily Reminders',       desc:'Push notifications keep your streak alive. Students who practise daily outperform cramming students by 180+ points on average.' },
 ]
 
 const PAPERS = [
@@ -107,10 +129,10 @@ const PAPERS = [
 ]
 
 const NAV_ITEMS = [
-  { id:'syllabus', label:'📋 Syllabus'         },
-  { id:'crack',    label:'🧠 How to Crack'     },
-  { id:'ownprep',  label:'🤖 OwnPrep'          },
-  { id:'papers',   label:'📄 Previous Papers'  },
+  { id:'syllabus', label:'Syllabus'         },
+  { id:'crack',    label:'How to Crack'     },
+  { id:'ownprep',  label:'OwnPrep'          },
+  { id:'papers',   label:'Previous Papers'  },
 ]
 
 /* ─────────────────── COMPONENT ─────────────────── */
@@ -122,8 +144,8 @@ export default function USExamsPage({ onNav, user, onLogout }) {
   const [examDropOpen, setExamDropOpen] = useState(false)
 
   const EXAM_OPTIONS = [
-    { id:'sat', icon:'🎓', title:'SAT', sub:'Digital Adaptive · 98 Qs · 2h 14 min · 400–1600' },
-    { id:'act', icon:'📝', title:'ACT', sub:'Paper + Digital · 215 Qs · 2h 55 min · 1–36'   },
+    { id:'sat', icon:<UIcGrad s={18} c='currentColor'/>, title:'SAT', sub:'Digital Adaptive · 98 Qs · 2h 14 min · 400–1600' },
+    { id:'act', icon:<UIcDoc s={18} c='currentColor'/>,  title:'ACT', sub:'Paper + Digital · 215 Qs · 2h 55 min · 1–36'   },
   ]
   const selectedExam = EXAM_OPTIONS.find(e => e.id === examToggle)
 
@@ -356,7 +378,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
               onMouseOver={e => e.currentTarget.style.background='#e5512f'}
               onMouseOut={e => e.currentTarget.style.background='#FF653F'}
             >
-              🎓 Start SAT Practice Test
+              Start SAT Practice Test
             </button>
             <button
               onClick={() => setTab('syllabus')}
@@ -381,11 +403,11 @@ export default function USExamsPage({ onNav, user, onLogout }) {
               {/* Stats banner */}
               <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:16, padding:'14px 20px', marginBottom:28, display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(90px,1fr))', gap:0 }}>
                 {(examToggle==='sat'
-                  ? [['❓','98','Questions','#3b82f6'],['⏱','2h 14 min','Duration','#8b5cf6'],['🎯','400–1600','Score','#FF653F'],['💻','Digital','Format','#10b981'],['✅','No Penalty','Marking','#f59e0b']]
-                  : [['❓','215','Questions','#3b82f6'],['⏱','2h 55 min','Duration','#8b5cf6'],['🎯','1–36','Score','#FF653F'],['📄','Paper+Digital','Format','#10b981'],['✅','No Penalty','Marking','#f59e0b']]
+                  ? [[<UIcHelp s={16}/>, '98','Questions','#3b82f6'],[<UIcTimer s={16}/>,'2h 14 min','Duration','#8b5cf6'],[<UIcTarget s={16}/>,'400–1600','Score','#FF653F'],[<UIcLap s={16}/>,'Digital','Format','#10b981'],[<UIcStar s={16}/>,'No Penalty','Marking','#f59e0b']]
+                  : [[<UIcHelp s={16}/>,'215','Questions','#3b82f6'],[<UIcTimer s={16}/>,'2h 55 min','Duration','#8b5cf6'],[<UIcTarget s={16}/>,'1–36','Score','#FF653F'],[<UIcDoc s={16}/>,'Paper+Digital','Format','#10b981'],[<UIcStar s={16}/>,'No Penalty','Marking','#f59e0b']]
                 ).map(([icon,v,l,c],i,arr) => (
                   <div key={l} style={{ textAlign:'center', padding:'8px 12px', borderRight: i<arr.length-1?'1px solid #f3f4f6':'none' }}>
-                    <div style={{ fontSize:18, marginBottom:4 }}>{icon}</div>
+                    <div style={{ marginBottom:4, display:'flex', justifyContent:'center' }}>{icon}</div>
                     <div style={{ fontSize:15, fontWeight:800, color:c, lineHeight:1, marginBottom:3 }}>{v}</div>
                     <div style={{ fontSize:10, color:'#9ca3af', fontWeight:600, textTransform:'uppercase', letterSpacing:'.04em' }}>{l}</div>
                   </div>
@@ -423,7 +445,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
               )}
               {examToggle === 'act' && (
                 <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:14, padding:'18px 24px', marginBottom:24, display:'flex', alignItems:'center', gap:14 }}>
-                  <div style={{ fontSize:28, flexShrink:0 }}>🚧</div>
+                  <div style={{ flexShrink:0 }}><svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
                   <div>
                     <div style={{ fontSize:14, fontWeight:700, color:'#0f172a', marginBottom:3 }}>ACT Practice Tests — Coming Soon</div>
                     <div style={{ fontSize:12.5, color:'#6b7280', lineHeight:1.5 }}>
@@ -492,17 +514,17 @@ export default function USExamsPage({ onNav, user, onLogout }) {
               {/* SAT Quick Facts */}
               <div style={{ borderRadius:18, overflow:'hidden', marginBottom:16, boxShadow:'0 4px 20px rgba(59,130,246,.15)', border:'1px solid #bfdbfe' }}>
                 <div style={{ background:'linear-gradient(135deg,#1d4ed8,#3b82f6)', padding:'16px 18px 14px', display:'flex', alignItems:'center', gap:10 }}>
-                  <div style={{ width:36, height:36, background:'rgba(255,255,255,.15)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>🎓</div>
+                  <div style={{ width:36, height:36, background:'rgba(255,255,255,.15)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center' }}><UIcGrad s={18} c='#fff'/></div>
                   <div>
                     <div style={{ fontSize:15, fontWeight:900, color:'#fff' }}>SAT</div>
                     <div style={{ fontSize:11, color:'rgba(255,255,255,.7)', fontWeight:600 }}>Digital Adaptive Test</div>
                   </div>
                 </div>
                 <div style={{ background:'#fff', padding:'4px 0 8px' }}>
-                  {[['🎯','Score Range','400–1600'],['❓','Questions','98'],['⏱','Duration','2h 14 min'],['📐','Sections','2 (R&W + Math)'],['💻','Format','Digital Adaptive']].map(([icon,k,v]) => (
+                  {[[<UIcTarget s={13}/>, 'Score Range','400–1600'],[<UIcHelp s={13}/>,'Questions','98'],[<UIcTimer s={13}/>,'Duration','2h 14 min'],[<UIcRuler s={13}/>,'Sections','2 (R&W + Math)'],[<UIcLap s={13}/>,'Format','Digital Adaptive']].map(([icon,k,v]) => (
                     <div key={k} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'9px 18px', borderBottom:'1px solid #f3f4f6' }}>
                       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                        <span style={{ fontSize:13 }}>{icon}</span>
+                        <span style={{ display:'inline-flex' }}>{icon}</span>
                         <span style={{ fontSize:12.5, color:'#64748b', fontWeight:500 }}>{k}</span>
                       </div>
                       <span style={{ fontSize:13, fontWeight:800, color:'#1d4ed8' }}>{v}</span>
@@ -514,17 +536,17 @@ export default function USExamsPage({ onNav, user, onLogout }) {
               {/* ACT Quick Facts */}
               <div style={{ borderRadius:18, overflow:'hidden', marginBottom:16, boxShadow:'0 4px 20px rgba(255,101,63,.12)', border:'1px solid #fed7aa' }}>
                 <div style={{ background:'linear-gradient(135deg,#c2410c,#FF653F)', padding:'16px 18px 14px', display:'flex', alignItems:'center', gap:10 }}>
-                  <div style={{ width:36, height:36, background:'rgba(255,255,255,.15)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>📝</div>
+                  <div style={{ width:36, height:36, background:'rgba(255,255,255,.15)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center' }}><UIcDoc s={18} c='#fff'/></div>
                   <div>
                     <div style={{ fontSize:15, fontWeight:900, color:'#fff' }}>ACT</div>
                     <div style={{ fontSize:11, color:'rgba(255,255,255,.7)', fontWeight:600 }}>Paper + Digital Test</div>
                   </div>
                 </div>
                 <div style={{ background:'#fff', padding:'4px 0 8px' }}>
-                  {[['🎯','Score Range','1–36'],['❓','Questions','215'],['⏱','Duration','2h 55 min'],['📚','Sections','4 + Optional Essay'],['📄','Format','Paper + Digital']].map(([icon,k,v]) => (
+                  {[[<UIcTarget s={13}/>,'Score Range','1–36'],[<UIcHelp s={13}/>,'Questions','215'],[<UIcTimer s={13}/>,'Duration','2h 55 min'],[<UIcBook s={13}/>,'Sections','4 + Optional Essay'],[<UIcDoc s={13}/>,'Format','Paper + Digital']].map(([icon,k,v]) => (
                     <div key={k} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'9px 18px', borderBottom:'1px solid #f3f4f6' }}>
                       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                        <span style={{ fontSize:13 }}>{icon}</span>
+                        <span style={{ display:'inline-flex' }}>{icon}</span>
                         <span style={{ fontSize:12.5, color:'#64748b', fontWeight:500 }}>{k}</span>
                       </div>
                       <span style={{ fontSize:13, fontWeight:800, color:'#FF653F' }}>{v}</span>
@@ -558,9 +580,9 @@ export default function USExamsPage({ onNav, user, onLogout }) {
             <div>
               {/* Stats banner */}
               <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:16, padding:'14px 20px', marginBottom:28, display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(90px,1fr))', gap:0 }}>
-                {[['📅','12 Weeks','Study Plan','#3b82f6'],['⏱','60–90 min','Per Day','#8b5cf6'],['📈','200+','Avg Score Gain','#FF653F'],['🧠','6 Steps','System','#10b981'],['✅','Proven','Method','#f59e0b']].map(([icon,v,l,c],i,arr) => (
+                {[[<UIcCal s={16}/>,'12 Weeks','Study Plan','#3b82f6'],[<UIcTimer s={16}/>,'60–90 min','Per Day','#8b5cf6'],[<UIcChart s={16}/>,'200+','Avg Score Gain','#FF653F'],[<UIcBrain s={16}/>,'6 Steps','System','#10b981'],[<UIcStar s={16}/>,'Proven','Method','#f59e0b']].map(([icon,v,l,c],i,arr) => (
                   <div key={l} style={{ textAlign:'center', padding:'8px 12px', borderRight:i<arr.length-1?'1px solid #f3f4f6':'none' }}>
-                    <div style={{ fontSize:18, marginBottom:4 }}>{icon}</div>
+                    <div style={{ marginBottom:4, display:'flex', justifyContent:'center' }}>{icon}</div>
                     <div style={{ fontSize:15, fontWeight:800, color:c, lineHeight:1, marginBottom:3 }}>{v}</div>
                     <div style={{ fontSize:10, color:'#9ca3af', fontWeight:600, textTransform:'uppercase', letterSpacing:'.04em' }}>{l}</div>
                   </div>
@@ -617,15 +639,15 @@ export default function USExamsPage({ onNav, user, onLogout }) {
               <div style={{ marginTop:28, background:'linear-gradient(135deg,#0f172a,#1e3a5f)', borderRadius:16, padding:'28px 24px' }}>
                 <div style={{ fontSize:17, fontWeight:800, color:'#fff', marginBottom:18 }}>Quick-Win Tips</div>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:12 }}>
-                  {[['⏱','Time every drill','Speed is a trainable skill — never practise untimed.'],
-                    ['🔁','Review every error','Wrong answers are the syllabus for tomorrow.'],
-                    ['📖','Read 15 min daily','Editorials sharpen both reading speed and vocabulary.'],
-                    ['🧮','Memorise formulas','Quadratic, slope, Pythagorean — know them without thinking.'],
-                    ['💤','Protect your sleep','8 hours beats 3 hours of extra cramming every time.'],
-                    ['🎯','Use official tests only','College Board/ACT released papers are the only real replica.'],
+                  {[[<UIcTimer s={20} c='rgba(255,255,255,.7)'/>, 'Time every drill','Speed is a trainable skill — never practise untimed.'],
+                    [<UIcRepeat s={20} c='rgba(255,255,255,.7)'/>, 'Review every error','Wrong answers are the syllabus for tomorrow.'],
+                    [<UIcBook s={20} c='rgba(255,255,255,.7)'/>,   'Read 15 min daily','Editorials sharpen both reading speed and vocabulary.'],
+                    [<UIcCons s={20} c='rgba(255,255,255,.7)'/>,   'Memorise formulas','Quadratic, slope, Pythagorean — know them without thinking.'],
+                    [<UIcCal s={20} c='rgba(255,255,255,.7)'/>,    'Protect your sleep','8 hours beats 3 hours of extra cramming every time.'],
+                    [<UIcTarget s={20} c='rgba(255,255,255,.7)'/>, 'Use official tests only','College Board/ACT released papers are the only real replica.'],
                   ].map(([icon,title,desc]) => (
                     <div key={title} style={{ background:'rgba(255,255,255,.07)', borderRadius:10, padding:'14px' }}>
-                      <div style={{ fontSize:22, marginBottom:8 }}>{icon}</div>
+                      <div style={{ marginBottom:8 }}>{icon}</div>
                       <div style={{ fontSize:13, fontWeight:700, color:'#fff', marginBottom:4 }}>{title}</div>
                       <div style={{ fontSize:12, color:'rgba(255,255,255,.55)', lineHeight:1.6 }}>{desc}</div>
                     </div>
@@ -661,7 +683,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
                 ))}
               </div>
               <div style={{ background:'#FF653F', borderRadius:14, padding:'18px', textAlign:'center' }}>
-                <div style={{ fontSize:24, marginBottom:8 }}>🎯</div>
+                <div style={{ marginBottom:8, display:'flex', justifyContent:'center' }}><UIcTarget s={24} c='#fff'/></div>
                 <div style={{ fontSize:14, fontWeight:800, color:'#fff', marginBottom:6 }}>Practice Makes Perfect</div>
                 <div style={{ fontSize:12, color:'rgba(255,255,255,.8)', marginBottom:14, lineHeight:1.6 }}>Start your first adaptive SAT mock — free.</div>
                 <button onClick={() => onNav('mocktest', 'sat_full')} style={{ background:'#fff', color:'#FF653F', border:'none', padding:'10px 20px', borderRadius:8, fontSize:13, fontWeight:800, cursor:'pointer', width:'100%' }}>
@@ -682,9 +704,9 @@ export default function USExamsPage({ onNav, user, onLogout }) {
             <div>
               {/* Stats banner */}
               <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:16, padding:'14px 20px', marginBottom:28, display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(90px,1fr))', gap:0 }}>
-                {[['🤖','AI','Powered','#3b82f6'],['🎯','Targeted','Drills','#8b5cf6'],['📊','Score','Prediction','#FF653F'],['📅','Custom','Calendar','#10b981'],['🔔','Daily','Reminders','#f59e0b']].map(([icon,v,l,c],i,arr) => (
+                {[[<UIcRobot s={16}/>, 'AI','Powered','#3b82f6'],[<UIcTarget s={16}/>,'Targeted','Drills','#8b5cf6'],[<UIcChart s={16}/>,'Score','Prediction','#FF653F'],[<UIcCal s={16}/>,'Custom','Calendar','#10b981'],[<UIcBell s={16}/>,'Daily','Reminders','#f59e0b']].map(([icon,v,l,c],i,arr) => (
                   <div key={l} style={{ textAlign:'center', padding:'8px 12px', borderRight:i<arr.length-1?'1px solid #f3f4f6':'none' }}>
-                    <div style={{ fontSize:18, marginBottom:4 }}>{icon}</div>
+                    <div style={{ marginBottom:4, display:'flex', justifyContent:'center' }}>{icon}</div>
                     <div style={{ fontSize:15, fontWeight:800, color:c, lineHeight:1, marginBottom:3 }}>{v}</div>
                     <div style={{ fontSize:10, color:'#9ca3af', fontWeight:600, textTransform:'uppercase', letterSpacing:'.04em' }}>{l}</div>
                   </div>
@@ -694,7 +716,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
               <div className="ue-plan-grid">
                 {OWNPREP_PLAN.map(p => (
                   <div key={p.week} className="ue-plan-card">
-                    <div style={{ fontSize:30, marginBottom:10 }}>{p.icon}</div>
+                    <div style={{ marginBottom:10 }}>{p.icon}</div>
                     <div style={{ fontSize:11, fontWeight:700, color:'#FF653F', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:4 }}>{p.week}</div>
                     <div style={{ fontSize:15, fontWeight:800, color:'#0f172a', marginBottom:10 }}>{p.phase}</div>
                     {p.tasks.map(t => (
@@ -712,16 +734,24 @@ export default function USExamsPage({ onNav, user, onLogout }) {
               <div className="ue-feat-grid">
                 {FEATURES.map(f => (
                   <div key={f.title} className="ue-feat-card">
-                    <div style={{ fontSize:30, marginBottom:10 }}>{f.icon}</div>
+                    <div style={{ marginBottom:10 }}>{f.icon}</div>
                     <div style={{ fontSize:15, fontWeight:800, color:'#0f172a', marginBottom:6 }}>{f.title}</div>
                     <div style={{ fontSize:13, color:'#6b7280', lineHeight:1.7 }}>{f.desc}</div>
+                    {f.title === 'Score Prediction' && (
+                      <button
+                        onClick={() => onNav('us-score-prediction')}
+                        style={{ marginTop:10, background:'none', border:'1px solid #3b82f6', color:'#3b82f6', borderRadius:8, padding:'5px 12px', fontSize:11, fontWeight:700, cursor:'pointer' }}
+                      >
+                        See Sample Report →
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
 
               {/* CTA */}
               <div className="ue-cta">
-                <div style={{ fontSize:36, marginBottom:12 }}>🚀</div>
+                <div style={{ marginBottom:12, display:'flex', justifyContent:'center' }}><UIcCons s={36} c='rgba(255,255,255,.85)'/></div>
                 <h3 style={{ fontSize:22, fontWeight:900, color:'#fff', marginBottom:10 }}>SAT Practice Tests Are Live</h3>
                 <p style={{ fontSize:14, color:'rgba(255,255,255,.65)', lineHeight:1.7, maxWidth:440, margin:'0 auto 24px' }}>
                   Digital SAT adaptive tests are ready. Take a full test, Math-only, or Reading & Writing — all free.
@@ -774,9 +804,9 @@ export default function USExamsPage({ onNav, user, onLogout }) {
             <div>
               {/* Stats banner */}
               <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:16, padding:'14px 20px', marginBottom:28, display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(90px,1fr))', gap:0 }}>
-                {[['📄','10+','Papers','#3b82f6'],['🎓','SAT+ACT','Exams','#8b5cf6'],['📅','2022–2024','Years','#FF653F'],['✅','With','Answers','#10b981'],['🆓','Free','Access','#f59e0b']].map(([icon,v,l,c],i,arr) => (
+                {[[<UIcDoc s={16}/>,'10+','Papers','#3b82f6'],[<UIcGrad s={16}/>,'SAT+ACT','Exams','#8b5cf6'],[<UIcCal s={16}/>,'2022–2024','Years','#FF653F'],[<UIcStar s={16}/>,'With','Answers','#10b981'],[<UIcFree s={16}/>,'Free','Access','#f59e0b']].map(([icon,v,l,c],i,arr) => (
                   <div key={l} style={{ textAlign:'center', padding:'8px 12px', borderRight:i<arr.length-1?'1px solid #f3f4f6':'none' }}>
-                    <div style={{ fontSize:18, marginBottom:4 }}>{icon}</div>
+                    <div style={{ marginBottom:4, display:'flex', justifyContent:'center' }}>{icon}</div>
                     <div style={{ fontSize:15, fontWeight:800, color:c, lineHeight:1, marginBottom:3 }}>{v}</div>
                     <div style={{ fontSize:10, color:'#9ca3af', fontWeight:600, textTransform:'uppercase', letterSpacing:'.04em' }}>{l}</div>
                   </div>
@@ -785,13 +815,13 @@ export default function USExamsPage({ onNav, user, onLogout }) {
 
               {/* Why */}
               <div className="ue-why-grid">
-                {[['🎯','Most accurate prep','Official papers mirror the exact difficulty and format of the real test — no third-party approximations.'],
-                  ['⏱','Builds time sense','Doing a full paper under real timed conditions is the #1 way to eliminate time panic on exam day.'],
-                  ['📊','Reveals patterns','SAT/ACT questions follow predictable templates. Past papers train you to recognise them instantly.'],
-                  ['🔁','Tracks progress','Retake an earlier paper after 4 weeks of prep and measure your real score growth numerically.'],
+                {[[<UIcTarget s={26}/>, 'Most accurate prep','Official papers mirror the exact difficulty and format of the real test — no third-party approximations.'],
+                  [<UIcTimer s={26}/>,'Builds time sense','Doing a full paper under real timed conditions is the #1 way to eliminate time panic on exam day.'],
+                  [<UIcChart s={26}/>,'Reveals patterns','SAT/ACT questions follow predictable templates. Past papers train you to recognise them instantly.'],
+                  [<UIcRepeat s={26}/>,'Tracks progress','Retake an earlier paper after 4 weeks of prep and measure your real score growth numerically.'],
                 ].map(([icon,title,desc]) => (
                   <div key={title} className="ue-why-card">
-                    <div style={{ fontSize:26, marginBottom:10 }}>{icon}</div>
+                    <div style={{ marginBottom:10 }}>{icon}</div>
                     <div style={{ fontSize:14, fontWeight:700, color:'#0f172a', marginBottom:6 }}>{title}</div>
                     <div style={{ fontSize:12.5, color:'#6b7280', lineHeight:1.6 }}>{desc}</div>
                   </div>

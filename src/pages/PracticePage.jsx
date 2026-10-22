@@ -1,5 +1,20 @@
 import { useState } from 'react'
 
+/* ─── SVG icons ─── */
+const _sv = (c) => ({fill:'none',stroke:c||'currentColor',strokeWidth:'1.5',strokeLinecap:'round',strokeLinejoin:'round'})
+const PIcHome    = ({s=16,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+const PIcEdit    = ({s=16,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+const PIcTarget  = ({s=16,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+const PIcTimer   = ({s=16,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9.5 2h5M12 2v3"/></svg>
+const PIcChart   = ({s=16,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="3" y1="20" x2="21" y2="20"/></svg>
+const PIcCal     = ({s=16,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+const PIcCard    = ({s=16,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+const PIcUser    = ({s=16,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+const PIcGear    = ({s=16,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+const PIcBook    = ({s=28,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+const PIcHash    = ({s=28,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
+const PIcPuzzle  = ({s=28,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+
 /* ─── DATA ─────────────────────────────────────────────────── */
 
 const EXAM_GROUPS = [
@@ -78,21 +93,21 @@ const TOPICS = [
 ]
 
 const SECTIONS = [
-  { id:'english',           label:'English Language',   icon:'📖', bg:'bg-green-600',  light:'bg-green-50',  text:'text-green-700',  desc:'30Q · 20 min' },
-  { id:'numerical_ability', label:'Numerical Ability',  icon:'🔢', bg:'bg-orange-500', light:'bg-orange-50', text:'text-orange-700', desc:'35Q · 20 min' },
-  { id:'reasoning',         label:'Reasoning Ability',  icon:'🧩', bg:'bg-purple-600', light:'bg-purple-50', text:'text-purple-700', desc:'35Q · 20 min' },
+  { id:'english',           label:'English Language',   icon:<PIcBook s={28}/>,   bg:'bg-green-600',  light:'bg-green-50',  text:'text-green-700',  desc:'30Q · 20 min' },
+  { id:'numerical_ability', label:'Numerical Ability',  icon:<PIcHash s={28}/>,   bg:'bg-orange-500', light:'bg-orange-50', text:'text-orange-700', desc:'35Q · 20 min' },
+  { id:'reasoning',         label:'Reasoning Ability',  icon:<PIcPuzzle s={28}/>, bg:'bg-purple-600', light:'bg-purple-50', text:'text-purple-700', desc:'35Q · 20 min' },
 ]
 
 const NAV_ITEMS = [
-  { id:'dashboard',     label:'Dashboard',      icon:'🏠' },
-  { id:'mock',          label:'Full Mock Test',  icon:'📝', isPractice:true },
-  { id:'topic',         label:'Topic Practice',  icon:'🎯', isPractice:true },
-  { id:'section',       label:'Section Test',    icon:'⏱', isPractice:true },
-  { id:'results',       label:'My Results',      icon:'📊' },
-  { id:'planner',       label:'Study Planner',   icon:'📅' },
-  { id:'subscriptions', label:'Subscriptions',   icon:'💳' },
-  { id:'profile',       label:'Profile',         icon:'👤' },
-  { id:'settings',      label:'Settings',        icon:'⚙️' },
+  { id:'dashboard',     label:'Dashboard',      icon:<PIcHome s={16}/> },
+  { id:'mock',          label:'Full Mock Test',  icon:<PIcEdit s={16}/>,   isPractice:true },
+  { id:'topic',         label:'Topic Practice',  icon:<PIcTarget s={16}/>, isPractice:true },
+  { id:'section',       label:'Section Test',    icon:<PIcTimer s={16}/>,  isPractice:true },
+  { id:'results',       label:'My Results',      icon:<PIcChart s={16}/> },
+  { id:'planner',       label:'Study Planner',   icon:<PIcCal s={16}/> },
+  { id:'subscriptions', label:'Subscriptions',   icon:<PIcCard s={16}/> },
+  { id:'profile',       label:'Profile',         icon:<PIcUser s={16}/> },
+  { id:'settings',      label:'Settings',        icon:<PIcGear s={16}/> },
 ]
 
 const ALL_PRODUCTS = [
@@ -109,8 +124,9 @@ const TAG = { Popular:'bg-amber-100 text-amber-700', New:'bg-emerald-100 text-em
 
 /* ─── MAIN COMPONENT ────────────────────────────────────────── */
 export default function PracticePage({ user, isAdmin = false, onStartTest, onLogout, onNav }) {
-  const [activeNav,  setActiveNav]  = useState('mock')
-  const [mobileSide, setMobileSide] = useState(false)
+  const [activeNav,    setActiveNav]    = useState('mock')
+  const [mobileSide,   setMobileSide]   = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
 
   const raw     = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Student'
   const skip    = ['admin','test','user','testuser','administrator']
@@ -159,19 +175,59 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
           </div>
           <div className="hidden sm:block leading-none">
             <div className="text-white font-bold text-sm">MockTest</div>
-            <div className="text-xs" style={{color:'#888'}}>by Arkaserve</div>
+            <div style={{fontSize:8.5,fontWeight:700,color:'#FF653F',letterSpacing:'.10em',textTransform:'uppercase',fontStyle:'italic',marginTop:3,lineHeight:1}}>Your World of Mock Tests</div>
           </div>
         </div>
         <div className="flex-1" />
         <div className="flex items-center gap-2">
           {isAdmin && (
-            <button onClick={()=>onNav?.('admin')} className="w-8 h-8 flex items-center justify-center bg-white/15 hover:bg-white/25 text-white rounded-lg border border-white/20 transition-colors text-xs">⚙</button>
+            <button onClick={()=>onNav?.('admin')} className="w-8 h-8 flex items-center justify-center bg-white/15 hover:bg-white/25 text-white rounded-lg border border-white/20 transition-colors"><PIcGear s={14}/></button>
           )}
-          <button onClick={onLogout} className="text-white/80 hover:text-white text-xs px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors border border-white/20 hidden sm:block">
-            Log out
-          </button>
-          <button onClick={()=>setMobileSide(true)} className="sm:hidden w-8 h-8 flex items-center justify-center text-white bg-white/10 rounded-lg border border-white/20">
-            ☰
+
+          {/* User avatar dropdown — desktop */}
+          <div className="relative hidden sm:block">
+            {userMenuOpen && <div style={{position:'fixed',inset:0,zIndex:40}} onClick={()=>setUserMenuOpen(false)}/>}
+            <button
+              onClick={()=>setUserMenuOpen(o=>!o)}
+              style={{display:'flex',alignItems:'center',gap:7,background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.2)',borderRadius:999,padding:'4px 10px 4px 4px',cursor:'pointer',position:'relative',zIndex:50}}>
+              <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:900,color:'#fff',flexShrink:0}}>
+                {(uName[0]||'U').toUpperCase()}
+              </div>
+              <span style={{fontSize:12,fontWeight:700,color:'#fff',maxWidth:90,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                {(uName||'').split(' ')[0]}
+              </span>
+              <svg width="10" height="10" fill="none" stroke="rgba(255,255,255,.65)" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"
+                style={{transform:userMenuOpen?'rotate(180deg)':'none',transition:'transform .2s',flexShrink:0}}>
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            {userMenuOpen && (
+              <div style={{position:'absolute',top:'calc(100% + 8px)',right:0,background:'#fff',border:'1px solid #e5e7eb',borderRadius:12,boxShadow:'0 8px 28px rgba(0,0,0,.15)',minWidth:210,zIndex:50,overflow:'hidden'}}>
+                <style>{`@keyframes dd-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}`}</style>
+                <div style={{padding:'12px 14px 10px',borderBottom:'1px solid #f5f5f5',display:'flex',alignItems:'center',gap:10,animation:'dd-in .15s ease-out'}}>
+                  <div style={{width:34,height:34,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:900,color:'#fff',flexShrink:0}}>
+                    {(uName[0]||'U').toUpperCase()}
+                  </div>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:800,color:'#111827',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{uName}</div>
+                    <div style={{fontSize:11,color:'#9ca3af',marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{user?.email}</div>
+                  </div>
+                </div>
+                <button onClick={()=>{setUserMenuOpen(false);onLogout()}}
+                  style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'10px 14px 12px',fontSize:13,fontWeight:600,color:'#ef4444',background:'none',border:'none',cursor:'pointer',textAlign:'left',transition:'background .1s'}}
+                  onMouseOver={e=>e.currentTarget.style.background='#fff5f5'}
+                  onMouseOut={e=>e.currentTarget.style.background='none'}>
+                  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile: avatar only (taps open sidebar) */}
+          <button onClick={()=>setMobileSide(true)} className="sm:hidden flex items-center justify-center rounded-full"
+            style={{width:34,height:34,background:'linear-gradient(135deg,#FF653F,#ff8a5f)',border:'none',cursor:'pointer',flexShrink:0}}>
+            <span style={{color:'#fff',fontSize:12,fontWeight:900}}>{(uName[0]||'U').toUpperCase()}</span>
           </button>
         </div>
       </header>
@@ -204,7 +260,7 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
                 onClick={()=>handleNav('dashboard')}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 font-medium transition-colors mb-0.5"
               >
-                <span>🏠</span><span className="text-sm">Dashboard</span>
+                <span className="inline-flex"><PIcHome s={16}/></span><span className="text-sm">Dashboard</span>
               </button>
 
               {/* Practice section header */}
@@ -213,9 +269,9 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
               {/* 3 practice modes — grouped segmented block */}
               <div className="mx-1 p-1 rounded-2xl bg-gray-50 border border-gray-100 flex flex-col gap-1">
                 {[
-                  { id:'mock',    icon:'📝', label:'Full Mock Test'  },
-                  { id:'topic',   icon:'🎯', label:'Topic Practice'  },
-                  { id:'section', icon:'⏱', label:'Section Test'    },
+                  { id:'mock',    icon:<PIcEdit s={15}/>,   label:'Full Mock Test'  },
+                  { id:'topic',   icon:<PIcTarget s={15}/>, label:'Topic Practice'  },
+                  { id:'section', icon:<PIcTimer s={15}/>,  label:'Section Test'    },
                 ].map(m => {
                   const active = activeNav === m.id
                   return (
@@ -239,11 +295,11 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
               <div className="px-3 pt-4 pb-1 text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Account</div>
 
               {[
-                { id:'results',       icon:'📊', label:'My Results'    },
-                { id:'planner',       icon:'📅', label:'Study Planner' },
-                { id:'subscriptions', icon:'💳', label:'Subscriptions' },
-                { id:'profile',       icon:'👤', label:'Profile'       },
-                { id:'settings',      icon:'⚙️', label:'Settings'      },
+                { id:'results',       icon:<PIcChart s={15}/>, label:'My Results'    },
+                { id:'planner',       icon:<PIcCal s={15}/>,   label:'Study Planner' },
+                { id:'subscriptions', icon:<PIcCard s={15}/>,  label:'Subscriptions' },
+                { id:'profile',       icon:<PIcUser s={15}/>,  label:'Profile'       },
+                { id:'settings',      icon:<PIcGear s={15}/>,  label:'Settings'      },
               ].map(n => (
                 <button
                   key={n.id}
@@ -256,11 +312,11 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
 
             </nav>
 
-            {/* Bottom: user block + logout */}
-            <div className="border-t border-gray-100 p-3">
+            {/* Bottom: compact user info + logout (mobile sidebar) */}
+            <div className="border-t border-gray-100 p-3 sm:hidden">
               <div className="flex items-center gap-3 px-1 py-2 mb-1">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{background:'#FF653F'}}>
-                  <span className="text-white text-sm font-bold">{initials}</span>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{background:'linear-gradient(135deg,#FF653F,#ff8a5f)'}}>
+                  <span className="text-white text-sm font-bold">{(uName[0]||'U').toUpperCase()}</span>
                 </div>
                 <div className="min-w-0">
                   <div className="text-gray-900 text-sm font-semibold truncate">{uName}</div>
@@ -271,7 +327,8 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
                 onClick={onLogout}
                 className="w-full flex items-center gap-2 px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors text-sm font-semibold border border-red-200"
               >
-                <span>→</span><span>Log out</span>
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                <span>Sign Out</span>
               </button>
             </div>
 
@@ -284,9 +341,9 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
           {/* Page header */}
           <div className="bg-white border-b border-gray-200 px-6 py-5 sticky top-0 z-10">
             <h1 className="text-lg font-bold text-gray-900">
-              { activeNav==='mock'    ? '📝 Full Mock Test'
-              : activeNav==='topic'   ? '🎯 Topic Practice'
-              : activeNav==='section' ? '⏱ Section Test'
+              { activeNav==='mock'    ? 'Full Mock Test'
+              : activeNav==='topic'   ? 'Topic Practice'
+              : activeNav==='section' ? 'Section Test'
               : 'Practice' }
             </h1>
             <p className="text-xs text-gray-500 mt-0.5">

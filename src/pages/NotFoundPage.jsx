@@ -1,3 +1,5 @@
+const _SearchIc = ({s=28,c}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c||'#FF653F'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+
 export default function NotFoundPage({ onNav }) {
   const nav = onNav || (() => {})
 
@@ -12,7 +14,7 @@ export default function NotFoundPage({ onNav }) {
 
         {/* Icon */}
         <div style={{ width:64, height:64, background:'#FFF3EE', border:'2px solid #fec9b0', borderRadius:16, display:'flex', alignItems:'center', justifyContent:'center', margin:'-24px auto 24px', position:'relative', zIndex:1 }}>
-          <span style={{ fontSize:28 }}>🔍</span>
+          <_SearchIc s={28}/>
         </div>
 
         <h1 style={{ fontSize:24, fontWeight:800, color:'#111', marginBottom:10, letterSpacing:'-0.5px' }}>
@@ -63,7 +65,7 @@ export default function NotFoundPage({ onNav }) {
           </div>
         </div>
 
-        <p style={{ marginTop:28, fontSize:11, color:'#d1d5db' }}>by Arkaserve · mocktest.arkaserve.com</p>
+        <p style={{ marginTop:28, fontSize:11, color:'#d1d5db' }}>by Arkaserve · prep.arkaserve.com</p>
       </div>
     </div>
   )

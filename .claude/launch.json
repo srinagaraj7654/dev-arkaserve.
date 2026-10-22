@@ -13,5 +13,6 @@
       "runtimeArgs": ["run", "preview", "--", "--port", "4173"],
       "port": 4173
     }
-  ]
+  ],
+  "allowedPorts": [3000, 4173, 8765]
 }

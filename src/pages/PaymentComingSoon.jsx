@@ -7,12 +7,18 @@
      plan     — 'intermediate' | 'advanced'
      onBack   — go back to wizard / dashboard
 ──────────────────────────────────────────────────────────────── */
+const _sv = (c) => ({fill:'none',stroke:c||'currentColor',strokeWidth:'1.5',strokeLinecap:'round',strokeLinejoin:'round'})
+const PIcStar = ({s=32,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+const PIcRocket = ({s=32,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
+const PIcTool = ({s=14,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+const PIcBell = ({s=12,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+
 export default function PaymentComingSoon({ plan = 'intermediate', onBack }) {
   const isAdv = plan === 'advanced'
 
   const details = {
     intermediate: {
-      icon: '⭐',
+      icon: <PIcStar s={32} c='#FF653F'/>,
       label: 'Intermediate Plan',
       price: '₹499',
       period: '/month',
@@ -29,7 +35,7 @@ export default function PaymentComingSoon({ plan = 'intermediate', onBack }) {
       ],
     },
     advanced: {
-      icon: '🚀',
+      icon: <PIcRocket s={32} c='#FF653F'/>,
       label: 'Advanced Plan',
       price: '₹1,199',
       period: '/3 months',
@@ -64,7 +70,7 @@ export default function PaymentComingSoon({ plan = 'intermediate', onBack }) {
           <div style={{width:34,height:34,background:'#FF653F',borderRadius:9,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:12,fontWeight:800}}>MT</div>
           <div>
             <div style={{fontSize:15,fontWeight:800,color:'#fff',lineHeight:1.1}}>MockTest</div>
-            <div style={{fontSize:10,color:'#888'}}>by Arkaserve</div>
+            <div style={{fontSize:8.5,fontWeight:700,color:'#FF653F',letterSpacing:'.10em',textTransform:'uppercase',fontStyle:'italic',marginTop:3,lineHeight:1}}>Your World of Mock Tests</div>
           </div>
         </div>
         <button onClick={onBack} style={{fontSize:13,fontWeight:600,color:'#fff',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.2)',borderRadius:10,padding:'8px 16px',cursor:'pointer'}}>
@@ -96,7 +102,7 @@ export default function PaymentComingSoon({ plan = 'intermediate', onBack }) {
         <div style={{
           width:72, height:72, borderRadius:20, background:d.bg,
           display:'flex', alignItems:'center', justifyContent:'center',
-          fontSize:32, margin:'0 auto 20px',
+          margin:'0 auto 20px',
           border:`2px solid ${d.border}`,
         }}>{d.icon}</div>
 
@@ -107,7 +113,7 @@ export default function PaymentComingSoon({ plan = 'intermediate', onBack }) {
           color:'#D97706', borderRadius:20, padding:'4px 14px',
           fontSize:11, fontWeight:700, marginBottom:16,
         }}>
-          🔧 Payment Integration — Coming Soon
+          <PIcTool s={14} c='#D97706'/> Payment Integration — Coming Soon
         </div>
 
         <h1 style={{fontSize:22, fontWeight:800, color:'#0f172a', marginBottom:6}}>
@@ -145,7 +151,7 @@ export default function PaymentComingSoon({ plan = 'intermediate', onBack }) {
           borderRadius:12, padding:'16px 18px', marginBottom:24, textAlign:'left',
         }}>
           <div style={{fontSize:12, fontWeight:700, color:'#0f172a', marginBottom:8}}>
-            🔔 Notify me when payment is live
+            <span style={{display:'inline-flex',alignItems:'center',gap:5}}><PIcBell s={12} c='#0f172a'/> Notify me when payment is live</span>
           </div>
           <div className="pcs-notify-row" style={{display:'flex', gap:8}}>
             <input

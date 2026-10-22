@@ -260,6 +260,11 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
 
   // ── FEATURE 2: Tab switch / window blur detection ─────────────
   useEffect(() => {
+    // On iOS Safari, window.blur fires on normal swipe-up / control-centre gestures,
+    // making it indistinguishable from real tab-switching. Skip blur-based violations
+    // on iOS; document.hidden (visibilitychange) is reliable there instead.
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
+
     const onVisibilityChange = () => {
       if (document.hidden && examStartedRef.current) {
         addViolation('⚠ Tab switch detected! Stay on exam tab.')
@@ -272,10 +277,10 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
       }
     }
     document.addEventListener('visibilitychange', onVisibilityChange)
-    window.addEventListener('blur', onBlur)
+    if (!isIOS) window.addEventListener('blur', onBlur)
     return () => {
       document.removeEventListener('visibilitychange', onVisibilityChange)
-      window.removeEventListener('blur', onBlur)
+      if (!isIOS) window.removeEventListener('blur', onBlur)
     }
   }, [])
 
@@ -499,7 +504,7 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
                     ? `${col.text} border-current bg-white`
                     : 'text-gray-500 border-transparent hover:text-gray-700'}`}
             >
-              {expired && '🔒 '}{getSectionLabel(sec)} ({secAnswered}/{expectedCount})
+              {getSectionLabel(sec)} ({secAnswered}/{expectedCount})
             </button>
           )
         })}
@@ -594,7 +599,7 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
                 {header}
                 <div className="flex flex-col lg:flex-row gap-4 items-start">
                   <div className="w-full lg:w-1/2 flex-shrink-0">
-                    <div className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">📖 Read the passage carefully</div>
+                    <div className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">Read the passage carefully</div>
                     <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-[13px] text-gray-700 leading-relaxed whitespace-pre-line lg:max-h-[70vh] lg:overflow-y-auto nice-scroll">
                       {passage}
                     </div>

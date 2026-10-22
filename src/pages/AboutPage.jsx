@@ -1,3 +1,5 @@
+const _IcClip = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c||'currentColor'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg>
+
 export default function AboutPage({ onNav }) {
   const S = {
     page: {fontFamily:"'Inter','Segoe UI',system-ui,sans-serif",background:'#fff',color:'#111'},
@@ -19,7 +21,7 @@ export default function AboutPage({ onNav }) {
   ]
 
   const offerings = [
-    {icon:'📝', title:'Mock Tests',   desc:'Expert-crafted, validated mock tests for Bank Clerk, UPSC, SSC and more competitive exams.'},
+    {icon:<_IcClip s={18} c='#FF653F'/>, title:'Mock Tests',   desc:'Expert-crafted, validated mock tests for Bank Clerk, UPSC, SSC and more competitive exams.'},
     {icon:'[]', title:'Skill Courses',      desc:'Practical, beginner-friendly tech courses taught by a real IT practitioner. No fluff, just skills.'},
     {icon:'<>', title:'Web Development', desc:'Clean, fast, professional websites tailored for small businesses, startups, and professionals.'},
   ]

@@ -1,4 +1,9 @@
 import { useState, useEffect } from 'react'
+const _sv = (c) => ({fill:'none',stroke:c||'currentColor',strokeWidth:'1.5',strokeLinecap:'round',strokeLinejoin:'round'})
+const BIcBank   = ({s=20,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M3 21h18M3 10h18M3 10l9-7 9 7"/><line x1="6" y1="10" x2="6" y2="21"/><line x1="10" y1="10" x2="10" y2="21"/><line x1="14" y1="10" x2="14" y2="21"/><line x1="18" y1="10" x2="18" y2="21"/></svg>
+const BIcShield = ({s=20,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+const BIcDoc    = ({s=20,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8L14 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+const BIcChart  = ({s=20,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="3" y1="20" x2="21" y2="20"/></svg>
 
 /* ──────────────────────────────────────────────────────────────
    Blog page — standalone at /blog; required for AdSense
@@ -851,10 +856,10 @@ export default function BlogPage({ onNav }) {
           <h2 className="text-base font-black text-gray-900 mb-3">Practice with Free Mock Tests</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label:'Banking Exams', key:'exams-banking', icon:'🏦' },
-              { label:'Insurance Exams', key:'exams-insurance', icon:'🛡' },
-              { label:'Previous Papers', key:'papers', icon:'📄' },
-              { label:'Exam Cutoffs', key:'cutoffs', icon:'📊' },
+              { label:'Banking Exams', key:'exams-banking', icon:<BIcBank s={20}/> },
+              { label:'Insurance Exams', key:'exams-insurance', icon:<BIcShield s={20}/> },
+              { label:'Previous Papers', key:'papers', icon:<BIcDoc s={20}/> },
+              { label:'Exam Cutoffs', key:'cutoffs', icon:<BIcChart s={20}/> },
             ].map(l => (
               <button key={l.key} onClick={() => onNav?.(l.key)}
                 className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-gray-200 hover:border-orange-300 hover:bg-orange-50 transition-all text-center">

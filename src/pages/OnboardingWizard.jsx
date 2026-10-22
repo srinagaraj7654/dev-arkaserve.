@@ -3,27 +3,47 @@ import { supabase } from '../supabase.js'
 import { toast } from '../toast.js'
 
 /* ──────────────────────────────────────────────────────────────
+   SVG ICONS
+────────────────────────────────────────────────────────────── */
+const _sv = (c) => ({fill:'none',stroke:c||'currentColor',strokeWidth:'1.5',strokeLinecap:'round',strokeLinejoin:'round'})
+const OIcBank   = ({s=20,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M3 21h18M3 10h18M3 10l9-7 9 7"/><line x1="6" y1="10" x2="6" y2="21"/><line x1="10" y1="10" x2="10" y2="21"/><line x1="14" y1="10" x2="14" y2="21"/><line x1="18" y1="10" x2="18" y2="21"/></svg>
+const OIcGovt   = ({s=20,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M3 22h18M3 18h18M3 10h18M3 10l9-7 9 7"/><line x1="5" y1="10" x2="5" y2="18"/><line x1="9" y1="10" x2="9" y2="18"/><line x1="15" y1="10" x2="15" y2="18"/><line x1="19" y1="10" x2="19" y2="18"/></svg>
+const OIcTrain  = ({s=20,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><rect x="4" y="3" width="16" height="13" rx="2"/><path d="M4 16l-2 4h20l-2-4"/><line x1="12" y1="3" x2="12" y2="16"/><line x1="4" y1="9" x2="20" y2="9"/><circle cx="8" cy="13" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="13" r="1" fill="currentColor" stroke="none"/></svg>
+const OIcClip   = ({s=20,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+const OIcFlask  = ({s=20,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M6 2v6l-4 10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2L18 8V2"/><line x1="6" y1="7" x2="18" y2="7"/></svg>
+const OIcGear   = ({s=20,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+const OIcLock   = ({s=11,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+const OIcBook   = ({s=20,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+const OIcDoc    = ({s=20,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+const OIcRepeat = ({s=20,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+const OIcCal    = ({s=20,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+const OIcSeed   = ({s=24,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M12 22V13M17 8c0 4.97-2.24 9-5 9s-5-4.03-5-9a9.82 9.82 0 0 1 .1-1.4C8.23 9.16 10.29 10 12 10c1.63 0 3.6-.75 4.84-2.2.1.38.16.79.16 1.2z"/><path d="M12 10c0-4.97 2.24-9 5-9s5 4.03 5 9"/></svg>
+const OIcTrendUp = ({s=24,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+const OIcTarget = ({s=24,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+const OIcWarn   = ({s=22,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+
+/* ──────────────────────────────────────────────────────────────
    DATA
 ────────────────────────────────────────────────────────────── */
 const EXAM_OPTIONS = [
-  { id:'bank_clerk_prelims', label:'IBPS Clerk Prelims',   icon:'🏦', sub:'100Q · 60 min · 3 sections',  color:'#3B5BDB', bg:'#EEF0FF', live:true  },
-  { id:'bank_clerk_mains',   label:'IBPS Clerk Mains',     icon:'🏦', sub:'175Q · 160 min · 4 sections', color:'#3B5BDB', bg:'#EEF0FF', live:true  },
-  { id:'bank_po_prelims',    label:'IBPS PO Prelims',      icon:'🏦', sub:'100Q · 60 min · 3 sections',  color:'#3B5BDB', bg:'#EEF0FF', live:true  },
-  { id:'bank_po_mains',      label:'IBPS PO Mains',        icon:'🏦', sub:'175Q · 180 min · 5 sections', color:'#3B5BDB', bg:'#EEF0FF', live:true  },
-  { id:'sbi_clerk_prelims',  label:'SBI Clerk Prelims',    icon:'🏛', sub:'100Q · 60 min · 3 sections',  color:'#0891B2', bg:'#ECFEFF', live:true  },
-  { id:'sbi_po_prelims',     label:'SBI PO Prelims',       icon:'🏛', sub:'100Q · 60 min · 3 sections',  color:'#0891B2', bg:'#ECFEFF', live:true  },
-  { id:'rrb_office_assistant_prelims', label:'RRB Office Assistant', icon:'🚂', sub:'80Q · 45 min · 2 sections', color:'#16A34A', bg:'#DCFCE7', live:true  },
-  { id:'rrb_officer_scale1_prelims',  label:'RRB Officer Scale-I',  icon:'🚂', sub:'80Q · 45 min · 2 sections', color:'#16A34A', bg:'#DCFCE7', live:true  },
-  { id:'ssc_cgl_tier1',      label:'SSC CGL Tier I',       icon:'📋', sub:'100Q · 60 min · 4 sections',   color:'#7C3AED', bg:'#F5F3FF', live:true  },
-  { id:'ap_eamcet_engg',     label:'AP EAMCET Engineering', icon:'🔬', sub:'160Q · 180 min · 3 sections',  color:'#7C3AED', bg:'#F5F3FF', live:true  },
-  { id:'ts_eamcet_engg',     label:'TS EAMCET Engineering', icon:'🔬', sub:'160Q · 180 min · 3 sections',  color:'#7C3AED', bg:'#F5F3FF', live:true  },
-  { id:'jee_mains',          label:'JEE Mains',             icon:'⚙',  sub:'Coming soon',                  color:'#94A3B8', bg:'#F1F5F9', live:false },
+  { id:'bank_clerk_prelims', label:'IBPS Clerk Prelims',   icon:<OIcBank s={20} c='#3B5BDB'/>,  sub:'100Q · 60 min · 3 sections',  color:'#3B5BDB', bg:'#EEF0FF', live:true  },
+  { id:'bank_clerk_mains',   label:'IBPS Clerk Mains',     icon:<OIcBank s={20} c='#3B5BDB'/>,  sub:'175Q · 160 min · 4 sections', color:'#3B5BDB', bg:'#EEF0FF', live:true  },
+  { id:'bank_po_prelims',    label:'IBPS PO Prelims',      icon:<OIcBank s={20} c='#3B5BDB'/>,  sub:'100Q · 60 min · 3 sections',  color:'#3B5BDB', bg:'#EEF0FF', live:true  },
+  { id:'bank_po_mains',      label:'IBPS PO Mains',        icon:<OIcBank s={20} c='#3B5BDB'/>,  sub:'175Q · 180 min · 5 sections', color:'#3B5BDB', bg:'#EEF0FF', live:true  },
+  { id:'sbi_clerk_prelims',  label:'SBI Clerk Prelims',    icon:<OIcGovt s={20} c='#0891B2'/>,  sub:'100Q · 60 min · 3 sections',  color:'#0891B2', bg:'#ECFEFF', live:true  },
+  { id:'sbi_po_prelims',     label:'SBI PO Prelims',       icon:<OIcGovt s={20} c='#0891B2'/>,  sub:'100Q · 60 min · 3 sections',  color:'#0891B2', bg:'#ECFEFF', live:true  },
+  { id:'rrb_office_assistant_prelims', label:'RRB Office Assistant', icon:<OIcTrain s={20} c='#16A34A'/>, sub:'80Q · 45 min · 2 sections', color:'#16A34A', bg:'#DCFCE7', live:true  },
+  { id:'rrb_officer_scale1_prelims',  label:'RRB Officer Scale-I',  icon:<OIcTrain s={20} c='#16A34A'/>, sub:'80Q · 45 min · 2 sections', color:'#16A34A', bg:'#DCFCE7', live:true  },
+  { id:'ssc_cgl_tier1',      label:'SSC CGL Tier I',       icon:<OIcClip s={20} c='#7C3AED'/>,  sub:'100Q · 60 min · 4 sections',   color:'#7C3AED', bg:'#F5F3FF', live:true  },
+  { id:'ap_eamcet_engg',     label:'AP EAMCET Engineering', icon:<OIcFlask s={20} c='#7C3AED'/>, sub:'160Q · 180 min · 3 sections',  color:'#7C3AED', bg:'#F5F3FF', live:true  },
+  { id:'ts_eamcet_engg',     label:'TS EAMCET Engineering', icon:<OIcFlask s={20} c='#7C3AED'/>, sub:'160Q · 180 min · 3 sections',  color:'#7C3AED', bg:'#F5F3FF', live:true  },
+  { id:'jee_mains',          label:'JEE Mains',             icon:<OIcGear s={20} c='#94A3B8'/>,  sub:'Coming soon',                  color:'#94A3B8', bg:'#F1F5F9', live:false },
 ]
 
 const LEVELS = [
-  { id:'beginner',     label:'Beginner',     sub:'Just starting out',              icon:'🌱', desc:'I need to build basics from scratch' },
-  { id:'intermediate', label:'Intermediate', sub:'Know the syllabus',              icon:'📈', desc:'I can attempt questions but need speed' },
-  { id:'advanced',     label:'Advanced',     sub:'Appearing soon, need fine-tuning',icon:'🎯', desc:'I want to close weak gaps and ace mocks' },
+  { id:'beginner',     label:'Beginner',     sub:'Just starting out',              icon:<OIcSeed s={24}/>,     desc:'I need to build basics from scratch' },
+  { id:'intermediate', label:'Intermediate', sub:'Know the syllabus',              icon:<OIcTrendUp s={24}/>,  desc:'I can attempt questions but need speed' },
+  { id:'advanced',     label:'Advanced',     sub:'Appearing soon, need fine-tuning',icon:<OIcTarget s={24}/>,  desc:'I want to close weak gaps and ace mocks' },
 ]
 
 const TOPIC_GROUPS = [
@@ -270,7 +290,7 @@ export default function OnboardingWizard({ user, onDone, onSkip, onRouteToPaymen
   const progress = ((step - 1) / (STEP_META.length - 1)) * 100
 
   return (
-    <div style={{height:'100vh',overflow:'hidden',background:'#ffffff',fontFamily:"'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif",color:'#1a1a2e',display:'flex',flexDirection:'column'}}>
+    <div style={{height:'100vh',minHeight:'-webkit-fill-available',overflow:'hidden',background:'#ffffff',fontFamily:"'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif",color:'#1a1a2e',display:'flex',flexDirection:'column'}}>
 
       {/* ── SUCCESS CONFIRMATION OVERLAY ── */}
       {saved && (
@@ -280,7 +300,7 @@ export default function OnboardingWizard({ user, onDone, onSkip, onRouteToPaymen
               <span style={{fontSize:42,color:'#FF653F',fontWeight:900,lineHeight:1}}>✓</span>
             </div>
             <h2 style={{fontSize:24,fontWeight:800,color:'#1a1a2e',marginBottom:8,letterSpacing:'-0.5px'}}>
-              Your study plan is ready! 🎉
+              Your study plan is ready!
             </h2>
             <p style={{fontSize:14,color:'#6b7280',lineHeight:1.6}}>
               We've saved your exam, schedule and focus topics. Taking you to your dashboard…
@@ -298,12 +318,12 @@ export default function OnboardingWizard({ user, onDone, onSkip, onRouteToPaymen
           <div style={{width:34,height:34,background:'#FF653F',borderRadius:9,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:12,fontWeight:800}}>MT</div>
           <div>
             <div style={{fontSize:15,fontWeight:800,color:'#fff',lineHeight:1.1}}>MockTest</div>
-            <div style={{fontSize:10,color:'#888'}}>by Arkaserve</div>
+            <div style={{fontSize:8.5,fontWeight:700,color:'#FF653F',letterSpacing:'.10em',textTransform:'uppercase',fontStyle:'italic',marginTop:3,lineHeight:1}}>Your World of Mock Tests</div>
           </div>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:16}}>
           <span style={{fontSize:12,color:'rgba(255,255,255,.7)'}}>
-            Hi {user?.user_metadata?.full_name?.split(' ')[0] || 'there'} 👋
+            Hi {user?.user_metadata?.full_name?.split(' ')[0] || 'there'}
           </span>
           <button
             onClick={handleSkip}
@@ -369,7 +389,7 @@ export default function OnboardingWizard({ user, onDone, onSkip, onRouteToPaymen
                 padding:'18px 20px',marginBottom:16,
               }}>
                 <div style={{display:'flex',alignItems:'flex-start',gap:12,marginBottom:14}}>
-                  <span style={{fontSize:22,flexShrink:0}}>⚠️</span>
+                  <span style={{flexShrink:0}}><OIcWarn s={22} c='#92400E'/></span>
                   <div>
                     <div style={{fontSize:14,fontWeight:700,color:'#92400E',marginBottom:4}}>
                       You've selected {exams.length} exams — choose one option to continue
@@ -389,7 +409,7 @@ export default function OnboardingWizard({ user, onDone, onSkip, onRouteToPaymen
                   <button
                     onClick={() => { const plan = exams.length >= 3 ? 'advanced' : 'intermediate'; if (onRouteToPayment) onRouteToPayment(plan) }}
                     style={{flex:'1 1 200px',padding:'11px 0',border:'none',borderRadius:11,background:'#FF653F',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',lineHeight:1.5}}>
-                    🚀 Upgrade Plan<br/>
+                    Upgrade Plan<br/>
                     <span style={{fontSize:10,fontWeight:400,opacity:.85}}>
                       {exams.length >= 3 ? 'Advanced — ₹1,199/3mo' : 'Intermediate — ₹499/mo'}
                     </span>
@@ -504,7 +524,7 @@ export default function OnboardingWizard({ user, onDone, onSkip, onRouteToPaymen
                       boxShadow: selected ? '0 8px 22px rgba(255,107,53,.20)' : '0 2px 10px rgba(17,17,17,.06)',
                     }}
                   >
-                    <div style={{width:40,height:40,borderRadius:11,background: selected?'#fff':'#f3f4f6',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0,border:'1px solid #e8eaed'}}>
+                    <div style={{width:40,height:40,borderRadius:11,background: selected?'#fff':'#f3f4f6',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,border:'1px solid #e8eaed'}}>
                       {e.icon}
                     </div>
                     <div style={{flex:1,minWidth:0}}>
@@ -517,8 +537,8 @@ export default function OnboardingWizard({ user, onDone, onSkip, onRouteToPaymen
                       </div>
                     )}
                     {locked && (
-                      <div style={{width:22,height:22,borderRadius:'50%',background:'#e8eaed',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:11}}>
-                        🔒
+                      <div style={{width:22,height:22,borderRadius:'50%',background:'#e8eaed',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                        <OIcLock s={11} c='#6b7280'/>
                       </div>
                     )}
                     {!e.live && (
@@ -540,7 +560,7 @@ export default function OnboardingWizard({ user, onDone, onSkip, onRouteToPaymen
             {/* Exam date */}
             <div>
               <label style={{display:'block',fontSize:14,fontWeight:700,color:'#1a1a2e',marginBottom:10}}>
-                📅 When is your exam?
+                When is your exam?
               </label>
               <input
                 type="date"
@@ -589,7 +609,7 @@ export default function OnboardingWizard({ user, onDone, onSkip, onRouteToPaymen
             {/* Level */}
             <div>
               <label style={{display:'block',fontSize:14,fontWeight:700,color:'#1a1a2e',marginBottom:10}}>
-                🎓 What's your current preparation level? <span style={{color:'#9ca3af',fontWeight:500}}>(optional)</span>
+                What's your current preparation level? <span style={{color:'#9ca3af',fontWeight:500}}>(optional)</span>
               </label>
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 {LEVELS.map(l => {
@@ -606,7 +626,7 @@ export default function OnboardingWizard({ user, onDone, onSkip, onRouteToPaymen
                       boxShadow: on ? '0 4px 14px rgba(255,107,53,.16)' : 'none',
                     }}
                   >
-                    <span style={{fontSize:24,flexShrink:0}}>{l.icon}</span>
+                    <span style={{flexShrink:0,display:'inline-flex'}}>{l.icon}</span>
                     <div style={{flex:1}}>
                       <div style={{fontSize:14,fontWeight:700,color: on ? '#FF653F' : '#1a1a2e'}}>{l.label}</div>
                       <div style={{fontSize:12,color:'#6b7280',marginTop:2}}>{l.desc}</div>
@@ -684,13 +704,13 @@ export default function OnboardingWizard({ user, onDone, onSkip, onRouteToPaymen
             {/* Summary cards */}
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:12,marginBottom:14}}>
               {[
-                { label:'Total Days',      value:plan.totalDays,    icon:'📅', color:'#FF653F', bg:'#FFF3EE' },
-                { label:'Study Days',      value:plan.studyDays,    icon:'📖', color:'#7048E8', bg:'#F3F0FF' },
-                { label:'Mock Tests',      value:plan.mockDays,     icon:'📝', color:'#0891B2', bg:'#ECFEFF' },
-                { label:'Revision Days',   value:plan.revisionDays, icon:'🔁', color:'#16A34A', bg:'#DCFCE7' },
+                { label:'Total Days',      value:plan.totalDays,    icon:<OIcCal s={18} c='#FF653F'/>,    color:'#FF653F', bg:'#FFF3EE' },
+                { label:'Study Days',      value:plan.studyDays,    icon:<OIcBook s={18} c='#7048E8'/>,   color:'#7048E8', bg:'#F3F0FF' },
+                { label:'Mock Tests',      value:plan.mockDays,     icon:<OIcDoc s={18} c='#0891B2'/>,    color:'#0891B2', bg:'#ECFEFF' },
+                { label:'Revision Days',   value:plan.revisionDays, icon:<OIcRepeat s={18} c='#16A34A'/>, color:'#16A34A', bg:'#DCFCE7' },
               ].map(c => (
                 <div key={c.label} style={{background:'#fff',border:'1px solid #eceef1',borderRadius:14,padding:'14px 16px',textAlign:'center',boxShadow:'0 2px 10px rgba(17,17,17,.05)'}}>
-                  <div style={{width:36,height:36,borderRadius:10,background:c.bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,margin:'0 auto 8px'}}>{c.icon}</div>
+                  <div style={{width:36,height:36,borderRadius:10,background:c.bg,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 8px'}}>{c.icon}</div>
                   <div style={{fontSize:22,fontWeight:800,color:c.color,lineHeight:1}}>{c.value}</div>
                   <div style={{fontSize:10,color:'#94a3b8',marginTop:4,fontWeight:500}}>{c.label}</div>
                 </div>
@@ -720,7 +740,7 @@ export default function OnboardingWizard({ user, onDone, onSkip, onRouteToPaymen
             {/* Day-by-day schedule — first 14 days */}
             <div style={{background:'#fff',border:'1px solid #eceef1',borderRadius:16,overflow:'hidden',marginBottom:16,boxShadow:'0 2px 10px rgba(17,17,17,.05)'}}>
               <div style={{padding:'12px 18px',borderBottom:'1px solid #f1f5f9',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                <span style={{fontSize:13,fontWeight:700,color:'#0f172a'}}>📅 First 14 Days Preview</span>
+                <span style={{fontSize:13,fontWeight:700,color:'#0f172a',display:'inline-flex',alignItems:'center',gap:6}}><OIcCal s={14} c='#0f172a'/> First 14 Days Preview</span>
                 <span style={{fontSize:11,color:'#94a3b8'}}>Full plan saved to your dashboard</span>
               </div>
               <div className="ob-content" style={{maxHeight:230,overflowY:'auto'}}>
@@ -746,7 +766,7 @@ export default function OnboardingWizard({ user, onDone, onSkip, onRouteToPaymen
                       ))}
                     </div>
                     <div style={{fontSize:11,color:'#94a3b8',flexShrink:0,whiteSpace:'nowrap'}}>
-                      {d.type==='mock' ? '📝 Mock' : d.type==='revision' ? '🔁 Revision' : '📖 Study'} · {d.duration}
+                      {d.type==='mock' ? 'Mock' : d.type==='revision' ? 'Revision' : 'Study'} · {d.duration}
                     </div>
                   </div>
                 ))}
@@ -756,7 +776,7 @@ export default function OnboardingWizard({ user, onDone, onSkip, onRouteToPaymen
             {/* Weak topics recap */}
             {weakTopics.length > 0 && (
               <div style={{background:'#FFF7ED',border:'1px solid #FED7AA',borderRadius:12,padding:'12px 16px',marginBottom:20}}>
-                <div style={{fontSize:12,fontWeight:700,color:'#D97706',marginBottom:8}}>⚡ Extra focus topics in your plan:</div>
+                <div style={{fontSize:12,fontWeight:700,color:'#D97706',marginBottom:8}}>Extra focus topics in your plan:</div>
                 <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
                   {weakTopics.map(t => (
                     <span key={t} style={{fontSize:11,fontWeight:600,background:'#FEF3C7',color:'#92400E',padding:'3px 8px',borderRadius:20}}>{t}</span>
@@ -783,7 +803,7 @@ export default function OnboardingWizard({ user, onDone, onSkip, onRouteToPaymen
             >
               {saving
                 ? <><span style={{width:16,height:16,border:'2.5px solid rgba(255,255,255,.4)',borderTopColor:'#fff',borderRadius:'50%',display:'inline-block',animation:'spin .7s linear infinite'}}/>Saving your plan...</>
-                : <>🚀 Start My Study Plan →</>
+                : <>Start My Study Plan →</>
               }
             </button>
             <p style={{textAlign:'center',fontSize:11,color:'#94a3b8',marginTop:10}}>

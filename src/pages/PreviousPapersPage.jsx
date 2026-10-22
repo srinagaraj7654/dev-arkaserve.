@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase.js'
+import Footer from '../components/Footer.jsx'
 
 /* ──────────────────────────────────────────────────────────────
    Public "Previous Year Papers" — left dropdown rail + right list.
@@ -66,9 +67,105 @@ const FAMILIES = [
   { group:'India Post', id:'ippb_officer', name:'IPPB Officer (Scale I)', papers:[
     { year:YR, stage:'Prelims', q:100, mins:60,  neg:0.25, pdf:null },
   ]},
+
+  // ── SSC ──
+  { group:'SSC', id:'ssc_cgl', name:'SSC CGL', papers:[
+    { year:2024, stage:'Tier I',  q:100, mins:60,  neg:0.5,  pdf:null },
+    { year:2024, stage:'Tier II', q:130, mins:135, neg:1.0,  pdf:null },
+  ]},
+  { group:'SSC', id:'ssc_chsl', name:'SSC CHSL', papers:[
+    { year:2024, stage:'Tier I',  q:100, mins:60,  neg:0.5,  pdf:null },
+  ]},
+  { group:'SSC', id:'ssc_mts', name:'SSC MTS', papers:[
+    { year:2024, stage:'Tier I',  q:90,  mins:90,  neg:1.0,  pdf:null },
+  ]},
+  { group:'SSC', id:'ssc_cpo', name:'SSC CPO', papers:[
+    { year:2024, stage:'Tier I',  q:200, mins:120, neg:0.25, pdf:null },
+  ]},
+  { group:'SSC', id:'ssc_gd', name:'SSC GD Constable', papers:[
+    { year:2024, stage:'CBT',     q:80,  mins:60,  neg:0.5,  pdf:null },
+  ]},
+  { group:'SSC', id:'ssc_steno', name:'SSC Stenographer', papers:[
+    { year:2024, stage:'Tier I',  q:200, mins:120, neg:0.25, pdf:null },
+  ]},
+
+  // ── Railway ──
+  { group:'Railway', id:'rrb_ntpc', name:'RRB NTPC', papers:[
+    { year:2024, stage:'CBT 1',   q:100, mins:90,  neg:0.33, pdf:null },
+    { year:2024, stage:'CBT 2',   q:120, mins:90,  neg:0.33, pdf:null },
+  ]},
+  { group:'Railway', id:'rrb_groupd', name:'RRB Group D', papers:[
+    { year:2022, stage:'CBT',     q:100, mins:90,  neg:0.33, pdf:null },
+  ]},
+  { group:'Railway', id:'rrb_alp', name:'RRB ALP', papers:[
+    { year:2024, stage:'Stage 1', q:75,  mins:60,  neg:0.33, pdf:null },
+    { year:2024, stage:'Stage 2', q:175, mins:135, neg:0.33, pdf:null },
+  ]},
+  { group:'Railway', id:'rrb_je', name:'RRB JE', papers:[
+    { year:2024, stage:'CBT 1',   q:100, mins:90,  neg:0.33, pdf:null },
+  ]},
+
+  // ── Engineering ──
+  { group:'Engineering', id:'jee_main_p', name:'JEE Main', papers:[
+    { year:2024, stage:'B.E./B.Tech', q:90, mins:180, neg:1.0, pdf:null },
+  ]},
+  { group:'Engineering', id:'jee_advanced', name:'JEE Advanced', papers:[
+    { year:2024, stage:'Paper 1', q:54, mins:180, neg:2.0, pdf:null },
+    { year:2024, stage:'Paper 2', q:54, mins:180, neg:2.0, pdf:null },
+  ]},
+  { group:'Engineering', id:'gate', name:'GATE', papers:[
+    { year:2025, stage:'CS/IT',   q:65, mins:180, neg:0.67, pdf:null },
+    { year:2025, stage:'ECE',     q:65, mins:180, neg:0.67, pdf:null },
+    { year:2025, stage:'ME',      q:65, mins:180, neg:0.67, pdf:null },
+  ]},
+  { group:'Engineering', id:'bitsat_p', name:'BITSAT', papers:[
+    { year:2024, stage:'Full Test', q:130, mins:180, neg:1.0, pdf:null },
+  ]},
+
+  // ── Medical ──
+  { group:'Medical', id:'neet_ug_p', name:'NEET UG', papers:[
+    { year:2024, stage:'Phase 1', q:200, mins:200, neg:1.0, pdf:null },
+  ]},
+  { group:'Medical', id:'neet_pg_p', name:'NEET PG', papers:[
+    { year:2024, stage:'Full Paper', q:200, mins:210, neg:1.0, pdf:null },
+  ]},
+  { group:'Medical', id:'aiims_pg_p', name:'AIIMS PG', papers:[
+    { year:2024, stage:'Entrance', q:200, mins:210, neg:0.33, pdf:null },
+  ]},
 ]
 
-const GROUPS = ['IBPS', 'SBI', 'RRB', 'RBI', 'NABARD', 'LIC', 'Insurance', 'India Post']
+const GROUPS = ['IBPS', 'SBI', 'RRB', 'RBI', 'NABARD', 'LIC', 'Insurance', 'India Post', 'SSC', 'Railway', 'Engineering', 'Medical']
+
+const GROUP_ICONS = {
+  IBPS:        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M8 9V6a4 4 0 018 0v3"/></svg>,
+  SBI:         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>,
+  RRB:         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M8 9V6a4 4 0 018 0v3"/></svg>,
+  RBI:         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>,
+  NABARD:      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>,
+  LIC:         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  Insurance:   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  'India Post':<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>,
+  SSC:         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>,
+  Railway:     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="14" rx="2"/><path d="M4 11h16M8 19l-2 2M16 19l2 2"/><line x1="4" y1="17" x2="20" y2="17"/></svg>,
+  Engineering: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>,
+  Medical:     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><line x1="12" y1="8" x2="12" y2="14"/><line x1="9" y1="11" x2="15" y2="11"/></svg>,
+}
+
+const STAGE_COLORS = {
+  Prelims: { bg:'#eff6ff', color:'#2563eb', label:'Prelims' },
+  Mains:   { bg:'#faf5ff', color:'#7c3aed', label:'Mains'   },
+  'Phase 1':{ bg:'#ecfdf5', color:'#059669', label:'Phase 1' },
+  'Phase 2':{ bg:'#fef3c7', color:'#b45309', label:'Phase 2' },
+  'Tier I': { bg:'#eff6ff', color:'#2563eb', label:'Tier I'  },
+  'Tier II':{ bg:'#faf5ff', color:'#7c3aed', label:'Tier II' },
+  'CBT 1':  { bg:'#eff6ff', color:'#2563eb', label:'CBT 1'   },
+  'CBT 2':  { bg:'#faf5ff', color:'#7c3aed', label:'CBT 2'   },
+  CBT:      { bg:'#ecfdf5', color:'#059669', label:'CBT'     },
+  'Stage 1':{ bg:'#eff6ff', color:'#2563eb', label:'Stage 1' },
+  'Stage 2':{ bg:'#faf5ff', color:'#7c3aed', label:'Stage 2' },
+  'Paper 1':{ bg:'#eff6ff', color:'#2563eb', label:'Paper 1' },
+  'Paper 2':{ bg:'#faf5ff', color:'#7c3aed', label:'Paper 2' },
+}
 
 // Build the {group → families} tree from whichever paper list is active.
 const buildTree = fams =>
@@ -89,7 +186,7 @@ function rowsToFamilies(rows) {
   return Object.values(byExam)
 }
 
-export default function PreviousPapersPage({ onNav }) {
+export default function PreviousPapersPage({ onNav, user, onLogout }) {
   // Start with the built-in list; replace with DB rows if any exist.
   const [families, setFamilies] = useState(FAMILIES)
   const [sel, setSel] = useState(FAMILIES[0].id)
@@ -120,50 +217,117 @@ export default function PreviousPapersPage({ onNav }) {
     return () => { cancelled = true }
   }, [])
 
-  const [mobileYear, setMobileYear] = useState('')   // mobile year filter (desktop ignores)
+  const [stageFilter, setStageFilter] = useState('')
+  const [yearFilter, setYearFilter]   = useState('')
+  const [search, setSearch]           = useState('')
+
   const TREE = buildTree(families)
-  const fam = families.find(f => f.id === sel) || families[0]
-  // accordion: opening a group closes the others
+  const fam  = families.find(f => f.id === sel) || families[0]
   const toggle = g => setOpenGroups(p => ({ [g]: !p[g] }))
 
-  // Mobile dropdown helpers
+  // Auto-open the active group in the sidebar
+  useEffect(() => {
+    const active = families.find(f => f.id === sel)
+    if (active) setOpenGroups(p => ({ ...p, [active.group]: true }))
+  }, [sel, families])
+
+  // Cleanup body scroll on unmount
+  useEffect(() => {
+    return () => { document.body.style.overflow = ''; document.documentElement.style.overflow = '' }
+  }, [])
+
+  // Reset stage/year/search when exam changes
+  const pickExam = id => { setSel(id); setStageFilter(''); setYearFilter(''); setSearch('') }
+
+  const allPapers      = fam?.papers || []
+  const availStages    = [...new Set(allPapers.map(p => p.stage))]
+  const availYears     = [...new Set(allPapers.map(p => p.year))].sort((a, b) => b - a)
+  const filteredPapers = allPapers.filter(p => {
+    if (stageFilter && p.stage !== stageFilter) return false
+    if (yearFilter  && String(p.year) !== String(yearFilter)) return false
+    if (search) {
+      const q = search.toLowerCase()
+      if (!`${fam.name} ${p.year} ${p.stage}`.toLowerCase().includes(q)) return false
+    }
+    return true
+  })
+
+  // Mobile group/exam helpers
   const groupFamilies = families.filter(f => f.group === fam?.group)
-  const famYears = [...new Set((fam?.papers || []).map(p => p.year))].sort((a, b) => b - a)
-  const shownPapers = mobileYear
-    ? (fam?.papers || []).filter(p => String(p.year) === String(mobileYear))
-    : (fam?.papers || [])
-  const onPickGroup = (g) => {
-    const first = families.find(f => f.group === g)
-    if (first) { setSel(first.id); setMobileYear('') }
+  const onPickGroup   = g => { const first = families.find(f => f.group === g); if (first) pickExam(first.id) }
+
+  const selCls = { border:'1px solid #e2e8f0', borderRadius:8, padding:'8px 12px', fontSize:13, background:'#fff', outline:'none', cursor:'pointer', color:'#374151' }
+
+  const stageBadge = stage => {
+    const s = STAGE_COLORS[stage] || { bg:'#f1f5f9', color:'#475569', label: stage }
+    return (
+      <span style={{ background:s.bg, color:s.color, fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:20, letterSpacing:'.01em', whiteSpace:'nowrap' }}>
+        {s.label}
+      </span>
+    )
   }
-  const selStyle = "w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-orange-400"
 
   return (
-    <div className="min-h-screen bg-white flex flex-col md:flex-row" style={{ fontFamily: "'Inter',-apple-system,'Segoe UI',system-ui,sans-serif" }}>
+    <>
+    <style>{`
+      .pp-logo-text{display:block}
+      @media(max-width:480px){.pp-logo-text{display:none}.pp-login-btn{display:none!important}}
+      .pp-sidebar::-webkit-scrollbar{width:4px}.pp-sidebar::-webkit-scrollbar-track{background:transparent}.pp-sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px}
+      .pp-main::-webkit-scrollbar{width:6px}.pp-main::-webkit-scrollbar-track{background:#f1f5f9}.pp-main::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+      .pp-grp-btn:hover{background:rgba(255,255,255,.07)!important}
+      .pp-fam-btn:hover{background:rgba(255,255,255,.09)!important}
+      .pp-content{padding:24px 32px 48px}
+      @media(max-width:900px){.pp-content{padding:20px 20px 40px}}
+      @media(max-width:600px){.pp-content{padding:16px 16px 36px}}
+    `}</style>
 
-      {/* LEFT RAIL — desktop/tablet only (mobile uses dropdowns below) */}
-      <aside className="hidden md:block md:w-72 flex-shrink-0 bg-white md:border-r border-gray-200 md:sticky md:top-[58px] md:self-start md:h-[calc(100vh-58px)] overflow-y-auto">
-        <div className="px-4 py-4">
-          <div className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#FF653F' }}>Choose an exam</div>
-          {TREE.map(({ group, families }) => {
-            const open = !!openGroups[group]
+    <header style={{ background:'#0f172a', height:58, display:'flex', alignItems:'center', padding:'0 20px', gap:16, position:'sticky', top:0, zIndex:100, flexShrink:0 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer' }} onClick={() => onNav?.('home')}>
+        <div style={{ width:36, height:36, background:'#FF653F', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, fontSize:15, color:'#fff', letterSpacing:'-0.5px' }}>MT</div>
+        <div className="pp-logo-text">
+          <div style={{ color:'#fff', fontWeight:800, fontSize:14, lineHeight:1.1 }}>MockTest</div>
+          <div style={{ color:'rgba(255,255,255,.45)', fontSize:9.5, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase' }}>Your world of mock tests</div>
+        </div>
+      </div>
+      <div style={{ marginLeft:'auto', display:'flex', gap:8, alignItems:'center' }}>
+        {user ? (
+          <button onClick={onLogout} style={{ background:'none', border:'1px solid rgba(255,255,255,.25)', borderRadius:8, color:'rgba(255,255,255,.85)', fontSize:13, fontWeight:600, padding:'6px 14px', cursor:'pointer' }}>Logout</button>
+        ) : (
+          <>
+            <button onClick={() => onNav?.('auth')} className="pp-login-btn" style={{ background:'none', border:'none', color:'rgba(255,255,255,.82)', fontSize:13, fontWeight:500, padding:'6px 10px', cursor:'pointer' }}>Login</button>
+            <button onClick={() => onNav?.('auth')} style={{ background:'#FF653F', border:'none', borderRadius:8, color:'#fff', fontSize:13, fontWeight:700, padding:'7px 16px', cursor:'pointer', whiteSpace:'nowrap' }}>Start Free →</button>
+          </>
+        )}
+      </div>
+    </header>
+
+    <div style={{ display:'flex', fontFamily:"'Inter',-apple-system,'Segoe UI',system-ui,sans-serif" }}>
+
+      {/* ── DARK NAVY SIDEBAR ── */}
+      <aside className="pp-sidebar hidden md:flex" style={{ width:256, flexShrink:0, background:'#0f172a', flexDirection:'column', overflowY:'auto', borderRight:'1px solid rgba(255,255,255,.07)', position:'sticky', top:58, height:'calc(100vh - 58px)', alignSelf:'flex-start' }}>
+        <div style={{ padding:'16px 12px 12px' }}>
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:'rgba(255,255,255,.35)', padding:'0 8px 10px' }}>Exam Categories</div>
+          {TREE.map(({ group, families: grpFams }) => {
+            const open     = !!openGroups[group]
+            const hasActive = grpFams.some(f => f.id === sel)
             return (
-              <div key={group} className="mb-1.5">
-                <button onClick={() => toggle(group)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-bold text-gray-900 hover:bg-gray-100 transition-colors">
-                  <span>{group} Exams</span>
-                  <span className={`text-gray-400 text-xs transition-transform ${open ? 'rotate-180' : ''}`}>▼</span>
+              <div key={group} style={{ marginBottom:2 }}>
+                <button className="pp-grp-btn" onClick={() => toggle(group)}
+                  style={{ width:'100%', display:'flex', alignItems:'center', gap:9, padding:'9px 10px', borderRadius:8, border:'none', cursor:'pointer', background: open || hasActive ? 'rgba(255,101,63,.12)' : 'transparent', transition:'background .15s', textAlign:'left' }}>
+                  <span style={{ color: open || hasActive ? '#FF653F' : 'rgba(255,255,255,.4)', display:'flex', flexShrink:0 }}>{GROUP_ICONS[group]}</span>
+                  <span style={{ flex:1, fontSize:13, fontWeight:600, color: open || hasActive ? '#fff' : 'rgba(255,255,255,.65)' }}>{group} Exams</span>
+                  <span style={{ fontSize:10, color:'rgba(255,255,255,.3)', transform: open ? 'rotate(180deg)' : 'none', transition:'transform .2s' }}>▼</span>
                 </button>
                 {open && (
-                  <div className="pl-2 pt-1 pb-1 flex flex-col gap-1">
-                    {families.map(f => {
+                  <div style={{ paddingLeft:8, paddingBottom:4, paddingTop:2 }}>
+                    {grpFams.map(f => {
                       const active = f.id === sel
                       return (
-                        <button key={f.id} onClick={() => setSel(f.id)}
-                          className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all ${active ? 'text-white font-bold' : 'text-gray-600 hover:bg-gray-100 font-medium'}`}
-                          style={active ? { background: '#FF653F' } : {}}>
-                          <span>{f.name.replace(group + ' ', '')}</span>
-                          <span className={`text-xs ${active ? 'text-white/80' : 'text-gray-400'}`}>{f.papers.length}</span>
+                        <button key={f.id} className="pp-fam-btn" onClick={() => pickExam(f.id)}
+                          style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'8px 12px', borderRadius:8, border:'none', cursor:'pointer', background: active ? 'rgba(255,101,63,.2)' : 'transparent', marginBottom:2, transition:'background .12s', textAlign:'left' }}>
+                          <span style={{ width:6, height:6, borderRadius:'50%', background: active ? '#FF653F' : 'rgba(255,255,255,.2)', flexShrink:0 }}/>
+                          <span style={{ fontSize:12.5, fontWeight: active ? 700 : 400, color: active ? '#fff' : 'rgba(255,255,255,.6)', flex:1 }}>{f.name}</span>
+                          <span style={{ fontSize:11, color:'rgba(255,255,255,.25)', fontWeight:500 }}>{f.papers.length}</span>
                         </button>
                       )
                     })}
@@ -172,69 +336,121 @@ export default function PreviousPapersPage({ onNav }) {
               </div>
             )
           })}
-          <div className="mt-3 px-3 text-xs text-gray-400">More exams (SSC, RRB NTPC, Insurance) coming soon.</div>
         </div>
       </aside>
 
-      {/* RIGHT */}
-      <div className="flex-1 min-w-0 overflow-y-auto">
-        <div className="px-4 sm:px-6 py-6">
+      {/* ── MAIN CONTENT ── */}
+      <div className="pp-main" style={{ flex:1, minWidth:0, background:'#f8fafc' }}>
+        <div className="pp-content">
 
-          <div className="mb-4">
-            <h1 className="text-2xl sm:text-3xl font-black text-gray-900">Bank Exam <span style={{ color: '#FF653F' }}>Previous Year Papers</span></h1>
-            <p className="text-gray-500 text-sm mt-1">Real exam patterns from past years — full sectional structure, timing and negative marking. Pick an exam on the left.</p>
+          {/* Breadcrumb */}
+          <nav style={{ display:'flex', alignItems:'center', gap:6, marginBottom:18, flexWrap:'wrap' }}>
+            <button onClick={() => onNav?.('home')} style={{ background:'none', border:'none', padding:0, cursor:'pointer', fontSize:12.5, color:'#64748b', fontWeight:500, display:'flex', alignItems:'center', gap:4 }}
+              onMouseOver={e => e.currentTarget.style.color = '#FF653F'}
+              onMouseOut={e => e.currentTarget.style.color = '#64748b'}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+              Home
+            </button>
+            <span style={{ color:'#94a3b8', fontSize:12 }}>/</span>
+            <span style={{ fontSize:12.5, color:'#1e293b', fontWeight:600 }}>Previous Year Papers</span>
+          </nav>
+
+          {/* Page heading */}
+          <div style={{ marginBottom:20 }}>
+            <h1 style={{ fontSize:26, fontWeight:900, color:'#0f172a', margin:0, lineHeight:1.2 }}>
+              Bank Exam <span style={{ color:'#FF653F' }}>Previous Year Papers</span>
+            </h1>
+            <p style={{ fontSize:13.5, color:'#64748b', marginTop:6 }}>
+              Real exam patterns from past years — full sectional structure, timing and negative marking. Pick an exam on the left.
+            </p>
           </div>
 
-          {/* Mobile selectors — Exam · Type · Year (desktop uses the left rail) */}
-          <div className="md:hidden mb-4">
-            <div className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color:'#FF653F' }}>Choose an exam</div>
-            <div className="grid grid-cols-1 gap-2">
-              <select value={fam?.group || ''} onChange={e => onPickGroup(e.target.value)} className={selStyle}>
-                {GROUPS.filter(g => families.some(f => f.group === g)).map(g => (
-                  <option key={g} value={g}>{g} Exams</option>
-                ))}
-              </select>
-              <div className="grid grid-cols-2 gap-2">
-                <select value={sel} onChange={e => { setSel(e.target.value); setMobileYear('') }} className={selStyle}>
-                  {groupFamilies.map(f => (
-                    <option key={f.id} value={f.id}>{f.name.replace(f.group + ' ', '')}</option>
-                  ))}
-                </select>
-                <select value={mobileYear} onChange={e => setMobileYear(e.target.value)} className={selStyle}>
-                  <option value="">All years</option>
-                  {famYears.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
-              </div>
+          {/* ── Filter bar ── */}
+          <div style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:12, padding:'12px 16px', marginBottom:24, display:'flex', alignItems:'center', flexWrap:'wrap', gap:10 }}>
+            {/* Mobile: group selector */}
+            <select className="md:hidden" value={fam?.group || ''} onChange={e => onPickGroup(e.target.value)} style={selCls}>
+              {GROUPS.filter(g => families.some(f => f.group === g)).map(g => <option key={g} value={g}>{g} Exams</option>)}
+            </select>
+            {/* Exam */}
+            <select value={sel} onChange={e => pickExam(e.target.value)} style={{ ...selCls, minWidth:140 }}>
+              {(TREE.find(t => t.group === fam?.group)?.families || []).map(f => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
+            {/* Stage */}
+            <select value={stageFilter} onChange={e => setStageFilter(e.target.value)} style={{ ...selCls, minWidth:130 }}>
+              <option value="">All stages</option>
+              {availStages.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            {/* Year */}
+            <select value={yearFilter} onChange={e => setYearFilter(e.target.value)} style={{ ...selCls, minWidth:110 }}>
+              <option value="">All years</option>
+              {availYears.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+            {/* Search */}
+            <div style={{ position:'relative', flex:1, minWidth:160 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', pointerEvents:'none' }}>
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search papers by year or exam..."
+                style={{ ...selCls, width:'100%', boxSizing:'border-box', paddingLeft:32 }}/>
             </div>
           </div>
 
-          <h2 className="text-lg font-black text-gray-900 mb-3">{fam.name}</h2>
-          <div className="grid grid-cols-1 gap-4">
-            {shownPapers.map((p, i) => (
-              <div key={i} className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
-                style={{ boxShadow: '0 2px 10px rgba(17,17,17,.05)' }}>
-                <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: '#FFF3EE' }}>📄</div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-bold text-gray-900">{fam.name} {p.year} · {p.stage}</div>
-                    <div className="text-xs text-gray-400 mt-0.5">{p.q} questions · {p.mins} min · -{p.neg} negative</div>
+          {/* Paper section heading */}
+          <h2 style={{ fontSize:17, fontWeight:800, color:'#0f172a', marginBottom:14 }}>{fam.name} Papers</h2>
+
+          {/* Paper cards */}
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            {filteredPapers.length === 0 ? (
+              <div style={{ textAlign:'center', padding:'40px 20px', color:'#94a3b8', fontSize:14 }}>No papers match the selected filters.</div>
+            ) : filteredPapers.map((p, i) => (
+              <div key={i} style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:14, padding:'16px 20px', display:'flex', alignItems:'center', gap:16, flexWrap:'wrap', boxShadow:'0 1px 8px rgba(15,23,42,.05)' }}>
+                {/* Icon */}
+                <div style={{ width:44, height:44, borderRadius:10, background:'#fff3ee', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF653F" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+                </div>
+                {/* Title + meta */}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:6 }}>
+                    <span style={{ fontSize:14, fontWeight:700, color:'#0f172a', whiteSpace:'nowrap' }}>{fam.name} {p.year} · {p.stage}</span>
+                    {stageBadge(p.stage)}
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
+                    <span style={{ fontSize:12, color:'#64748b', display:'flex', alignItems:'center', gap:4 }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                      {p.q} questions
+                    </span>
+                    <span style={{ fontSize:12, color:'#64748b', display:'flex', alignItems:'center', gap:4 }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      {p.mins} min
+                    </span>
+                    <span style={{ fontSize:12, color:'#64748b', display:'flex', alignItems:'center', gap:4 }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                      -{p.neg} negative
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0 self-stretch sm:self-auto">
-                  {p.pdf && (
+                {/* Actions */}
+                <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+                  {p.pdf ? (
                     <a href={p.pdf} target="_blank" rel="noopener noreferrer"
-                      className="text-xs font-bold rounded-lg px-3 py-2 text-white whitespace-nowrap"
-                      style={{ background: '#FF653F' }}
+                      style={{ display:'flex', alignItems:'center', gap:5, background:'#FF653F', border:'none', borderRadius:8, color:'#fff', fontSize:12.5, fontWeight:700, padding:'8px 14px', cursor:'pointer', textDecoration:'none', whiteSpace:'nowrap' }}
                       onMouseOver={e => e.currentTarget.style.background = '#e5512f'}
                       onMouseOut={e => e.currentTarget.style.background = '#FF653F'}>
-                      ⬇ PDF
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                      PDF
                     </a>
+                  ) : (
+                    <span style={{ display:'flex', alignItems:'center', gap:5, background:'rgba(255,101,63,.12)', border:'none', borderRadius:8, color:'#FF653F', fontSize:12.5, fontWeight:700, padding:'8px 14px', whiteSpace:'nowrap', opacity:.7 }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                      PDF
+                    </span>
                   )}
                   <button onClick={() => onNav?.('auth')}
-                    className="text-xs font-bold rounded-lg px-4 py-2 border transition-all whitespace-nowrap"
-                    style={{ color: '#FF653F', borderColor: '#fec9b0' }}
+                    style={{ background:'none', border:'1.5px solid #fec9b0', borderRadius:8, color:'#FF653F', fontSize:12.5, fontWeight:700, padding:'7px 14px', cursor:'pointer', whiteSpace:'nowrap', transition:'all .15s' }}
                     onMouseOver={e => { e.currentTarget.style.background = '#FF653F'; e.currentTarget.style.color = '#fff' }}
-                    onMouseOut={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = '#FF653F' }}>
+                    onMouseOut={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#FF653F' }}>
                     Sign up to attempt
                   </button>
                 </div>
@@ -242,24 +458,54 @@ export default function PreviousPapersPage({ onNav }) {
             ))}
           </div>
 
-          <p className="text-xs text-gray-400 mt-4">🔒 Attempting papers, full solutions and PDF downloads are free after sign-up.</p>
+          {/* Footer note */}
+          <p style={{ fontSize:12, color:'#94a3b8', marginTop:14, marginBottom:32, display:'flex', alignItems:'center', gap:5 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            Attempting papers, full solutions and PDF downloads are free after sign-up.
+          </p>
 
           {/* CTA */}
-          <div className="mt-8 rounded-2xl p-6 sm:p-8 text-center" style={{ background: '#1a1a2e' }}>
-            <h2 className="text-xl sm:text-2xl font-black text-white mb-2">Attempt any paper <span style={{ color: '#FF653F' }}>free</span></h2>
-            <p className="text-sm mb-5" style={{ color: 'rgba(255,255,255,.7)' }}>
-              Create a free account to attempt previous-year papers as timed mocks with instant step-by-step explanations and category-wise cut-off comparison.
-            </p>
-            <button onClick={() => onNav?.('auth')}
-              className="text-white text-sm font-bold px-7 py-3 rounded-xl transition-all"
-              style={{ background: '#FF653F' }}
-              onMouseOver={e => e.currentTarget.style.background = '#e5512f'}
-              onMouseOut={e => e.currentTarget.style.background = '#FF653F'}>
-              🚀 Start Free →
-            </button>
+          <div style={{ borderRadius:18, overflow:'hidden', background:'#0f172a', display:'flex', alignItems:'stretch', flexWrap:'wrap' }}>
+            {/* Illustration */}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'28px 20px 28px 28px', flexShrink:0 }} className="pp-cta-illus">
+              <svg width="88" height="88" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="88" height="88" rx="14" fill="rgba(255,101,63,.12)"/>
+                <rect x="18" y="16" width="34" height="46" rx="3" fill="#fff" fillOpacity=".08" stroke="rgba(255,255,255,.25)" strokeWidth="1.5"/>
+                <line x1="25" y1="26" x2="44" y2="26" stroke="rgba(255,255,255,.4)" strokeWidth="1.5" strokeLinecap="round"/>
+                <line x1="25" y1="33" x2="44" y2="33" stroke="rgba(255,255,255,.2)" strokeWidth="1.5" strokeLinecap="round"/>
+                <line x1="25" y1="40" x2="38" y2="40" stroke="rgba(255,255,255,.2)" strokeWidth="1.5" strokeLinecap="round"/>
+                <rect x="46" y="46" width="24" height="20" rx="4" fill="rgba(255,101,63,.15)" stroke="rgba(255,101,63,.35)" strokeWidth="1"/>
+                <rect x="50" y="57" width="4" height="7" rx="1" fill="#FF653F" fillOpacity=".7"/>
+                <rect x="56" y="53" width="4" height="11" rx="1" fill="#FF653F"/>
+                <rect x="62" y="50" width="4" height="14" rx="1" fill="#FF653F" fillOpacity=".85"/>
+                <circle cx="64" cy="28" r="11" fill="rgba(255,101,63,.2)" stroke="#FF653F" strokeWidth="1.5"/>
+                <polyline points="59,28 63,32 70,24" stroke="#FF653F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            {/* Text */}
+            <div style={{ flex:'1 1 260px', padding:'28px 24px', display:'flex', flexDirection:'column', justifyContent:'center' }}>
+              <h2 style={{ fontSize:20, fontWeight:900, color:'#fff', margin:'0 0 10px', lineHeight:1.3 }}>
+                Attempt any paper <span style={{ color:'#FF653F' }}>free</span>
+              </h2>
+              <p style={{ fontSize:13.5, color:'rgba(255,255,255,.6)', margin:'0 0 22px', lineHeight:1.65 }}>
+                Create a free account to attempt previous-year papers as timed mocks with instant step-by-step explanations and category-wise cut-off comparison.
+              </p>
+              <div>
+                <button onClick={() => onNav?.('auth')}
+                  style={{ background:'#FF653F', border:'none', borderRadius:9, color:'#fff', fontSize:13.5, fontWeight:700, padding:'11px 24px', cursor:'pointer', whiteSpace:'nowrap' }}
+                  onMouseOver={e => e.currentTarget.style.background = '#e5512f'}
+                  onMouseOut={e => e.currentTarget.style.background = '#FF653F'}>
+                  Start Free →
+                </button>
+              </div>
+            </div>
           </div>
+
         </div>
       </div>
     </div>
+    <Footer onNav={onNav} />
+    <style>{`.pp-cta-illus{display:flex}@media(max-width:640px){.pp-cta-illus{display:none!important}}`}</style>
+    </>
   )
 }

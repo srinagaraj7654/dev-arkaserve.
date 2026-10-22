@@ -1,6 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { generateTest, generateMiniTest, generateTopicTest } from '../api.js'
 
+// ── Tab mode icons ────────────────────────────────────────────
+const _sv2 = (c) => ({fill:'none',stroke:c||'currentColor',strokeWidth:'1.5',strokeLinecap:'round',strokeLinejoin:'round'})
+const HIcGrad   = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv2(c)}><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+const HIcDoc    = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv2(c)}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+const HIcTarget = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv2(c)}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+const HIcTimer  = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv2(c)}><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3l-1 2M19 3l1 2M9 3h6"/></svg>
+
 // ── Sidebar icons — identical set to the Dashboard sidebar ─────
 const SvgHome  = () => <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 9l7-7 7 7v9a1 1 0 01-1 1H4a1 1 0 01-1-1V9z"/><path d="M8 19V12h4v7"/></svg>
 const SvgDoc   = () => <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 2h8l4 4v12a2 2 0 01-2 2H4a2 2 0 01-2-2V4a2 2 0 012-2z"/><path d="M12 2v4h4M6 10h8M6 13h5"/></svg>
@@ -251,7 +258,7 @@ function SATExamTab({ studentName, onStart, initialExamId = 'sat_full' }) {
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center gap-3 pb-1 border-b border-gray-100">
-        <span className="text-2xl">🎓</span>
+        <HIcGrad s={22} c='#374151'/>
         <div>
           <div className="font-black text-gray-900 text-lg leading-tight">Digital SAT Practice</div>
           <div className="text-xs text-gray-400">College Board · USA · No negative marking · 400–1600</div>
@@ -311,110 +318,168 @@ function SATExamTab({ studentName, onStart, initialExamId = 'sat_full' }) {
   )
 }
 
+// ── Section inline-style map (replaces Tailwind classes) ──────
+const SS = {
+  english:                      {bg:'#ecfdf5',fg:'#065f46',br:'#a7f3d0'},
+  english_language:             {bg:'#ecfdf5',fg:'#065f46',br:'#a7f3d0'},
+  general_english:              {bg:'#ecfdf5',fg:'#065f46',br:'#a7f3d0'},
+  english_comprehension:        {bg:'#ecfdf5',fg:'#065f46',br:'#a7f3d0'},
+  numerical_ability:            {bg:'#fffbeb',fg:'#92400e',br:'#fde68a'},
+  quantitative_aptitude:        {bg:'#fffbeb',fg:'#92400e',br:'#fde68a'},
+  data_analysis_interpretation: {bg:'#fffbeb',fg:'#92400e',br:'#fde68a'},
+  numerical_mathematical_ability:{bg:'#fffbeb',fg:'#92400e',br:'#fde68a'},
+  reasoning:                    {bg:'#f5f3ff',fg:'#5b21b6',br:'#ddd6fe'},
+  reasoning_computer_aptitude:  {bg:'#f5f3ff',fg:'#5b21b6',br:'#ddd6fe'},
+  general_intelligence_reasoning:{bg:'#f5f3ff',fg:'#5b21b6',br:'#ddd6fe'},
+  general_intelligence:         {bg:'#f5f3ff',fg:'#5b21b6',br:'#ddd6fe'},
+  reasoning_problem_solving:    {bg:'#f5f3ff',fg:'#5b21b6',br:'#ddd6fe'},
+  general_financial_awareness:  {bg:'#eff6ff',fg:'#1e40af',br:'#bfdbfe'},
+  general_economy_banking:      {bg:'#eff6ff',fg:'#1e40af',br:'#bfdbfe'},
+  general_knowledge:            {bg:'#eff6ff',fg:'#1e40af',br:'#bfdbfe'},
+  general_awareness:            {bg:'#eff6ff',fg:'#1e40af',br:'#bfdbfe'},
+  mathematics:                  {bg:'#eef2ff',fg:'#3730a3',br:'#c7d2fe'},
+  physics:                      {bg:'#f0f9ff',fg:'#075985',br:'#bae6fd'},
+  chemistry:                    {bg:'#f0fdfa',fg:'#134e4a',br:'#99f6e4'},
+}
+const ss = s => SS[s] || {bg:'#f9fafb',fg:'#374151',br:'#e5e7eb'}
+
+// ── Selection stages helper ───────────────────────────────────
+function getSelectionStages(exam) {
+  const lvl = (exam.level || '').toLowerCase()
+  if (lvl.includes('prelim') || lvl.includes('phase 1') || lvl.includes('cbt 1') || lvl.includes('paper i') || lvl.includes('tier i'))
+    return [{label:'Prelims / Phase 1',active:true},{label:'Mains / Phase 2',active:false},{label:'Interview / DV',active:false}]
+  if (lvl.includes('main') || lvl.includes('phase 2') || lvl.includes('cbt 2') || lvl.includes('tier ii'))
+    return [{label:'Prelims / Phase 1',active:false},{label:'Mains / Phase 2',active:true},{label:'Interview / DV',active:false}]
+  if (lvl.includes('advanced'))
+    return [{label:'JEE Main',active:false},{label:'JEE Advanced',active:true},{label:'JoSAA Counselling',active:false}]
+  if (lvl === 'entrance')
+    return [{label:'Entrance Exam',active:true},{label:'Counselling',active:false}]
+  return [{label:exam.level,active:true},{label:'Document Verification',active:false}]
+}
+
 // ── Tab: Full Mock ────────────────────────────────────────────
-function FullMockTab({ studentName, onStart, initialExamId = '', registeredExamIds = [], isPro = false }) {
-  // Restrict the tree to the exams the user registered for (free users).
-  // FREE_OPEN_EXAMS are always shown to everyone for testing.
-  const hasReg = registeredExamIds.length > 0
-  const visibleTree = (isPro || !hasReg)
-    ? EXAM_TREE
-    : EXAM_TREE
-        .map(g => ({ ...g, exams: g.exams.filter(e => registeredExamIds.includes(e.id) || FREE_OPEN_EXAMS.has(e.id)) }))
-        .filter(g => g.exams.length > 0)
-  const tree = visibleTree.length ? visibleTree : EXAM_TREE   // safety fallback
+function FullMockTab({ studentName, onStart, onNeedAuth, initialExamId = '', registeredExamIds = [], isPro = false, bank, onBankChange, bankTree = EXAM_TREE }) {
+  const tree = bankTree
+  const bankGroup = tree.find(g => g.bank === bank) || tree[0]
+  const [loading,   setLoading]   = useState(false)
+  const [loadingId, setLoadingId] = useState(null)
+  const [error,     setError]     = useState('')
+  const [isMobile,  setIsMobile]  = useState(() => window.innerWidth < 768)
 
-  // Pre-select bank and exam if initialExamId provided (must be in the visible tree)
-  const _initExam = initialExamId ? tree.flatMap(g=>g.exams).find(e => e.id === initialExamId) : null
-  const _initBank = _initExam ? tree.find(g => g.exams.some(e => e.id === initialExamId))?.bank : tree[0].bank
-  const [bank,      setBank]    = useState(_initBank || tree[0].bank)
-  const [examId,    setExamId]  = useState((_initExam ? initialExamId : tree[0].exams[0].id))
-  const [loading,   setLoading] = useState(false)
-  const [error,     setError]   = useState('')
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
 
-  const group = tree.find(g => g.bank === bank) || tree[0]
-  const exam  = ALL_EXAMS.find(e => e.id === examId) || group.exams[0]
+  useEffect(() => { setError(''); setLoadingId(null); setLoading(false) }, [bank])
 
-  const changeBank = b => { setBank(b); setExamId(tree.find(g=>g.bank===b).exams[0].id); setError('') }
-
-  const start = async () => {
-    setError(''); setLoading(true)
+  const start = async (exam) => {
+    if (loading) return
+    if (onNeedAuth) { onNeedAuth(); return }
+    setError(''); setLoadingId(exam.id); setLoading(true)
     try { const d = await generateTest(studentName, exam.id); onStart(d) }
-    catch(e) { setError(e.friendlyMessage || 'Server error. Please try again.'); setLoading(false) }
+    catch(e) { setError(e.friendlyMessage || 'Server error. Please try again.'); setLoading(false); setLoadingId(null) }
   }
 
   return (
-    <div className="space-y-4">
-      {/* Bank tabs */}
-      <div>
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Select bank</p>
-        <div className="flex gap-2 overflow-x-auto pb-1" style={{scrollbarWidth:'none'}}>
-          {tree.map(g => (
-            <button key={g.bank} onClick={() => changeBank(g.bank)}
-              className={`flex-shrink-0 px-4 py-2.5 rounded-xl font-semibold text-sm border-2 transition-all whitespace-nowrap
-                ${bank===g.bank ? 'text-white' : 'border-gray-200 text-gray-700 hover:border-orange-300'}`}
-              style={bank===g.bank ? {borderColor:'#FF653F',background:'#FF653F'} : {}}>
-              {g.bank}
-            </button>
-          ))}
+    <>
+    <style>{`
+      .fmock-outer{display:flex;gap:24px;align-items:flex-start;flex-direction:row}
+      .fmock-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%}
+      .fmock-side{width:280px;flex-shrink:0;display:flex;flex-direction:column;gap:12px}
+      @media(max-width:767px){
+        .fmock-outer{flex-direction:column;gap:0;align-items:stretch}
+        .fmock-cards{grid-template-columns:1fr}
+        .fmock-side{width:100%;margin-top:16px}
+      }
+    `}</style>
+    <div className="fmock-outer">
+
+      {/* ── LEFT: Exam cards grid ── */}
+      <div style={{flex:'1 1 0',minWidth:0}}>
+        {error && <div style={{padding:'9px 13px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:9,fontSize:12.5,color:'#dc2626',marginBottom:14}}>{error}</div>}
+        <div className="fmock-cards">
+          {bankGroup.exams.map(exam => {
+            const isThis = loadingId === exam.id && loading
+            return (
+              <div key={exam.id} style={{border:'1.5px solid #f0f0f0',borderRadius:12,overflow:'hidden',background:'#fff',display:'flex',flexDirection:'column'}}>
+                <div style={{height:3,background:'linear-gradient(90deg,#FF653F,#ff9a72)'}}/>
+                <div style={{padding:'13px 16px',flex:1,display:'flex',flexDirection:'column',gap:10}}>
+                  <div>
+                    <div style={{fontSize:13.5,fontWeight:900,color:'#111827',letterSpacing:'-.02em',marginBottom:5}}>{exam.name}</div>
+                    <div style={{display:'flex',gap:5}}>
+                      <span style={{fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:4,background:'#FFF3EE',color:'#FF653F'}}>{exam.badge}</span>
+                      <span style={{fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:4,background:'#f3f4f6',color:'#6b7280'}}>{exam.level}</span>
+                    </div>
+                  </div>
+                  <div style={{display:'flex',gap:18}}>
+                    {[{v:`${exam.questions}`,l:'Questions'},{v:exam.duration,l:'Duration'},{v:exam.negative>0?`−${exam.negative}`:'None',l:'Negative'}].map(({v,l})=>(
+                      <div key={l}>
+                        <div style={{fontSize:13,fontWeight:900,color:'#111827',lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{v}</div>
+                        <div style={{fontSize:9.5,color:'#9ca3af',fontWeight:600,marginTop:2}}>{l}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                    {exam.sections.map(s => {
+                      const c = ss(s)
+                      return (
+                        <div key={s} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 10px',borderRadius:6,fontSize:11,fontWeight:600,background:c.bg,color:c.fg,border:`1px solid ${c.br}`}}>
+                          <span>{secLabel(s)}</span>
+                          <span style={{opacity:.7}}>{exam.pattern[s]}Q</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <button onClick={() => start(exam)} disabled={loading} style={{
+                    width:'100%',padding:'10px',borderRadius:9,border:'none',
+                    cursor:loading?'default':'pointer',
+                    background:'#FF653F',color:'#fff',fontWeight:800,fontSize:12.5,
+                    boxShadow:'0 3px 14px rgba(255,101,63,.25)',transition:'all .15s',
+                    opacity:loading?.75:1,marginTop:'auto',
+                  }}
+                    onMouseOver={e=>!loading&&(e.currentTarget.style.background='#e8501c')}
+                    onMouseOut={e=>e.currentTarget.style.background='#FF653F'}>
+                    {isThis
+                      ? <span style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+                          <span style={{width:12,height:12,border:'2px solid rgba(255,255,255,.4)',borderTopColor:'#fff',borderRadius:'50%',animation:'spin 0.7s linear infinite',display:'inline-block'}}/>
+                          Generating…
+                        </span>
+                      : 'Start Test →'}
+                  </button>
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
 
-      {/* Exam dropdown */}
-      <div>
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Select exam</p>
-        <select value={examId} onChange={e=>{setExamId(e.target.value);setError('')}}
-          className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm font-medium bg-white focus:outline-none cursor-pointer" style={{focusBorderColor:'#FF653F'}}
-          onFocus={e=>e.target.style.borderColor='#FF653F'} onBlur={e=>e.target.style.borderColor='#e5e7eb'}>
-          {group.exams.map(ex => (
-            <option key={ex.id} value={ex.id}>{ex.name} — {ex.level}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* Exam card */}
-      <div className="rounded-2xl border p-4" style={{background:'#FFF3EE',borderColor:'#fec9b0'}}>
-        <div className="flex items-center gap-2 mb-3">
-          <span className="font-bold text-gray-900 text-sm">{exam.name}</span>
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${BADGE[exam.badge]||'bg-gray-100 text-gray-600'}`}>{exam.badge}</span>
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${LEVEL[exam.level]||'bg-gray-100 text-gray-600'}`}>{exam.level}</span>
-        </div>
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          {[[`${exam.questions}Q`,'Questions'],[exam.duration,'Duration'],[exam.negative>0?`-${exam.negative}`:'None','Negative']].map(([v,l])=>(
-            <div key={l} className="bg-white rounded-xl p-2 text-center border" style={{borderColor:'#fec9b0'}}>
-              <div className="text-xs font-bold" style={{color:'#FF653F'}}>{v}</div>
-              <div className="text-xs text-gray-500">{l}</div>
+      {/* ── RIGHT: Info sidebar ── */}
+      <div className="fmock-side">
+        <div style={{background:'rgba(255,101,63,.08)',border:'1px solid rgba(255,101,63,.2)',borderRadius:16,padding:'18px 20px'}}>
+          <div style={{fontSize:10,fontWeight:800,color:'#FF653F',textTransform:'uppercase',letterSpacing:'.09em',marginBottom:12}}>Preparation Tips</div>
+          {[
+            'Start with section tests to spot weak areas',
+            'Review solution PDFs after every mock',
+            'Improve speed in Reasoning & Quant first',
+            'Maintain exam-day discipline with a timer',
+          ].map((tip, i) => (
+            <div key={i} style={{display:'flex',gap:10,marginBottom:i<3?10:0,fontSize:12.5,color:'#374151',lineHeight:1.6}}>
+              <span style={{color:'#FF653F',flexShrink:0,fontWeight:700,marginTop:1}}>→</span>
+              <span>{tip}</span>
             </div>
           ))}
         </div>
-        <div className="space-y-1.5">
-          {exam.sections.map(s=>(
-            <div key={s} className={`flex justify-between px-3 py-1.5 rounded-lg border text-xs font-medium ${SEC_COLOR[s]||'text-gray-700 bg-gray-50 border-gray-200'}`}>
-              <span>{secLabel(s)}</span>
-              <span>{exam.pattern[s]}Q · 20 min</span>
-            </div>
-          ))}
+        <div style={{background:'#f9fafb',border:'1px solid #e5e7eb',borderRadius:16,padding:'16px 18px',fontSize:12.5,color:'#6b7280',lineHeight:1.7}}>
+          <div style={{fontWeight:800,color:'#111827',marginBottom:6,fontSize:12}}>Before you start</div>
+          <div>· Each section has a separate 20-min timer — auto-advances when time is up</div>
+          <div>· Negative marking: <b style={{color:'#f87171'}}>−0.25</b> per wrong answer</div>
+          <div>· Download solution PDF after submission for full explanations</div>
         </div>
       </div>
-
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 space-y-0.5">
-        <div className="font-semibold mb-1">Before you start:</div>
-        <div>• Each section has a separate 20-minute timer — auto-moves to next section when time expires</div>
-        {exam.negative>0 && <div>• Negative marking: -{exam.negative} per wrong answer</div>}
-        <div>• Download solution PDF after submission for full explanations</div>
-      </div>
-
-      {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>}
-
-      <button onClick={start} disabled={loading}
-        className="w-full py-3.5 rounded-2xl text-white font-bold text-sm disabled:opacity-60 transition-all"
-        style={{background:'#FF653F'}}
-        onMouseOver={e=>!loading&&(e.currentTarget.style.background='#e5512f')}
-        onMouseOut={e=>e.currentTarget.style.background='#FF653F'}>
-        {loading
-          ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Generating test...</span>
-          : `Start ${exam.name}`}
-      </button>
     </div>
+    </>
   )
 }
 
@@ -491,11 +556,11 @@ function TopicPracticeTab({ studentName, onStart, user = null, sectionId = 'nume
             <div className="grid grid-cols-2 gap-2">
               <button onClick={()=>setDifficulty('diagnostic')}
                 className={`py-1.5 text-xs font-semibold rounded-xl border-2 transition-all ${isDiagnostic ? diffStyle.diagnostic+' border-current' : 'border-gray-200 text-gray-500 bg-white hover:border-gray-300'}`}>
-                🎯 Diagnostic
+                Diagnostic
               </button>
               <button onClick={()=>setDifficulty(prev => prev==='diagnostic' ? 'easy' : prev)}
                 className={`py-1.5 text-xs font-semibold rounded-xl border-2 transition-all ${!isDiagnostic ? 'bg-blue-50 text-blue-700 border-blue-300 border-current' : 'border-gray-200 text-gray-500 bg-white hover:border-gray-300'}`}>
-                📚 Practice
+                Practice
               </button>
             </div>
             {isDiagnostic && (
@@ -514,7 +579,7 @@ function TopicPracticeTab({ studentName, onStart, user = null, sectionId = 'nume
                 <button key={d} onClick={()=>setDifficulty(d)}
                   className={`py-1.5 text-xs font-semibold rounded-xl border-2 capitalize transition-all
                     ${difficulty===d ? diffStyle[d]+' border-current' : 'border-gray-200 text-gray-500 bg-white hover:border-gray-300'}`}>
-                  {d === 'mixed' ? '⚡ Mixed' : d}
+                  {d === 'mixed' ? 'Mixed' : d}
                 </button>
               ))}
             </div>
@@ -550,7 +615,7 @@ function TopicPracticeTab({ studentName, onStart, user = null, sectionId = 'nume
               : !topic
                 ? 'Select a topic to start'
                 : isDiagnostic
-                  ? `🎯 Start Diagnostic · ${count}Q · ~${Math.max(5,count)} min`
+                  ? `Start Diagnostic · ${count}Q · ~${Math.max(5,count)} min`
                   : `Start · ${count}Q · ~${Math.max(5,count)} min · ${difficulty}`}
           </button>
         </div>
@@ -638,13 +703,10 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
   const isSAT = isUSUser || startExamId?.startsWith('sat_')
   // US users default to sat_full when no specific SAT exam was requested
   const effectiveExamId = (isUSUser && !startExamId?.startsWith('sat_')) ? 'sat_full' : startExamId
-  const [tab,        setTab]        = useState(isSAT ? 'sat' : startMode)
-  const [topicSecId, setTopicSecId] = useState('numerical_ability')
+  const [tab,          setTab]          = useState(isSAT ? 'sat' : startMode)
+  const [topicSecId,   setTopicSecId]   = useState('numerical_ability')
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const mainRef = useRef(null)
-
-  useEffect(() => {
-    if (mainRef.current) mainRef.current.scrollTop = 0
-  }, [tab])
 
   // Registration + subscription → which exams the user may launch
   const _meta = user?.user_metadata || {}
@@ -654,6 +716,25 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
     ? _meta.selected_exams
     : (_meta.target_exam ? [_meta.target_exam] : [])
 
+  // Filtered bank tree based on subscription (lifted here so header nav stays in sync)
+  const _hasReg = registeredExamIds.length > 0
+  const bankTree = (() => {
+    if (isPro || !_hasReg) return EXAM_TREE
+    const filtered = EXAM_TREE
+      .map(g => ({ ...g, exams: g.exams.filter(e => registeredExamIds.includes(e.id) || FREE_OPEN_EXAMS.has(e.id)) }))
+      .filter(g => g.exams.length > 0)
+    return filtered.length ? filtered : EXAM_TREE
+  })()
+
+  const _initBankForHeader = (effectiveExamId && !isSAT)
+    ? (bankTree.find(g => g.exams.some(e => e.id === effectiveExamId))?.bank || bankTree[0].bank)
+    : bankTree[0].bank
+  const [activeBank, setActiveBank] = useState(_initBankForHeader)
+
+  useEffect(() => {
+    if (mainRef.current) mainRef.current.scrollTop = 0
+  }, [tab])
+
   // 7-day trial
   const createdAt     = user?.created_at ? new Date(user.created_at) : new Date()
   const trialDaysLeft = Math.max(0, Math.ceil((createdAt.getTime() + 7*86400000 - Date.now())/86400000))
@@ -662,17 +743,17 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
   const initials = (studentName||'U').slice(0,2).toUpperCase()
   const tabs = isUSUser
     ? [
-        { id:'sat', label:'SAT Practice', icon:'🎓' },
+        { id:'sat', label:'SAT Practice', icon:<HIcGrad s={13}/> },
       ]
     : isSAT
       ? [
-          { id:'sat',     label:'SAT Practice',    icon:'🎓' },
-          { id:'mock',    label:'India Exams',      icon:'📝' },
+          { id:'sat',     label:'SAT Practice',    icon:<HIcGrad s={13}/> },
+          { id:'mock',    label:'India Exams',      icon:<HIcDoc s={13}/> },
         ]
       : [
-          { id:'mock',    label:'Full Mock Test',  icon:'📝' },
-          { id:'topic',   label:'Topic Practice',  icon:'🎯' },
-          { id:'section', label:'Section Test',    icon:'⏱' },
+          { id:'mock',    label:'Full Mock Test',  icon:<HIcDoc s={13}/> },
+          { id:'topic',   label:'Topic Practice',  icon:<HIcTarget s={13}/> },
+          { id:'section', label:'Section Test',    icon:<HIcTimer s={13}/> },
         ]
   const SIDE = [
     { id:'dashboard',     label:'Dashboard',     Icon:SvgHome  },
@@ -686,24 +767,44 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
   ]
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col" style={{background:'#ffffff'}}>
+    <div className="h-screen overflow-hidden flex flex-col" style={{background:'#fff'}}>
 
-      {/* ── Dark header with mode buttons ── */}
-      <header className="h-16 flex items-center px-5 gap-4 flex-shrink-0 shadow-md" style={{ background:'#111' }}>
+      {/* ── Header ── */}
+      <header className="h-16 flex items-center px-5 gap-4 flex-shrink-0" style={{ background:'#fff', borderBottom:'1px solid #e5e7eb', boxShadow:'0 1px 4px rgba(0,0,0,.06)' }}>
         <div className="flex items-center gap-3 flex-shrink-0">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:'#FF653F'}}>
             <span className="text-white text-sm font-black">MT</span>
           </div>
           <div className="hidden sm:block leading-none">
-            <div className="text-base font-black text-white tracking-tight">MockTest</div>
-            <div className="text-xs" style={{color:'#888'}}>by Arkaserve</div>
+            <div className="text-base font-black tracking-tight" style={{color:'#111827'}}>MockTest</div>
+            <div style={{fontSize:8.5,fontWeight:700,color:'#FF653F',letterSpacing:'.10em',textTransform:'uppercase',fontStyle:'italic',marginTop:3,lineHeight:1}}>Your World of Mock Tests</div>
           </div>
         </div>
-        <div className="flex-1" />
-        {/* Trial pill — inline in header */}
+        {/* Bank nav in header — Full Mock tab only; spacer otherwise */}
+        {tab === 'mock' ? (
+          <>
+            <div style={{flex:1,minWidth:0}} />
+            <div style={{overflowX:'auto',scrollbarWidth:'none',flexShrink:1}}>
+              <div style={{display:'flex',alignItems:'stretch',height:64,minWidth:'max-content'}}>
+                {bankTree.map(g => (
+                  <button key={g.bank} onClick={() => setActiveBank(g.bank)} style={{
+                    padding:'0 13px',fontWeight:700,fontSize:12,border:'none',cursor:'pointer',
+                    transition:'all .12s',whiteSpace:'nowrap',background:'transparent',
+                    color: activeBank===g.bank ? '#FF653F' : '#9ca3af',
+                    borderBottom: activeBank===g.bank ? '2.5px solid #FF653F' : '2.5px solid transparent',
+                  }}>{g.bank}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{flex:1,minWidth:0}} />
+          </>
+        ) : (
+          <div className="flex-1" />
+        )}
+        {/* Trial pill */}
         {trialActive && (
-          <div className="hidden sm:flex items-center gap-2 text-xs text-white/80 flex-shrink-0">
-            <span>{trialDaysLeft === 1 ? 'Last day' : <><b style={{color:'#FF653F'}}>{trialDaysLeft} days</b> left</>} of your free trial.</span>
+          <div className="hidden sm:flex items-center gap-2 text-xs flex-shrink-0" style={{color:'#6b7280'}}>
+            <span>{trialDaysLeft === 1 ? 'Last day' : <><b style={{color:'#FF653F'}}>{trialDaysLeft}d</b> left</>}</span>
             <button onClick={()=>onNav?.('subscriptions')}
               className="text-white text-xs font-bold px-3 py-1 rounded-lg flex-shrink-0"
               style={{ background:'#FF653F' }}>
@@ -712,29 +813,63 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
           </div>
         )}
         <button onClick={onBack}
-          className="text-sm text-white/90 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl px-4 py-1.5 font-medium transition-colors">
-          ← Exit
+          className="text-sm rounded-xl px-3 py-1.5 font-medium transition-colors flex-shrink-0"
+          style={{color:'#374151',background:'#f3f4f6',border:'1px solid #e5e7eb'}}>
+          ← <span className="hidden sm:inline">Exit</span>
         </button>
-        <button onClick={onLogout}
-          className="text-sm text-white/90 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl px-4 py-1.5 font-medium transition-colors">
-          Log out
-        </button>
+        {/* User avatar dropdown */}
+        <div className="relative flex-shrink-0" style={{zIndex:50}}>
+          {userMenuOpen && <div style={{position:'fixed',inset:0,zIndex:40}} onClick={()=>setUserMenuOpen(false)}/>}
+          <button onClick={()=>setUserMenuOpen(o=>!o)}
+            style={{display:'flex',alignItems:'center',gap:7,background:'#f3f4f6',border:'1px solid #e5e7eb',borderRadius:999,padding:'4px 10px 4px 4px',cursor:'pointer',position:'relative',zIndex:50}}>
+            <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:900,color:'#fff',flexShrink:0}}>
+              {initials[0]}
+            </div>
+            <span className="hidden sm:block" style={{fontSize:12,fontWeight:700,color:'#374151',maxWidth:90,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+              {(studentName||'').split(' ')[0] || 'User'}
+            </span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              style={{transform:userMenuOpen?'rotate(180deg)':'none',transition:'transform .2s',flexShrink:0}}>
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          {userMenuOpen && (
+            <div style={{position:'absolute',top:'calc(100% + 8px)',right:0,background:'#fff',border:'1px solid #e5e7eb',borderRadius:12,boxShadow:'0 8px 28px rgba(0,0,0,.15)',minWidth:210,zIndex:50,overflow:'hidden'}}>
+              <div style={{padding:'14px 16px',borderBottom:'1px solid #f3f4f6'}}>
+                <div style={{fontSize:13,fontWeight:800,color:'#111827',marginBottom:2}}>{(studentName||'User').replace(/\b\w/g,c=>c.toUpperCase())}</div>
+                <div style={{fontSize:11,color:'#9ca3af'}}>{user?.email}</div>
+              </div>
+              <div style={{padding:6}}>
+                <button onClick={()=>{setUserMenuOpen(false);onLogout?.()}}
+                  style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'none',background:'none',cursor:'pointer',display:'flex',alignItems:'center',gap:8,fontSize:13,fontWeight:600,color:'#ef4444',textAlign:'left'}}
+                  onMouseOver={e=>e.currentTarget.style.background='#fee2e2'}
+                  onMouseOut={e=>e.currentTarget.style.background='none'}>
+                  ↪ Sign Out
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </header>
 
       <div className="flex flex-1 min-h-0">
 
         {/* ── Left sidebar ── */}
-        <aside className="w-56 flex-shrink-0 hidden md:flex flex-col overflow-y-auto border-r border-gray-200 bg-white">
+        <aside className="w-56 flex-shrink-0 hidden md:flex flex-col overflow-y-auto"
+          style={{background:'#f8fafc',borderRight:'1px solid #e5e7eb'}}>
           <nav className="flex-1 py-3 px-2">
             {SIDE.map(item => (
               <button key={item.id} onClick={()=>onNav?.(item.id)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm mb-0.5 transition-all text-gray-600 hover:bg-gray-100 hover:text-gray-900 font-medium">
-                <span className="flex-shrink-0"><item.Icon /></span>{item.label}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm mb-0.5 transition-all font-medium"
+                style={{color:'#6b7280'}}
+                onMouseOver={e=>{e.currentTarget.style.background='#f0f0f0';e.currentTarget.style.color='#374151'}}
+                onMouseOut={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='#6b7280'}}>
+                <span className="flex-shrink-0 opacity-75"><item.Icon /></span>{item.label}
               </button>
             ))}
             {tab === 'topic' && (
-              <div className="mt-3 border-t border-gray-100 pt-3">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Subject</p>
+              <div className="mt-3 pt-3" style={{borderTop:'1px solid #e5e7eb'}}>
+                <p className="text-[10px] font-bold uppercase tracking-wider mb-2 px-1" style={{color:'#9ca3af'}}>Subject</p>
                 {TOPICS.map(sec => {
                   const active = topicSecId === sec.section
                   return (
@@ -742,52 +877,76 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
                       onClick={() => setTopicSecId(sec.section)}
                       className="w-full text-left px-3 py-2.5 rounded-xl mb-0.5 transition-all"
                       style={active
-                        ? { background:`${sec.accent}15`, color: sec.accent }
-                        : { color:'#4b5563' }}>
+                        ? { background:`${sec.accent}20`, color: sec.accent }
+                        : { color:'#6b7280' }}
+                      onMouseOver={e=>{if(!active){e.currentTarget.style.background='#f0f0f0';e.currentTarget.style.color='#374151'}}}
+                      onMouseOut={e=>{if(!active){e.currentTarget.style.background='transparent';e.currentTarget.style.color='#6b7280'}}}>
                       <div className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: sec.accent }}/>
                         <span className="text-xs font-semibold leading-tight">{sec.label}</span>
                       </div>
-                      <div className="text-[10px] text-gray-400 mt-0.5 ml-4">{sec.topics.length} topics</div>
+                      <div className="text-[10px] mt-0.5 ml-4" style={{color:'#9ca3af'}}>{sec.topics.length} topics</div>
                     </button>
                   )
                 })}
               </div>
             )}
           </nav>
-          <div className="px-4 py-4 border-t border-gray-100">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0" style={{ background:'#FF653F' }}>{initials}</div>
-              <div className="min-w-0">
-                <div className="text-sm font-bold text-gray-900 truncate">{(studentName||'').replace(/\b\w/g,c=>c.toUpperCase())}</div>
-                <div className="text-xs text-gray-400 truncate">{user?.email}</div>
-              </div>
-            </div>
-            <button onClick={onLogout} className="w-full py-2 text-red-500 text-xs font-semibold rounded-lg border border-red-200 hover:bg-red-50 transition-colors">↪ Log Out</button>
-          </div>
+          {/* user block hidden on desktop — user info lives in topbar avatar dropdown */}
         </aside>
 
         {/* ── Main content ── */}
-        <main ref={mainRef} className="flex-1 overflow-y-auto nice-scroll py-7 px-6">
-          <div className="w-full">
+        <main ref={mainRef} className="flex-1 overflow-y-auto nice-scroll flex flex-col" style={{background:'#fff'}}>
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+          <div style={{flex:1,padding:'24px 28px 0'}}>
 
-            <div className="mb-6">
-              <div className="text-gray-500 text-sm">Welcome, <span className="font-semibold text-gray-900">{(studentName||'').replace(/\b\w/g,c=>c.toUpperCase())}</span></div>
-              <h1 className="text-2xl font-black text-gray-900 mt-1">What would you like to practice?</h1>
+            {/* Header */}
+            <div style={{marginBottom:22}}>
+              <h1 style={{fontSize:22,fontWeight:900,color:'#111827',letterSpacing:'-.03em',lineHeight:1.2,margin:0}}>Practice</h1>
+              <p style={{fontSize:13,color:'#6b7280',marginTop:4,fontWeight:500}}>
+                {tab==='mock'    ? 'Choose an exam and launch a full mock test'
+                :tab==='topic'   ? 'Focus on a single topic — any difficulty, any count'
+                :tab==='section' ? 'Practice one complete section under timed conditions'
+                :tab==='sat'     ? 'Digital SAT practice — adaptive modules, no negative marking'
+                :                  'Select a mode to begin'}
+              </p>
             </div>
 
-            {/* Mobile-only subject tabs — visible only when sidebar is hidden */}
+            {/* Mode tab switcher */}
+            <div style={{overflowX:'auto',scrollbarWidth:'none',marginBottom:22,borderBottom:'1px solid #e5e7eb',paddingBottom:16}}>
+              <div style={{display:'flex',gap:6,minWidth:'max-content'}}>
+                {tabs.map(t => (
+                  <button key={t.id} onClick={()=>setTab(t.id)} style={{
+                    display:'inline-flex',alignItems:'center',gap:6,padding:'7px 14px',
+                    borderRadius:8,fontWeight:700,fontSize:12,cursor:'pointer',border:'1.5px solid',
+                    transition:'all .12s',whiteSpace:'nowrap',
+                    background: tab===t.id ? '#FF653F' : '#f9fafb',
+                    borderColor: tab===t.id ? '#FF653F' : '#e5e7eb',
+                    color: tab===t.id ? '#fff' : '#6b7280',
+                    boxShadow: tab===t.id ? '0 2px 10px rgba(255,101,63,.22)' : 'none',
+                  }}>
+                    <span>{t.icon}</span>{t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Mobile-only subject selector for topic tab */}
             {tab === 'topic' && (
-              <div className="flex md:hidden gap-2 mb-3 overflow-x-auto pb-1" style={{scrollbarWidth:'none'}}>
+              <div className="flex md:hidden gap-2 mb-4 overflow-x-auto pb-1" style={{scrollbarWidth:'none'}}>
                 {TOPICS.map(sec => {
                   const active = topicSecId === sec.section
                   return (
                     <button key={sec.section} onClick={() => setTopicSecId(sec.section)}
-                      className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all whitespace-nowrap"
-                      style={active
-                        ? { background: sec.accent, borderColor: sec.accent, color:'#fff' }
-                        : { background:'#fff', borderColor:`${sec.accent}44`, color: sec.accent }}>
-                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: active ? '#fff' : sec.accent }}/>
+                      style={{
+                        flexShrink:0,display:'flex',alignItems:'center',gap:5,padding:'6px 12px',
+                        borderRadius:20,fontSize:11,fontWeight:700,border:'1.5px solid',
+                        whiteSpace:'nowrap',cursor:'pointer',transition:'all .12s',
+                        background: active ? sec.accent : '#fff',
+                        borderColor: active ? sec.accent : `${sec.accent}44`,
+                        color: active ? '#fff' : sec.accent,
+                      }}>
+                      <span style={{width:5,height:5,borderRadius:'50%',background: active?'#fff':sec.accent,flexShrink:0}}/>
                       {sec.label}
                     </button>
                   )
@@ -795,12 +954,16 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
               </div>
             )}
 
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm mb-6">
-              {tab==='sat'     && <SATExamTab studentName={studentName} onStart={onStart} initialExamId={effectiveExamId} />}
-              {tab==='mock'    && <FullMockTab studentName={studentName} onStart={onStart} initialExamId={isSAT ? '' : startExamId} registeredExamIds={registeredExamIds} isPro={isPro} />}
-              {tab==='topic'   && <TopicPracticeTab key={topicSecId} studentName={studentName} onStart={onStart} user={user} sectionId={topicSecId} />}
-              {tab==='section' && <SectionTestTab studentName={studentName} onStart={onStart} user={user} />}
-            </div>
+            {/* Tab content */}
+            {tab === 'mock' ? (
+              <FullMockTab studentName={studentName} onStart={onStart} onNeedAuth={!user ? () => onNav?.('auth') : undefined} initialExamId={isSAT ? '' : startExamId} registeredExamIds={registeredExamIds} isPro={isPro} bank={activeBank} onBankChange={setActiveBank} bankTree={bankTree} />
+            ) : (
+              <div style={{background:'#f9fafb',borderRadius:16,border:'1px solid #e5e7eb',padding:'24px'}}>
+                {tab==='sat'     && <SATExamTab studentName={studentName} onStart={onStart} initialExamId={effectiveExamId} />}
+                {tab==='topic'   && <TopicPracticeTab key={topicSecId} studentName={studentName} onStart={onStart} user={user} sectionId={topicSecId} />}
+                {tab==='section' && <SectionTestTab studentName={studentName} onStart={onStart} user={user} />}
+              </div>
+            )}
 
           </div>
         </main>

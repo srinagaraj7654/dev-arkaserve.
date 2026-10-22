@@ -39,7 +39,12 @@ const ResultScreen       = lazy(() => import('./pages/ResultScreen.jsx'))
 const OnboardingWizard   = lazy(() => import('./pages/OnboardingWizard.jsx'))
 const PaymentComingSoon  = lazy(() => import('./pages/PaymentComingSoon.jsx'))
 const TopicPractice      = lazy(() => import('./pages/TopicPractice.jsx'))
-const USExamsPage        = lazy(() => import('./pages/USExamsPage.jsx'))
+const USExamsPage             = lazy(() => import('./pages/USExamsPage.jsx'))
+const USPredictionExplainer   = lazy(() => import('./pages/USPredictionExplainer.jsx'))
+const USResultScreen          = lazy(() => import('./pages/USResultScreen.jsx'))
+const CurrentAffairsPage      = lazy(() => import('./pages/CurrentAffairsPage.jsx'))
+const SyllabusPage            = lazy(() => import('./pages/SyllabusPage.jsx'))
+const ExamDatesPage           = lazy(() => import('./pages/ExamDatesPage.jsx'))
 
 // Sections rendered by the LandingPage (single-page tabs)
 const LANDING_TABS  = ['home','about','success','career']
@@ -47,8 +52,8 @@ const PUBLIC_PAGES  = [
   ...LANDING_TABS,
   'courses','contact','privacy','terms','refund','disclaimer','cookies',
   'auth','cutoffs','papers',
-  'exams','exams-banking','exams-insurance','exams-ssc','exams-engineering',
-  'blog','us-exams',
+  'exams','exams-banking','exams-insurance','exams-ssc','exams-railway','exams-engineering','exams-medical',
+  'blog','us-exams','us-score-prediction','current-affairs','syllabus','exam-dates',
 ]
 
 // Real URL path ↔ page name mapping (enables indexable URLs for each page)
@@ -58,12 +63,15 @@ const PAGE_PATH = {
   refund:'/refund', disclaimer:'/disclaimer', cookies:'/cookies',
   cutoffs:'/cutoffs', papers:'/papers', exams:'/exams',
   'exams-banking':'/exams/banking', 'exams-insurance':'/exams/insurance',
-  'exams-ssc':'/exams/ssc', 'exams-engineering':'/exams/engineering',
+  'exams-ssc':'/exams/ssc', 'exams-railway':'/exams/railway',
+  'exams-engineering':'/exams/engineering', 'exams-medical':'/exams/medical',
   auth:'/auth', 'reset-password':'/reset-password',
   dashboard:'/dashboard', practice:'/practice', 'topic-practice':'/topic-practice', examhome:'/examhome',
   exam:'/exam', result:'/result', payment:'/payment',
   admin:'/admin', 'how-prediction-works':'/how-prediction-works',
-  'us-exams':'/us-exams',
+  'us-exams':'/us-exams', 'us-score-prediction':'/us-score-prediction',
+  'current-affairs':'/current-affairs',
+  'syllabus':'/syllabus', 'exam-dates':'/exam-dates',
 }
 const PATH_PAGE = Object.fromEntries(Object.entries(PAGE_PATH).map(([k,v]) => [v,k]))
 const pathToPage = (p) => PATH_PAGE[p] || (p === '/' ? 'home' : null)
@@ -227,11 +235,15 @@ export default function App() {
       return
     }
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.user) {
+      const onAuthPage = window.location.pathname === '/auth' || window.location.hash === '#/auth'
+      if (!onAuthPage && data.session?.user && data.session.user.email_confirmed_at) {
         const u = data.session.user
         setUser(u)
         _saveExamRegion(u)
         _navigateOnce(u)
+      } else if (onAuthPage && data.session) {
+        // User is on the auth page — clear any stale session so they get a fresh start
+        supabase.auth.signOut().catch(() => {})
       }
       setAuthChecked(true)
       // Strip any leftover auth token from the URL so pressing Back can't
@@ -240,8 +252,19 @@ export default function App() {
         try { window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search) } catch {}
       }
     })
-    const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      // On the auth page: auth events from background refreshes / stale sessions must never
+      // auto-navigate. The auth page handles navigation explicitly via onAuth() callback.
+      const onAuthPage = window.location.pathname === '/auth'
+      if (onAuthPage) {
+        if (!session) { setUser(null); navClaimedRef.current = false; regionSavedRef.current = false }
+        return
+      }
+      // Skip INITIAL_SESSION — getSession() handles the initial restore
+      if (event === 'INITIAL_SESSION') return
       if (session?.user) {
+        // Skip navigation for unconfirmed signups — let OTP flow handle it
+        if (!session.user.email_confirmed_at) return
         setUser(session.user)
         _saveExamRegion(session.user)
         _navigateOnce(session.user)
@@ -322,7 +345,7 @@ export default function App() {
       if (res?.ok) {
         setDashTab('subscriptions')
         setPage('dashboard')
-        toast(`Payment successful! Your ${res.plan} plan is now active. 🎉`, 'success')
+        toast(`Payment successful! Your ${res.plan} plan is now active.`, 'success')
       } else if (res?.cancelled) {
         setDashTab('subscriptions')
         setPage('dashboard')
@@ -380,12 +403,12 @@ export default function App() {
   }
 
   const nav = (target, examId) => {
-    const publicList = [...LANDING_TABS,'courses','contact','privacy','terms','auth','practice','cutoffs','papers','exams','exams-banking','exams-insurance','exams-ssc','exams-engineering','blog','us-exams']
+    const publicList = [...LANDING_TABS,'courses','contact','privacy','terms','auth','practice','cutoffs','papers','exams','exams-banking','exams-insurance','exams-ssc','exams-railway','exams-engineering','exams-medical','blog','us-exams','us-score-prediction','current-affairs','examhome','syllabus','exam-dates']
 
     // US-region users: block only pure Indian exam category pages.
     // Dashboard, Study Planner, Results, Subscriptions, Profile, Settings, Billing are shared.
     if (user?.user_metadata?.exam_region === 'us') {
-      const indiaOnlyTargets = ['exams','exams-banking','exams-insurance','exams-ssc','exams-engineering','cutoffs','papers']
+      const indiaOnlyTargets = ['exams','exams-banking','exams-insurance','exams-ssc','exams-railway','exams-engineering','exams-medical','cutoffs','papers']
       if (indiaOnlyTargets.includes(target)) {
         setPage('us-exams'); window.scrollTo(0, 0); return
       }
@@ -400,6 +423,7 @@ export default function App() {
     if (target === 'auth' && !user && page === 'us-exams') {
       _savePendingNav('us-exams', null, 'us')
     }
+
 
     if (!user && !publicList.includes(target)) {
       const region = (page === 'us-exams' || (examId && examId.startsWith('sat_'))) ? 'us' : 'in'
@@ -528,8 +552,17 @@ export default function App() {
     )
   }
 
+  const appEnv = import.meta.env.VITE_APP_ENV
+
   return (
     <div className="min-h-screen flex flex-col">
+
+      {/* Staging environment banner — only visible on non-production builds */}
+      {appEnv && appEnv !== 'production' && (
+        <div style={{ background: appEnv === 'staging' ? '#7c3aed' : '#1d4ed8', color: '#fff', textAlign: 'center', fontSize: 12, fontWeight: 700, padding: '4px 16px', letterSpacing: '.05em', zIndex: 9998, position: 'relative' }}>
+          {appEnv === 'staging' ? '⚠ STAGING BUILD — not for public use' : 'DEV BUILD — localhost'}
+        </div>
+      )}
 
       {/* Idle warning banner */}
       {idleWarning && user && (
@@ -547,8 +580,8 @@ export default function App() {
         </div>
       )}
 
-      {isPublic && page !== 'auth' && page !== 'us-exams' && (
-        <Navbar currentPage={page} onNav={nav} user={user} onLogout={handleLogout} />
+      {isPublic && page !== 'auth' && page !== 'us-exams' && !page.startsWith('exams') && page !== 'cutoffs' && page !== 'papers' && (
+        <Navbar currentPage={page} onNav={nav} user={user} onLogout={handleLogout} userRole={userRole} />
       )}
 
       <main className="flex-1">
@@ -566,19 +599,21 @@ export default function App() {
         {page === 'refund'         && <RefundPage />}
         {page === 'disclaimer'     && <DisclaimerPage />}
         {page === 'cookies'        && <CookiesPage />}
-        {page === 'cutoffs'        && <CutoffsPage onNav={nav} />}
-        {page === 'papers'         && <PreviousPapersPage onNav={nav} />}
-        {page === 'exams'              && <ExamsPage onNav={nav} isAdmin={userRole === 'super_admin'} />}
-        {page === 'exams-banking'     && <ExamsPage onNav={nav} category="banking"     isAdmin={userRole === 'super_admin'} />}
-        {page === 'exams-insurance'   && <ExamsPage onNav={nav} category="insurance"   isAdmin={userRole === 'super_admin'} />}
-        {page === 'exams-ssc'         && <ExamsPage onNav={nav} category="ssc"         isAdmin={userRole === 'super_admin'} />}
-        {page === 'exams-engineering' && (userRole === 'super_admin'
-          ? <ExamsPage onNav={nav} category="engineering" />
-          : (() => { nav('exams'); return null })()
-        )}
+        {page === 'cutoffs'        && <CutoffsPage onNav={nav} user={user} onLogout={handleLogout} />}
+        {page === 'papers'         && <PreviousPapersPage onNav={nav} user={user} onLogout={handleLogout} />}
+        {page === 'exams'              && <ExamsPage onNav={nav} isAdmin={userRole === 'super_admin'} user={user} onLogout={handleLogout} />}
+        {page === 'exams-banking'     && <ExamsPage onNav={nav} category="banking"     isAdmin={userRole === 'super_admin'} user={user} onLogout={handleLogout} />}
+        {page === 'exams-insurance'   && <ExamsPage onNav={nav} category="insurance"   isAdmin={userRole === 'super_admin'} user={user} onLogout={handleLogout} />}
+        {page === 'exams-ssc'         && <ExamsPage onNav={nav} category="ssc"         isAdmin={userRole === 'super_admin'} user={user} onLogout={handleLogout} />}
+        {page === 'exams-railway'     && <ExamsPage onNav={nav} category="railway"     isAdmin={userRole === 'super_admin'} user={user} onLogout={handleLogout} />}
+        {page === 'exams-engineering' && <ExamsPage onNav={nav} category="engineering" isAdmin={userRole === 'super_admin'} user={user} onLogout={handleLogout} />}
+        {page === 'exams-medical'     && <ExamsPage onNav={nav} category="medical"     isAdmin={userRole === 'super_admin'} user={user} onLogout={handleLogout} />}
         {page === 'blog'              && <BlogPage onNav={nav} />}
         {page === 'us-exams'          && <USExamsPage onNav={nav} user={user} onLogout={handleLogout} />}
-        {page === 'auth'           && <AuthScreen onAuth={handleAuth} onBack={() => setPage('home')} />}
+        {page === 'current-affairs'   && <CurrentAffairsPage onNav={nav} />}
+        {page === 'syllabus'          && <SyllabusPage onNav={nav} />}
+        {page === 'exam-dates'        && <ExamDatesPage onNav={nav} />}
+        {page === 'auth'           && <AuthScreen onAuth={handleAuth} onBack={() => setPage('home')} onNav={nav} />}
         {page === 'reset-password' && <ResetPasswordPage onBack={() => setPage('auth')} />}
         {page === 'payment'        && (
           <PaymentComingSoon
@@ -651,40 +686,64 @@ export default function App() {
           />
         )}
         {page === 'result'         && (
-          <ResultScreen
-            result={resultData}
-            studentName={userName}
-            onRetry={() => setPage('examhome')}
-            onHome={() => setPage('dashboard')}
-            onStartTest={startTest}
-            user={user}
-          />
+          user?.user_metadata?.exam_region === 'us'
+            ? <USResultScreen
+                result={resultData}
+                studentName={userName}
+                onRetry={() => setPage('examhome')}
+                onHome={() => setPage('us-exams')}
+                onStartTest={startTest}
+                user={user}
+              />
+            : <ResultScreen
+                result={resultData}
+                studentName={userName}
+                onRetry={() => setPage('examhome')}
+                onHome={() => setPage('dashboard')}
+                onStartTest={startTest}
+                user={user}
+              />
         )}
-        {page === 'admin'          && <AdminPage onBack={() => setPage('dashboard')} />}
+        {page === 'admin'          && (userRole === 'super_admin'
+          ? <AdminPage onBack={() => setPage('dashboard')} />
+          : (() => { nav('dashboard'); return null })()
+        )}
 		{page === 'how-prediction-works' && <PredictionExplainer />}
+        {page === 'us-score-prediction' && <USPredictionExplainer />}
         {![
           ...LANDING_TABS,
           'courses','contact','privacy','terms','cutoffs','papers',
-          'exams','exams-banking','exams-insurance','exams-ssc','exams-engineering',
+          'exams','exams-banking','exams-insurance','exams-ssc','exams-railway','exams-engineering','exams-medical',
           'blog',
           'auth','reset-password','payment','dashboard','practice','topic-practice','examhome','exam',
-          'result','admin','how-prediction-works','us-exams',
+          'result','admin','how-prediction-works','us-exams','us-score-prediction','current-affairs',
         ].includes(page) && <NotFoundPage onNav={nav} />}
         </Suspense>
       </main>
 
-      {isPublic && page !== 'auth' && <Footer onNav={nav} />}
+      {isPublic && page !== 'auth' && page !== 'dashboard' && !page.startsWith('exams') && page !== 'cutoffs' && page !== 'papers' && <Footer onNav={nav} />}
       <CookieConsent />
       <ToastHost />
       <InstallPrompt />
 
       {/* ── Floating WhatsApp button ── */}
+      <style>{`
+        .wa-float-text{display:inline}
+        @media(max-width:640px){
+          .wa-float{padding:13px!important;border-radius:50%!important}
+          .wa-float-text{display:none!important}
+        }
+        @media(prefers-reduced-motion:reduce){
+          .wa-float{transition:none!important}
+        }
+      `}</style>
       <a
         href="https://wa.me/919490284208"
         target="_blank"
         rel="noopener noreferrer"
+        className="wa-float"
         style={{
-          position:'fixed', bottom:24, right:24, zIndex:9999,
+          position:'fixed', bottom:'max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px))', right:24, zIndex:9999,
           display:'flex', alignItems:'center', gap:10,
           background:'#25D366', color:'#fff',
           borderRadius:999, padding:'12px 20px 12px 14px',
@@ -699,7 +758,7 @@ export default function App() {
         <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff">
           <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
         </svg>
-        WhatsApp
+        <span className="wa-float-text">WhatsApp</span>
       </a>
     </div>
   )

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase.js'
+import { hashPassword, validatePassword } from '../crypto.js'
 
 export default function ResetPasswordPage({ onBack }) {
   const [password,setPassword]=useState('')
@@ -28,9 +29,11 @@ export default function ResetPasswordPage({ onBack }) {
   const handleReset=async()=>{
     if(!password||!confirm){setError('Please fill both fields');return}
     if(password!==confirm){setError('Passwords do not match');return}
-    if(password.length<6){setError('Password must be at least 6 characters');return}
+    const pwErr=validatePassword(password)
+    if(pwErr){setError(pwErr);return}
     setError('');setLoading(true)
-    const{error:err}=await supabase.auth.updateUser({password})
+    const hashed=await hashPassword(password)
+    const{error:err}=await supabase.auth.updateUser({password:hashed})
     if(err){setError(err.message);setLoading(false);return}
     setSuccess(true);setLoading(false)
     setTimeout(async()=>{await supabase.auth.signOut();onBack()},3000)
@@ -70,7 +73,7 @@ export default function ResetPasswordPage({ onBack }) {
         <div style={{display:'flex',flexDirection:'column',gap:14}}>
           <div>
             <label style={S.label}>New password</label>
-            <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Minimum 6 characters" style={S.inp} onFocus={e=>e.target.style.borderColor='#FF653F'} onBlur={e=>e.target.style.borderColor='#EBEBEB'}/>
+            <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Minimum 8 characters" style={S.inp} onFocus={e=>e.target.style.borderColor='#FF653F'} onBlur={e=>e.target.style.borderColor='#EBEBEB'}/>
           </div>
           <div>
             <label style={S.label}>Confirm password</label>

@@ -16,7 +16,7 @@ export default function ToastHost() {
 
   if (!items.length) return null
   return (
-    <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 9999, display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 360 }}>
+    <div style={{ position: 'fixed', top: 'max(16px, env(safe-area-inset-top, 0px))', right: 16, zIndex: 9999, display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 360 }}>
       {items.map((t) => {
         const s = STYLES[t.type] || STYLES.info
         return (
