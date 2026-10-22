@@ -240,7 +240,7 @@ export default function USPredictionExplainer() {
               style={{ flex:"0 0 auto", padding:"13px 18px", fontSize:12, fontWeight:600,
                 color: tab === t.id ? "#1d4ed8" : "#6b7280",
                 borderBottom: tab === t.id ? "2px solid #1d4ed8" : "2px solid transparent",
-                background:"none", border:"none", borderBottom: tab === t.id ? "2px solid #1d4ed8" : "2px solid transparent",
+                background:"none", border:"none",
                 cursor:"pointer", whiteSpace:"nowrap" }}>
               {t.label}
             </button>
