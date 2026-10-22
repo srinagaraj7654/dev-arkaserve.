@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { supabase } from '../supabase.js'
 import { startCheckout } from '../payments.js'
 import { toast } from '../toast.js'
@@ -9,6 +9,24 @@ import {
   PolarGrid, PolarAngleAxis, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from 'recharts'
+
+/* ─────────────────────────────────────────────
+   SVG ICON HELPERS
+───────────────────────────────────────────── */
+const _sv = (c) => ({fill:'none',stroke:c||'currentColor',strokeWidth:'1.5',strokeLinecap:'round',strokeLinejoin:'round'})
+const DIcDoc     = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+const DIcRepeat  = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+const DIcBook    = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+const DIcCal     = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+const DIcTrophy  = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+const DIcGear    = ({s=14,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+const DIcGrad    = ({s=20,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+const DIcChart   = ({s=36,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+const DIcReceipt = ({s=28,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M4 2v20l3-2 2 2 2-2 2 2 2-2 3 2V2l-3 2-2-2-2 2-2-2-2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
+const DIcLock    = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+const DIcBolt    = ({s=16,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+const DIcParty   = ({s=20,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M5.8 11.3L2 22l10.7-3.79"/><path d="M14 20l-1-1M9 7L7.5 5.5M22 8h.01M15 2h.01M4 3h.01"/><path d="M22 13l-1.5-1.5M2 11l1.5 1.5M12 6l2 2"/></svg>
+const DIcEdit    = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
 
 /* ─────────────────────────────────────────────
    CONSTANTS  (merged from both files)
@@ -97,6 +115,26 @@ export const EXAM_GROUPS = [
       { id: 'ts_eamcet_engg', name: 'TS EAMCET Engineering', sub: '160Q · 180 min', tag: 'New', tagColor: 'bg-violet-100 text-violet-700' },
     ],
   },
+  {
+    id: 'ssc', label: 'SSC Exams',
+    color: 'from-orange-600 to-red-600', hex: '#ea580c',
+    exams: [
+      { id: 'ssc_cgl_tier1',  name: 'CGL Tier 1',  sub: '100Q · 60 min',  tag: 'Popular', tagColor: 'bg-orange-100 text-orange-700' },
+      { id: 'ssc_chsl_tier1', name: 'CHSL Tier 1', sub: '100Q · 60 min',  tag: null },
+      { id: 'ssc_mts_paper1', name: 'MTS Paper 1', sub: '90Q · 90 min',   tag: null },
+      { id: 'ssc_cpo_tier1',  name: 'CPO Tier 1',  sub: '200Q · 120 min', tag: null },
+    ],
+  },
+  {
+    id: 'rrb', label: 'RRB Exams',
+    color: 'from-sky-600 to-blue-700', hex: '#0284c7',
+    exams: [
+      { id: 'rrb_ntpc_cbt1', name: 'NTPC CBT 1',  sub: '100Q · 90 min',  tag: 'Popular', tagColor: 'bg-sky-100 text-sky-700' },
+      { id: 'rrb_ntpc_cbt2', name: 'NTPC CBT 2',  sub: '120Q · 90 min',  tag: null },
+      { id: 'rrb_group_d',   name: 'Group D',      sub: '100Q · 90 min',  tag: null },
+      { id: 'rrb_alp_cbt1',  name: 'ALP CBT 1',   sub: '75Q · 60 min',   tag: null },
+    ],
+  },
 ]
 
 export const SAT_EXAM_GROUPS = [
@@ -183,17 +221,18 @@ const SvgClip   = () => <svg width="16" height="16" viewBox="0 0 20 20" fill="no
 const SvgUser   = () => <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="10" cy="6" r="4"/><path d="M2 18c0-4 3.6-7 8-7s8 3 8 7"/></svg>
 const SvgCard   = () => <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="5" width="16" height="12" rx="2"/><path d="M2 9h16"/></svg>
 const SvgGear   = () => <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="10" cy="10" r="3"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42"/></svg>
+const SvgFlame  = () => <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 18s-7-4-7-9a7 7 0 0114 0c0 5-7 9-7 9z"/><path d="M10 14s-3-2-3-4a3 3 0 016 0c0 2-3 4-3 4z" fill="currentColor" stroke="none"/></svg>
 
 const MODES = [
-  { id:'mock',    label:'Full Mock Test',  desc:'100Q · all sections · -0.25 · PDF result',    Icon:SvgDoc,    bg:'bg-blue-600',    light:'bg-blue-50',    text:'text-blue-700',    border:'border-blue-200'    },
-  { id:'topic',   label:'Topic Practice',  desc:'35 topics · unique questions · any difficulty', Icon:SvgTarget, bg:'bg-violet-600',  light:'bg-violet-50',  text:'text-violet-700',  border:'border-violet-200'  },
-  { id:'section', label:'Section Test',    desc:'Pick one section · 20 min timed · full score',  Icon:SvgTimer,  bg:'bg-emerald-600', light:'bg-emerald-50', text:'text-emerald-700', border:'border-emerald-200' },
+  { id:'mock',    label:'Full Mock Test',  desc:'Complete paper · all sections · timed · negative marking · download PDF result', Icon:SvgDoc,    bg:'bg-blue-600',    light:'bg-blue-50',    text:'text-blue-700',    border:'border-blue-200'    },
+  { id:'topic',   label:'Topic Practice',  desc:'Choose any topic · no timer · build concept depth · instant feedback per question', Icon:SvgTarget, bg:'bg-violet-600',  light:'bg-violet-50',  text:'text-violet-700',  border:'border-violet-200'  },
+  { id:'section', label:'Section Test',    desc:'One section at a time · focused timer · great for targeted exam-day revision',  Icon:SvgTimer,  bg:'bg-emerald-600', light:'bg-emerald-50', text:'text-emerald-700', border:'border-emerald-200' },
 ]
 
 const SAT_MODES = [
-  { id:'mock',    label:'Full SAT Practice', desc:'98Q · both sections · 134 min · score 400–1600',    Icon:SvgDoc,    bg:'bg-blue-600',    light:'bg-blue-50',    text:'text-blue-700',    border:'border-blue-200'    },
-  { id:'topic',   label:'Topic Practice',    desc:'8 SAT topics · unique questions · any difficulty',   Icon:SvgTarget, bg:'bg-violet-600',  light:'bg-violet-50',  text:'text-violet-700',  border:'border-violet-200'  },
-  { id:'section', label:'Section Test',      desc:'Reading & Writing or Math · timed · full score',     Icon:SvgTimer,  bg:'bg-emerald-600', light:'bg-emerald-50', text:'text-emerald-700', border:'border-emerald-200' },
+  { id:'mock',    label:'Full SAT Practice', desc:'98 questions · Reading, Writing & Math · 134 min · adaptive scoring 400–1600', Icon:SvgDoc,    bg:'bg-blue-600',    light:'bg-blue-50',    text:'text-blue-700',    border:'border-blue-200'    },
+  { id:'topic',   label:'Topic Practice',    desc:'Drill any SAT topic at your own pace · no timer · instant feedback per question',   Icon:SvgTarget, bg:'bg-violet-600',  light:'bg-violet-50',  text:'text-violet-700',  border:'border-violet-200'  },
+  { id:'section', label:'Section Test',      desc:'Reading & Writing or Math only · focused timer · great for targeted revision',     Icon:SvgTimer,  bg:'bg-emerald-600', light:'bg-emerald-50', text:'text-emerald-700', border:'border-emerald-200' },
 ]
 
 const SIDEBAR_NAV = [
@@ -201,6 +240,7 @@ const SIDEBAR_NAV = [
   { id:'explore',       Icon:SvgDoc,   label:'Explore Exams' },
   { id:'studyplan',     Icon:SvgCal,   label:'Study Planner' },
   { id:'results',       Icon:SvgChart, label:'My Results'    },
+  { id:'weakareas',     Icon:SvgFlame, label:'Weak Areas'    },
   { id:'subscriptions', Icon:SvgClip,  label:'Subscriptions' },
   { id:'profile',       Icon:SvgUser,  label:'Profile'       },
   { id:'billing',       Icon:SvgCard,  label:'Billing'       },
@@ -293,7 +333,7 @@ function groupWeakTopics(weakTopics, topicGroups = TOPIC_GROUPS) {
 /* ─────────────────────────────────────────────
    PLAN GENERATOR  (pure JS, no API needed)
 ───────────────────────────────────────────── */
-function generatePlan({ startDate, endDate, studyDays, hoursPerDay, dayHours = {}, weakTopics, topicGroups = TOPIC_GROUPS }) {
+function generatePlan({ startDate, endDate, studyDays, hoursPerDay, dayHours = {}, weakTopics, topicGroups = TOPIC_GROUPS, blockedDates = [], catchupEvery = 0 }) {
   const start = new Date(startDate)
   const end   = new Date(endDate)
   const total = Math.round((end - start) / (1000 * 60 * 60 * 24))
@@ -305,28 +345,43 @@ function generatePlan({ startDate, endDate, studyDays, hoursPerDay, dayHours = {
   const ordered   = [...priority, ...rest]
 
   const days = []
-  let topicIdx = 0
+  let topicIdx    = 0
+  let studyCount  = 0  // counts only non-catchup days for mock/revision cadence
+
   for (let i = 0; i <= total; i++) {
     const d   = new Date(start); d.setDate(start.getDate() + i)
     const dow = WEEKDAYS[d.getDay() === 0 ? 6 : d.getDay() - 1]
     if (!studyDays.includes(dow)) continue
+    const dateStr = d.toISOString().split('T')[0]
+    if (blockedDates.includes(dateStr)) continue
+
     const dayNum   = days.length + 1
-    const isRevise = dayNum % 14 === 0
-    const isMock   = !isRevise && dayNum % 7 === 0
+    const dh       = dayHours[dow] || hoursPerDay
+
+    // Insert catch-up day every N scheduled days (except day 1)
+    const isCatchup = catchupEvery > 0 && dayNum > 1 && (dayNum - 1) % catchupEvery === 0
+
     let type, topics, duration
-    const dh = dayHours[dow] || hoursPerDay
-    if (isRevise)     { type='revision'; topics=['Full Revision'];   duration=`${dh}h` }
-    else if (isMock)  { type='mock';     topics=['Full Mock Test'];  duration='2–3h' }
-    else              {
-      type='study'
-      topics = ordered.slice(topicIdx, topicIdx + 2).filter(Boolean)
-      if (!topics.length) topics = ['Revision / Practice']
-      topicIdx = (topicIdx + 2) % ordered.length
-      duration = `${dh}h`
+    if (isCatchup) {
+      type = 'catchup'; topics = ['Catch-up / Buffer']; duration = `${dh}h`
+    } else {
+      studyCount++
+      const isRevise = studyCount % 14 === 0
+      const isMock   = !isRevise && studyCount % 7 === 0
+      if (isRevise)    { type='revision'; topics=['Full Revision'];  duration=`${dh}h` }
+      else if (isMock) { type='mock';     topics=['Full Mock Test']; duration='2–3h'   }
+      else {
+        type = 'study'
+        topics = ordered.slice(topicIdx, topicIdx + 2).filter(Boolean)
+        if (!topics.length) topics = ['Revision / Practice']
+        topicIdx = (topicIdx + 2) % ordered.length
+        duration = `${dh}h`
+      }
     }
     days.push({
       day: dayNum,
       date: d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'}),
+      isoDate: dateStr,
       dow, type, topics, duration,
     })
   }
@@ -336,6 +391,7 @@ function generatePlan({ startDate, endDate, studyDays, hoursPerDay, dayHours = {
     studyDays:         days.filter(d=>d.type==='study').length,
     mockDays:          days.filter(d=>d.type==='mock').length,
     revisionDays:      days.filter(d=>d.type==='revision').length,
+    catchupDays:       days.filter(d=>d.type==='catchup').length,
     days,
   }
 }
@@ -373,12 +429,12 @@ function TodayPlanCard({ savedPlan, onViewPlan }) {
   const nextPlan   = days.find(d => d.type)   // first available day
   const display    = todayPlan || nextPlan
   if (!display) return null
-  const icon = display.type==='mock' ? '📝' : display.type==='revision' ? '🔁' : '📖'
+  const icon = display.type==='mock' ? <DIcDoc s={22} c='#fff'/> : display.type==='revision' ? <DIcRepeat s={22} c='#fff'/> : <DIcBook s={22} c='#fff'/>
   const label = todayPlan ? "TODAY'S PLAN — Day "+display.day : "NEXT UP — Day "+display.day
   return (
     <div className="rounded-2xl p-5 mb-6 flex items-center justify-between gap-4" style={{background:'#FF653F'}}>
       <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0" style={{background:'rgba(255,255,255,.2)'}}>
+        <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{background:'rgba(255,255,255,.2)'}}>
           {icon}
         </div>
         <div>
@@ -402,199 +458,292 @@ function TodayPlanCard({ savedPlan, onViewPlan }) {
    Shows after plan is saved. Groups days by
    week, expandable rows, topic + action chips.
 ───────────────────────────────────────────── */
+/* ── type colours used in the calendar ── */
+const TYPE_CFG = {
+  mock:     { label:'Mock Test',   bg:'#fff4ef', border:'#FF653F', text:'#FF653F', dot:'#FF653F' },
+  revision: { label:'Revision',    bg:'#f0fdf4', border:'#16a34a', text:'#16a34a', dot:'#16a34a' },
+  study:    { label:'Study',       bg:'#f5f3ff', border:'#7c3aed', text:'#7c3aed', dot:'#7c3aed' },
+  catchup:  { label:'Buffer',      bg:'#f9fafb', border:'#9ca3af', text:'#6b7280', dot:'#9ca3af' },
+}
+const CAL_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
+
 function PlanScheduleView({ plan, onStartTest, onTopicPractice, onRebuild, todayStr }) {
   const days   = plan?.days || []
-  const [expandedWeeks, setExpandedWeeks] = useState(() => {
-    const init = {}; init[0] = true; return init
-  })
-  const [doneDays, setDoneDays] = useState({})
+  const [doneDays,   setDoneDays]   = useState({})
+  const [selectedDay, setSelectedDay] = useState(null)
 
   if (!days.length) return (
     <div className="bg-blue-50 border border-blue-200 rounded-2xl p-8 text-center">
-      <div className="text-3xl mb-3">📅</div>
+      <div className="mb-3 flex justify-center"><DIcCal s={32} c='#1d4ed8'/></div>
       <div className="text-sm font-bold text-blue-800 mb-1">No schedule data found</div>
       <button onClick={onRebuild} className="text-xs text-blue-600 font-semibold underline">Create a plan</button>
     </div>
   )
 
-  /* Group days into weeks */
-  const weeks = []
-  for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i+7))
+  const totalDone = Object.values(doneDays).filter(Boolean).length
+  const totalDays = days.length
+  const pctDone   = totalDays ? Math.round((totalDone / totalDays) * 100) : 0
+  const todayISO  = new Date().toISOString().split('T')[0]
 
-  const totalDone  = Object.values(doneDays).filter(Boolean).length
-  const totalDays  = days.length
-  const pctDone    = totalDays ? Math.round((totalDone/totalDays)*100) : 0
+  /* Build calendar grid from isoDate if available, else fall back to list */
+  const hasISO = days.some(d => d.isoDate)
 
-  const typeLabel  = t => t==='mock' ? 'Mock Test' : t==='revision' ? 'Revision' : 'Study'
-  const typeBadge  = t => t==='mock'
-    ? 'bg-cyan-100 text-cyan-700'
-    : t==='revision'
-    ? 'bg-green-100 text-green-700'
-    : 'bg-violet-100 text-violet-700'
-  /* action resolves per day type — study days get topic-specific routing */
+  /* Build week grid */
+  const calWeeks = (() => {
+    if (!hasISO) return null
+    const dayMap = {}
+    days.forEach(d => { if (d.isoDate) dayMap[d.isoDate] = d })
+    const sorted = days.filter(d => d.isoDate).map(d => d.isoDate).sort()
+    if (!sorted.length) return null
+    const firstDate = new Date(sorted[0])
+    const lastDate  = new Date(sorted[sorted.length - 1])
+    // Anchor to Monday of the first week
+    const anchor = new Date(firstDate)
+    const dow0 = anchor.getDay()
+    anchor.setDate(anchor.getDate() - (dow0 === 0 ? 6 : dow0 - 1))
+    const weeks = []
+    const cur = new Date(anchor)
+    while (cur <= lastDate) {
+      const week = []
+      for (let c = 0; c < 7; c++) {
+        const iso = cur.toISOString().split('T')[0]
+        week.push({ iso, dayNum: cur.getDate(), planDay: dayMap[iso] || null })
+        cur.setDate(cur.getDate() + 1)
+      }
+      weeks.push(week)
+    }
+    return weeks
+  })()
+
   const getAction = (dayType, topics) => {
     if (dayType === 'mock')
-      return { label:'Launch Mock Test', cls:'bg-pink-500 hover:bg-pink-600 text-white',
-               onClick: () => onStartTest('mock') }
+      return { label:'Launch Mock Test', onClick: () => onStartTest('mock') }
     if (dayType === 'revision')
-      return { label:'Review Topics', cls:'bg-green-500 hover:bg-green-600 text-white',
-               onClick: () => onTopicPractice(topics[0] || '') }
-    // Study day — route to topic practice with the specific topic pre-selected
-    return { label:'Practice Questions', cls:'bg-violet-500 hover:bg-violet-600 text-white',
-             onClick: () => onTopicPractice(topics[0] || '') }
+      return { label:'Review Topics', onClick: () => onTopicPractice(topics[0] || '') }
+    if (dayType === 'catchup')
+      return { label:'Practice Weak Topics', onClick: () => onTopicPractice(topics[0] || '') }
+    return { label:'Practice Questions', onClick: () => onTopicPractice(topics[0] || '') }
   }
+
+  const selDay = selectedDay ? days.find(d => d.isoDate === selectedDay || d.day === selectedDay) : null
 
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5">
         <div>
           <h2 className="text-xl font-black text-gray-900">My Study Plan</h2>
-          <p className="text-sm text-gray-500 mt-0.5">{totalDays} scheduled days · {plan.studyDays||'—'} study · {plan.mockDays||'—'} mocks · {plan.revisionDays||'—'} revision</p>
+          <div className="flex items-center gap-3 mt-1 flex-wrap">
+            {[
+              { label:'Study',   val:plan.studyDays||0,    color:'#7c3aed' },
+              { label:'Mock',    val:plan.mockDays||0,     color:'#FF653F' },
+              { label:'Revision',val:plan.revisionDays||0, color:'#16a34a' },
+              ...(plan.catchupDays ? [{ label:'Buffer', val:plan.catchupDays, color:'#6b7280' }] : []),
+            ].map(s => (
+              <span key={s.label} className="flex items-center gap-1 text-xs font-semibold" style={{color:s.color}}>
+                <span style={{width:8,height:8,borderRadius:'50%',background:s.color,display:'inline-block'}}/>
+                {s.val} {s.label}
+              </span>
+            ))}
+          </div>
         </div>
         <button onClick={onRebuild}
-          className="text-xs text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 font-semibold">
-          ✏️ Rebuild Plan
+          className="text-xs text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 font-semibold flex-shrink-0">
+          ↺ Rebuild
         </button>
       </div>
 
       {/* Progress bar */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-6">
-        <div className="flex items-center justify-between mb-3">
+      <div className="bg-white border border-gray-200 rounded-2xl p-4 mb-5">
+        <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-bold text-gray-900">Overall Progress</span>
-          <span className="text-sm font-black text-blue-600">{pctDone}% complete</span>
+          <span className="text-sm font-black" style={{color:'#6366f1'}}>{pctDone}%</span>
         </div>
-        <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden mb-3">
-          <div className="h-full bg-gradient-to-r from-blue-500 to-violet-500 rounded-full transition-all duration-500"
-            style={{width:`${pctDone}%`}}/>
+        <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden mb-3">
+          <div className="h-full rounded-full transition-all duration-500"
+            style={{width:`${pctDone}%`,background:'linear-gradient(90deg,#6366f1,#FF653F)'}}/>
         </div>
-        <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-3 gap-3 text-center">
           <div>
-            <div className="text-lg font-black text-green-600">{totalDone}</div>
-            <div className="text-xs text-gray-400">Days done</div>
+            <div className="text-base font-black text-green-600">{totalDone}</div>
+            <div className="text-xs text-gray-400">Done</div>
           </div>
           <div>
-            <div className="text-lg font-black text-blue-600">{totalDays - totalDone}</div>
-            <div className="text-xs text-gray-400">Days remaining</div>
+            <div className="text-base font-black" style={{color:'#6366f1'}}>{totalDays - totalDone}</div>
+            <div className="text-xs text-gray-400">Remaining</div>
           </div>
           <div>
-            <div className="text-lg font-black text-violet-600">{totalDays}</div>
-            <div className="text-xs text-gray-400">Total days</div>
+            <div className="text-base font-black text-gray-700">{totalDays}</div>
+            <div className="text-xs text-gray-400">Total</div>
           </div>
         </div>
       </div>
 
-      {/* Week-by-week schedule — UWorld style */}
-      <div className="space-y-3">
-        {weeks.map((weekDays, wIdx) => {
-          const weekNum   = wIdx + 1
-          const isOpen    = expandedWeeks[wIdx] !== false
-          const doneInWk  = weekDays.filter(d => doneDays[d.day]).length
-          /* total hrs = sum of hours string parsed */
-          const totalHrs  = weekDays.reduce((s,d)=>{
-            const m = d.duration?.match(/(\d+)/)
-            return s + (m ? parseInt(m[1]) : 0)
-          }, 0)
+      {/* ── Calendar grid ── */}
+      {calWeeks ? (
+        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-5">
+          {/* Legend */}
+          <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-4 flex-wrap">
+            {Object.entries(TYPE_CFG).map(([k,v]) => (
+              <span key={k} className="flex items-center gap-1.5 text-xs font-semibold" style={{color:v.text}}>
+                <span style={{width:10,height:10,borderRadius:3,background:v.bg,border:`1.5px solid ${v.border}`,display:'inline-block'}}/>
+                {v.label}
+              </span>
+            ))}
+            <span className="ml-auto text-xs text-gray-400">Click a day to see details</span>
+          </div>
 
-          /* Determine weekday name for group label */
-          const firstDay  = weekDays[0]
-          const lastDay   = weekDays[weekDays.length-1]
-
-          return (
-            <div key={wIdx} className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-              {/* Week header — clickable to expand/collapse */}
-              <button
-                onClick={() => setExpandedWeeks(p=>({...p,[wIdx]:!isOpen}))}
-                className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black border-2 ${doneInWk===weekDays.length?'bg-green-500 border-green-500 text-white':doneInWk>0?'bg-blue-50 border-blue-400 text-blue-700':'bg-gray-50 border-gray-200 text-gray-500'}`}>
-                    {doneInWk===weekDays.length ? '✓' : weekNum}
+          {/* Day-of-week header */}
+          <div style={{overflowX:'auto',scrollbarWidth:'none'}}>
+            <div style={{minWidth:420}}>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',borderBottom:'1px solid #f3f4f6'}}>
+                {CAL_DAYS.map(d => (
+                  <div key={d} style={{padding:'8px 4px',textAlign:'center',fontSize:11,fontWeight:700,
+                    color:'#9ca3af',letterSpacing:'.04em',textTransform:'uppercase'}}>
+                    {d}
                   </div>
-                  <div className="text-left">
-                    <div className="text-sm font-bold text-gray-900">
-                      Week {weekNum} · Days {firstDay.day}–{lastDay.day}
-                    </div>
-                    <div className="text-xs text-gray-400">{firstDay.date} — {lastDay.date}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-xs text-gray-400 hidden sm:block">{totalHrs} hrs est.</span>
-                  <span className="text-xs font-semibold text-gray-500">{doneInWk}/{weekDays.length} done</span>
-                  <span className={`text-gray-400 transition-transform ${isOpen?'rotate-180':''} text-sm`}>▼</span>
-                </div>
-              </button>
+                ))}
+              </div>
 
-              {/* Day rows — UWorld style */}
-              {isOpen && (
-                <div className="border-t border-gray-100">
-                  {weekDays.map((d, dIdx) => {
-                    const isDone   = doneDays[d.day]
-                    const isToday  = d.date?.includes(new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'}))
-
+              {/* Week rows */}
+              {calWeeks.map((week, wIdx) => (
+                <div key={wIdx} style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',
+                  borderBottom: wIdx < calWeeks.length-1 ? '1px solid #f3f4f6' : 'none'}}>
+                  {week.map(cell => {
+                    const pd      = cell.planDay
+                    const isDone  = pd ? !!doneDays[pd.day] : false
+                    const isToday = cell.iso === todayISO
+                    const isSel   = selectedDay === cell.iso
+                    const cfg     = pd ? TYPE_CFG[pd.type] || TYPE_CFG.study : null
                     return (
-                      <div key={d.day}
-                        className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 border-b border-gray-50 last:border-0 transition-all ${isDone?'bg-green-50/40':isToday?'bg-blue-50/50':''}`}>
-
-                        {/* Meta row: checkbox · day · date (own line on mobile) */}
-                        <div className="flex items-center gap-3 flex-shrink-0">
-                          <button
-                            onClick={() => setDoneDays(p=>({...p,[d.day]:!isDone}))}
-                            className={`w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${isDone?'bg-blue-600 border-blue-600 text-white':'border-gray-300 hover:border-blue-400'}`}
-                            title="Mark as done"
-                          >
-                            {isDone && <span className="text-xs font-bold">✓</span>}
-                          </button>
-                          <div className={`text-xs font-bold flex-shrink-0 ${isDone?'text-green-600':isToday?'text-blue-700':'text-gray-400'}`}>
-                            D{d.day}
-                          </div>
-                          <div className={`text-xs font-semibold ${isToday?'text-blue-700':isDone?'text-green-600':'text-gray-600'}`}>
-                            {d.date}
-                            {isToday && <span className="ml-1 text-blue-500">• Today</span>}
-                          </div>
+                      <div key={cell.iso}
+                        onClick={() => pd && setSelectedDay(isSel ? null : cell.iso)}
+                        style={{
+                          minHeight:72,
+                          padding:'6px 5px',
+                          cursor: pd ? 'pointer' : 'default',
+                          background: isDone ? '#f0fdf4'
+                            : isSel ? '#faf5ff'
+                            : isToday && pd ? '#fff9f7'
+                            : pd ? cfg.bg : '#fafafa',
+                          border: isSel ? '2px solid #7c3aed'
+                            : isToday && pd ? `2px solid ${cfg?.border||'#e5e7eb'}`
+                            : '2px solid transparent',
+                          borderRadius: 8,
+                          margin: 3,
+                          transition:'all .1s',
+                          position:'relative',
+                        }}>
+                        {/* Date number */}
+                        <div style={{fontSize:12,fontWeight:800,
+                          color: isDone ? '#16a34a' : isToday ? cfg?.text||'#374151' : pd ? cfg?.text||'#374151' : '#d1d5db',
+                          marginBottom:3}}>
+                          {cell.dayNum}
+                          {isToday && pd && <span style={{fontSize:8,fontWeight:700,marginLeft:3,
+                            background:cfg?.border,color:'#fff',borderRadius:3,padding:'1px 3px'}}>NOW</span>}
                         </div>
-
-                        {/* Topics */}
-                        <div className="flex-1 flex items-center gap-1.5 flex-wrap min-w-0 sm:pl-0 pl-9">
-                          {d.topics.map(t => (
-                            <span key={t}
-                              className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${isDone?'bg-green-100 text-green-700 line-through opacity-60':typeBadge(d.type)}`}>
-                              {t}
-                            </span>
-                          ))}
-                        </div>
-
-                        {/* Action + duration (own line on mobile) */}
-                        <div className="flex items-center justify-between sm:justify-end gap-3 flex-shrink-0 pl-9 sm:pl-0">
-                          {!isDone && <ActionButton dayType={d.type} topics={d.topics} getAction={getAction} />}
-                          {isDone && (
-                            <span className="text-xs text-green-600 font-semibold whitespace-nowrap">✓ Completed</span>
-                          )}
-                          <div className="text-xs text-gray-400 flex-shrink-0 w-10 text-right">{d.duration}</div>
-                        </div>
+                        {pd && (
+                          <>
+                            {/* Type badge */}
+                            <div style={{fontSize:9,fontWeight:800,textTransform:'uppercase',
+                              letterSpacing:'.06em',color: isDone ? '#16a34a' : cfg.text,
+                              marginBottom:3}}>
+                              {isDone ? '✓ Done' : cfg.label}
+                            </div>
+                            {/* Topic snippet */}
+                            <div style={{fontSize:9,color: isDone ? '#6b7280' : '#6b7280',
+                              lineHeight:1.3,overflow:'hidden',
+                              display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',
+                              textDecoration: isDone ? 'line-through' : 'none',opacity: isDone ? 0.6 : 1}}>
+                              {pd.topics[0]}
+                            </div>
+                          </>
+                        )}
                       </div>
                     )
                   })}
                 </div>
-              )}
+              ))}
             </div>
-          )
-        })}
-      </div>
+          </div>
+        </div>
+      ) : (
+        /* Fallback: old list if no isoDate (legacy saved plans) */
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-xs text-amber-700 font-semibold">
+          ↺ Rebuild your plan to enable the new calendar view.
+        </div>
+      )}
+
+      {/* Day detail panel — shows when a calendar cell is clicked */}
+      {selDay && (
+        <div className="bg-white border-2 rounded-2xl p-5 mb-5 transition-all"
+          style={{borderColor: TYPE_CFG[selDay.type]?.border || '#e5e7eb'}}>
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span style={{
+                  fontSize:10,fontWeight:800,textTransform:'uppercase',letterSpacing:'.07em',
+                  padding:'2px 8px',borderRadius:99,
+                  background: TYPE_CFG[selDay.type]?.bg,
+                  color: TYPE_CFG[selDay.type]?.text,
+                  border:`1px solid ${TYPE_CFG[selDay.type]?.border}`,
+                }}>
+                  {TYPE_CFG[selDay.type]?.label}
+                </span>
+                <span className="text-xs text-gray-400 font-semibold">Day {selDay.day} · {selDay.date} · {selDay.duration}</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {selDay.topics.map(t => (
+                  <span key={t} className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                    style={{background:TYPE_CFG[selDay.type]?.bg, color:TYPE_CFG[selDay.type]?.text,
+                      border:`1px solid ${TYPE_CFG[selDay.type]?.border}40`}}>
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <button onClick={()=>setSelectedDay(null)}
+              style={{color:'#9ca3af',fontSize:18,background:'none',border:'none',cursor:'pointer',padding:4,lineHeight:1}}>
+              ×
+            </button>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            {!doneDays[selDay.day] && selDay.type !== 'catchup' && (() => {
+              const act = getAction(selDay.type, selDay.topics)
+              return (
+                <button onClick={act.onClick}
+                  style={{padding:'8px 18px',borderRadius:99,fontSize:12,fontWeight:800,
+                    border:'none',cursor:'pointer',color:'#fff',
+                    background: selDay.type==='mock' ? '#FF653F'
+                      : selDay.type==='revision' ? '#16a34a' : '#7c3aed'}}>
+                  {act.label} →
+                </button>
+              )
+            })()}
+            <button onClick={()=>setDoneDays(p=>({...p,[selDay.day]:!doneDays[selDay.day]}))}
+              style={{padding:'8px 18px',borderRadius:99,fontSize:12,fontWeight:700,cursor:'pointer',
+                border:`1.5px solid ${doneDays[selDay.day]?'#d1d5db':'#e5e7eb'}`,
+                background: doneDays[selDay.day] ? '#f3f4f6' : '#fff',
+                color: doneDays[selDay.day] ? '#6b7280' : '#374151'}}>
+              {doneDays[selDay.day] ? '✓ Completed — Undo' : 'Mark as done'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Bottom motivation banner */}
-      <div className="mt-6 bg-gradient-to-r from-blue-600 to-violet-600 rounded-2xl p-5 text-white flex items-center justify-between">
+      <div className="bg-gradient-to-r from-violet-600 to-orange-500 rounded-2xl p-5 text-white flex items-center justify-between">
         <div>
           <div className="text-sm font-black mb-1">
-            {pctDone === 0 && "🚀 Your journey starts today — Day 1 awaits!"}
-            {pctDone > 0 && pctDone < 50 && `🔥 Great start! ${totalDone} days done — keep the momentum!`}
-            {pctDone >= 50 && pctDone < 100 && `⚡ More than halfway there — you're on track!`}
+            {pctDone === 0 && "Your journey starts today — Day 1 awaits!"}
+            {pctDone > 0 && pctDone < 50 && `Great start! ${totalDone} days done — keep the momentum!`}
+            {pctDone >= 50 && pctDone < 100 && "More than halfway there — you're on track!"}
             {pctDone === 100 && "🏆 Plan complete — you're exam ready!"}
           </div>
-          <div className="text-xs text-blue-200">{totalDays - totalDone} study days remaining to your exam</div>
+          <div className="text-xs" style={{color:'rgba(255,255,255,.75)'}}>{totalDays - totalDone} study days remaining</div>
         </div>
         <button onClick={() => onStartTest('mock')}
-          className="flex-shrink-0 bg-white text-blue-700 text-xs font-black px-5 py-2.5 rounded-full hover:shadow-lg transition-all whitespace-nowrap ml-4">
+          className="flex-shrink-0 bg-white text-violet-700 text-xs font-black px-5 py-2.5 rounded-full hover:shadow-lg transition-all whitespace-nowrap ml-4">
           Take a Mock Test →
         </button>
       </div>
@@ -608,10 +757,12 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
   /* ── existing state ── */
   const [history,    setHistory]   = useState([])
   const [panelOpen,  setPanelOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
 
   /* ── new sidebar state ── */
   const [activeTab,  setActiveTab] = useState(initialTab)
   const [exploreExam, setExploreExam] = useState(null)   // selected exam in Explore view
+  const [activeExploreGroup, setActiveExploreGroup] = useState(null)  // category tab in Explore
   const [exploreTab,  setExploreTab]  = useState('overview')
   const [blueprint,   setBlueprint]   = useState(null)
   const [bpLoading,   setBpLoading]   = useState(false)
@@ -647,6 +798,12 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
 
   /* ── study planner state ── */
   const [planExam,      setPlanExam]      = useState(user?.user_metadata?.target_exam || '')
+  const [planExamTab,   setPlanExamTab]   = useState('')
+  const [blockedDates,  setBlockedDates]  = useState([])
+  const toggleBlockedDate = (dateStr) =>
+    setBlockedDates(prev => prev.includes(dateStr) ? prev.filter(d => d !== dateStr) : [...prev, dateStr])
+  const [catchupEnabled, setCatchupEnabled] = useState(false)
+  const [catchupEvery,   setCatchupEvery]   = useState(3)
   const [startDate,     setStartDate]     = useState('')
   const [endDate,       setEndDate]       = useState('')
   const [studyDays,     setStudyDays]     = useState([])
@@ -768,6 +925,21 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
   const lastAttempt = examResults[0] || null
   const readiness   = examBest != null ? Math.min(100, Math.round(examBest)) : 0
 
+  const gcol = (pct, cnt) => {
+    if (!cnt) return '#e5e7eb'
+    if (pct < 40)  return '#ef4444'
+    if (pct < 65)  return '#f97316'
+    if (pct < 82)  return '#3b82f6'
+    return '#16a34a'
+  }
+  const shortGroupLbl = l => l.replace(/\s*(exams?|tests?)\s*$/i,'').trim()
+  const readinessStatus = pct => {
+    if (pct >= 82) return { msg:"You're on Track!",       sub:"Great progress, keep it up!",                col:'#16a34a', bg:'#f0fdf4', bdr:'#bbf7d0' }
+    if (pct >= 65) return { msg:"You're making progress!", sub:"Focus on weak areas to improve further.",    col:'#f97316', bg:'#fff8f0', bdr:'#fed7aa' }
+    if (pct >= 40) return { msg:"Keep Practicing!",        sub:"More tests will sharpen your skills.",       col:'#3b82f6', bg:'#eff6ff', bdr:'#bfdbfe' }
+    return           { msg:"Needs More Work",             sub:"Start with your weakest section first.",     col:'#ef4444', bg:'#fff5f5', bdr:'#fecaca' }
+  }
+
   /* ── existing derived values ── */
   const rawName  = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Student'
   const generic  = ['admin','test','user','testuser','administrator']
@@ -797,6 +969,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
   }, [startMax, maxEnd, startDate, endDate])
 
   /* ── load recent results + saved plan ── */
+  const planFetchedRef = useRef(false)
   useEffect(() => {
     if (!user) return
 
@@ -808,21 +981,25 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
       .catch(() => {})
 
     if (planData) {
-      // Came fresh from OnboardingWizard — already have plan in memory
       setSavedPlan(normalizePlan(planData))
       setPlanLoading(false)
-    } else {
-      // Returning user — load latest plan from Supabase
+      planFetchedRef.current = true
+    } else if (!planFetchedRef.current) {
+      planFetchedRef.current = true
+      // Safety timeout — show builder if Supabase doesn't respond in 8s
+      const timeout = setTimeout(() => setPlanLoading(false), 8000)
       supabase.from('study_plans').select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1)
         .then(({ data, error }) => {
+          clearTimeout(timeout)
           if (error) console.error('Load plan error:', error.message)
           if (data?.[0]) setSavedPlan(normalizePlan(data[0]))
-          setPlanLoading(false)  // always stop loading, plan or no plan
+          setPlanLoading(false)
         })
         .catch((e) => {
+          clearTimeout(timeout)
           console.error('Load plan exception:', e)
           setPlanLoading(false)
         })
@@ -885,7 +1062,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
     if (!isPro && trialActive && new Date(endDate) > trialEnd) {
       toast(`Your free trial ends on ${trialEndStr}. Pick an end date within your trial, or upgrade for longer plans.`, 'error'); return
     }
-    const plan = generatePlan({ startDate, endDate, studyDays, hoursPerDay, dayHours, weakTopics, topicGroups: ACTIVE_TOPIC_GROUPS })
+    const plan = generatePlan({ startDate, endDate, studyDays, hoursPerDay, dayHours, weakTopics, topicGroups: ACTIVE_TOPIC_GROUPS, blockedDates, catchupEvery: catchupEnabled ? catchupEvery : 0 })
     if (!plan) return
     setGeneratedPlan(plan)
     await handleSavePlan(plan)
@@ -1001,24 +1178,24 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
      RENDER
   ══════════════════════════════════════════ */
   return (
-    <div className="min-h-screen flex flex-col" style={{background:'#ffffff'}}>
+    <div className="min-h-screen flex flex-col" style={{background:'#fff'}}>
 
       {/* ══ TOP HEADER — identical to existing ══ */}
-      <header className="h-16 flex items-center px-5 gap-4 sticky top-0 z-30 shadow-md" style={{ background:'#111' }}>
+      <header className="h-16 flex items-center px-5 gap-4 sticky top-0 z-30" style={{ background:'#fff', borderBottom:'1px solid #e5e7eb', boxShadow:'0 1px 4px rgba(0,0,0,.06)' }}>
         {/* Logo */}
         <div className="flex items-center gap-3 flex-shrink-0">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background:'#FF653F' }}>
             <span className="text-white text-sm font-black">MT</span>
           </div>
           <div className="hidden sm:block leading-none">
-            <div className="text-base font-black text-white tracking-tight">MockTest</div>
-            <div className="text-xs" style={{ color:'#888' }}>by Arkaserve</div>
+            <div className="text-base font-black tracking-tight" style={{color:'#111827'}}>MockTest</div>
+            <div style={{fontSize:8.5,fontWeight:700,color:'#FF653F',letterSpacing:'.10em',textTransform:'uppercase',fontStyle:'italic',marginTop:3,lineHeight:1}}>Your World of Mock Tests</div>
           </div>
         </div>
         <div className="flex-1"/>
         {/* Trial pill — inline in header */}
         {(trialActive || trialExpired) && (
-          <div className="hidden sm:flex items-center gap-2 text-xs text-white/80 flex-shrink-0">
+          <div className="hidden sm:flex items-center gap-2 text-xs flex-shrink-0" style={{color:'#6b7280'}}>
             <span>
               {trialExpired
                 ? 'Free trial ended — upgrade to continue.'
@@ -1035,520 +1212,788 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
         <div className="flex items-center gap-2 ml-3">
           {adminUser && (
             <button onClick={() => onNav?.('admin')}
-              className="w-9 h-9 flex items-center justify-center bg-white/15 hover:bg-white/25 text-white rounded-xl border border-white/20 transition-colors text-sm">⚙</button>
+              className="hidden md:flex w-9 h-9 items-center justify-center rounded-xl transition-colors"
+              style={{background:'#f3f4f6',border:'1px solid #e5e7eb'}}><DIcGear s={14} c='#374151'/></button>
           )}
-          <button onClick={onLogout} title="Log out" aria-label="Log out"
-            className="w-9 h-9 flex items-center justify-center rounded-full text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-colors">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
-            </svg>
-          </button>
+          {/* Last updated — desktop */}
+          {history[0]?.created_at && (
+            <div className="hidden md:flex" style={{alignItems:'center',gap:5,fontSize:11,color:'#b0b8c4',fontWeight:600,whiteSpace:'nowrap',marginRight:2}}>
+              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Last updated {new Date(history[0].created_at).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+            </div>
+          )}
+          {/* User dropdown — desktop */}
+          <div className="relative hidden md:block">
+            {userMenuOpen && <div style={{position:'fixed',inset:0,zIndex:40}} onClick={()=>setUserMenuOpen(false)}/>}
+            <button onClick={()=>setUserMenuOpen(o=>!o)}
+              className="flex items-center gap-2 rounded-full transition-all"
+              style={{background:'#f3f4f6',border:'1px solid #e5e7eb',padding:'5px 12px 5px 5px',cursor:'pointer',outline:'none',position:'relative',zIndex:50}}>
+              <div style={{width:30,height:30,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:900,color:'#fff',flexShrink:0}}>
+                {(userName[0]||'U').toUpperCase()}
+              </div>
+              <span style={{fontSize:13,fontWeight:700,color:'#111827',maxWidth:100,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                {(userName||'').split(' ')[0].replace(/\b\w/g,c=>c.toUpperCase())}
+              </span>
+              <svg width="10" height="10" fill="none" stroke="#9ca3af" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"
+                style={{transform:userMenuOpen?'rotate(180deg)':'none',transition:'transform .2s'}}>
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            {/* Dropdown panel */}
+            {userMenuOpen && (
+              <div style={{
+                position:'absolute',top:'calc(100% + 8px)',right:0,
+                background:'#fff',border:'1px solid #e5e7eb',borderRadius:14,
+                boxShadow:'0 8px 32px rgba(0,0,0,.12)',minWidth:220,
+                zIndex:50,overflow:'hidden',
+                animation:'dropdown-in .15s ease-out'
+              }}>
+                <style>{`@keyframes dropdown-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}`}</style>
+                {/* User info header */}
+                <div style={{padding:'14px 16px 12px',borderBottom:'1px solid #f5f5f5'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10}}>
+                    <div style={{width:36,height:36,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:900,color:'#fff',flexShrink:0}}>
+                      {(userName[0]||'U').toUpperCase()}
+                    </div>
+                    <div style={{minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:800,color:'#111827',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{userName}</div>
+                      <div style={{fontSize:11,color:'#9ca3af',marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{user?.email}</div>
+                    </div>
+                  </div>
+                  {/* Plan badge */}
+                  <div style={{marginTop:10,padding:'6px 10px',background: isPro ? (plan==='ultimate'?'#f5f3ff':'#fff8f5') : '#f8fafc', border:`1px solid ${isPro?(plan==='ultimate'?'#ddd6fe':'#fed7aa'):'#e5e7eb'}`,borderRadius:8}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.06em'}}>
+                      {isPro?'Plan':'Free Trial'}
+                    </div>
+                    <div style={{fontSize:12,fontWeight:700,color:isPro?(plan==='ultimate'?'#7048E8':'#FF653F'):(trialExpired?'#ef4444':'#FF653F'),marginTop:1}}>
+                      {isPro
+                        ? `${plan.charAt(0).toUpperCase()+plan.slice(1)} — active`
+                        : trialExpired ? `Trial expired on ${trialEndStr}`
+                        : `${trialDaysLeft} day${trialDaysLeft>1?'s':''} left`}
+                    </div>
+                  </div>
+                </div>
+                {/* Menu items */}
+                {[
+                  {label:'Profile & Settings', icon:<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>, action:()=>{setUserMenuOpen(false);setActiveTab('profile')}},
+                  {label:'Subscription',       icon:<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>, action:()=>{setUserMenuOpen(false);setActiveTab('subscriptions')}},
+                ].map(m=>(
+                  <button key={m.label} onClick={m.action}
+                    style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'10px 16px',fontSize:13,fontWeight:600,color:'#374151',background:'none',border:'none',cursor:'pointer',textAlign:'left',transition:'background .1s'}}
+                    onMouseOver={e=>e.currentTarget.style.background='#f8fafc'}
+                    onMouseOut={e=>e.currentTarget.style.background='none'}>
+                    <span style={{color:'#9ca3af',flexShrink:0}}>{m.icon}</span>
+                    {m.label}
+                  </button>
+                ))}
+                <div style={{borderTop:'1px solid #f5f5f5',margin:'4px 0'}}/>
+                <button onClick={()=>{setUserMenuOpen(false);onLogout()}}
+                  style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'10px 16px 12px',fontSize:13,fontWeight:600,color:'#ef4444',background:'none',border:'none',cursor:'pointer',textAlign:'left',transition:'background .1s'}}
+                  onMouseOver={e=>e.currentTarget.style.background='#fff5f5'}
+                  onMouseOut={e=>e.currentTarget.style.background='none'}>
+                  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+          {/* Mobile: hamburger only */}
           <button onClick={() => setPanelOpen(true)} aria-label="Menu"
-            className="w-9 h-9 flex flex-col items-center justify-center gap-[5px] rounded-xl hover:bg-white/20 border border-white/20 transition-colors">
-            <span className="w-4 h-0.5 bg-white rounded-full"/>
-            <span className="w-4 h-0.5 bg-white rounded-full"/>
-            <span className="w-4 h-0.5 bg-white rounded-full"/>
+            className="w-9 h-9 flex md:hidden flex-col items-center justify-center gap-[5px] rounded-xl transition-colors"
+            style={{background:'#f3f4f6',border:'1px solid #e5e7eb'}}>
+            <span className="w-4 h-0.5 rounded-full" style={{background:'#374151'}}/>
+            <span className="w-4 h-0.5 rounded-full" style={{background:'#374151'}}/>
+            <span className="w-4 h-0.5 rounded-full" style={{background:'#374151'}}/>
           </button>
         </div>
       </header>
 
       <div className="flex flex-1 min-h-0">
 
-        {/* ══ LEFT SIDEBAR — premium white ══ */}
-        <aside className="w-56 flex-shrink-0 hidden md:flex flex-col overflow-y-auto border-r border-gray-200 bg-white"
-          style={{position:'sticky',top:64,height:'calc(100vh - 64px)'}}>
+        {/* ══ LEFT SIDEBAR — light ══ */}
+        <aside className="w-60 flex-shrink-0 hidden md:flex flex-col overflow-y-auto"
+          style={{position:'sticky',top:64,height:'calc(100vh - 64px)',background:'#f8fafc',borderRight:'1px solid #e5e7eb'}}>
 
           {/* Nav items */}
-          <nav className="flex-1 py-3 px-2">
+          <nav className="flex-1 py-4 px-3">
             {SIDEBAR_NAV.map(item => (
               <button key={item.id} onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm mb-0.5 transition-all ${
-                  activeTab === item.id
-                    ? 'text-white font-bold'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 font-medium'
-                }`}
-                style={activeTab === item.id ? { background:'#FF653F' } : {}}>
-                <span className="flex-shrink-0"><item.Icon /></span>
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm mb-0.5 transition-all"
+                style={activeTab === item.id
+                  ? { background:'rgba(255,101,63,.1)', color:'#FF653F', fontWeight:700, boxShadow:'inset 3px 0 0 #FF653F' }
+                  : { color:'#6b7280', fontWeight:500 }}
+                onMouseOver={e=>{ if(activeTab!==item.id){ e.currentTarget.style.background='#f0f0f0'; e.currentTarget.style.color='#374151' } }}
+                onMouseOut={e=>{ if(activeTab!==item.id){ e.currentTarget.style.background=''; e.currentTarget.style.color='#6b7280' } }}>
+                <span className="flex-shrink-0 opacity-80"><item.Icon /></span>
                 {item.label}
                 {item.badge && activeTab !== item.id && (
                   <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ background:'#FF653F' }}>{item.badge}</span>
                 )}
-                {activeTab === item.id && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/70"/>}
               </button>
             ))}
           </nav>
 
-          {/* Bottom: user profile + expiry + logout */}
-          <div className="px-4 py-4 border-t border-gray-100">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0" style={{ background:'#FF653F' }}>
-                {(userName[0]||'U').toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-bold text-gray-900 leading-snug truncate">{userName}</span>
-                  {isPro && (
-                    <span className="text-[10px] font-black uppercase tracking-wide text-white px-1.5 py-0.5 rounded-md flex-shrink-0"
-                      style={{ background: plan==='ultimate' ? '#7048E8' : '#FF653F' }}>
-                      {plan ? plan.charAt(0).toUpperCase()+plan.slice(1) : 'Member'}
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-gray-400 truncate">{user?.email}</div>
-              </div>
-            </div>
-            <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">
-              {isPro ? 'Plan' : 'Free Trial'}
-            </div>
-            <div className="text-xs mb-3" style={{ color: trialExpired ? '#dc2626' : '#6b7280' }}>
-              {isPro
-                ? `${plan.charAt(0).toUpperCase()+plan.slice(1)} — active`
-                : trialExpired
-                  ? `Expired on ${trialEndStr}`
-                  : `${trialDaysLeft} day${trialDaysLeft>1?'s':''} left · ends ${trialEndStr}`}
-            </div>
-            <button onClick={onLogout}
-              className="w-full py-2 text-red-500 text-xs font-semibold rounded-lg border border-red-200 hover:bg-red-50 transition-colors">
-              ↪ Log Out
-            </button>
-          </div>
         </aside>
 
         {/* ══ MAIN CONTENT — swaps per sidebar tab ══ */}
-        <main className="flex-1 overflow-auto py-7 px-5 lg:px-8">
-          <div className="max-w-7xl mx-auto">
+        <main className="flex-1 overflow-auto flex flex-col" style={{background:'#fff'}}>
+          <div className="flex-1 py-6 px-4 sm:px-8 lg:px-12">
 
-            {/* ── HOME tab (existing dashboard content — unchanged) ── */}
+            {/* ── HOME tab ── */}
             {activeTab === 'home' && <>
-              {/* Welcome + Hero CTA */}
-              <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl font-black text-gray-900">Welcome, {(userName||'').replace(/\b\w/g,c=>c.toUpperCase())}!</h1>
-                  <p className="text-gray-500 text-sm mt-0.5">
-                    {selectedExam?.name
-                      ? `${selectedGroup?.label || 'Exam'} · ${selectedExam.name}`
-                      : 'Your expert-crafted exam prep dashboard'}
+              <style>{`
+                .dh-btn{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;padding:9px 18px;border-radius:9px;cursor:pointer;transition:all .15s;border:none;white-space:nowrap;letter-spacing:-.01em}
+                .dh-btn-primary{background:#FF653F;color:#fff;box-shadow:0 2px 10px rgba(255,101,63,.30)}
+                .dh-btn-primary:hover{box-shadow:0 4px 16px rgba(255,101,63,.44);transform:translateY(-1px)}
+                .dh-btn-ghost{background:#fff;color:#374151;box-shadow:0 0 0 1.5px #e5e7eb}
+                .dh-btn-ghost:hover{box-shadow:0 0 0 1.5px #d1d5db;background:#f9fafb}
+                .dh-pill{display:inline-flex;align-items:center;padding:6px 13px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;transition:all .12s;background:#fff;box-shadow:0 0 0 1.5px #e5e7eb;color:#374151}
+                .dh-pill:hover{box-shadow:0 0 0 1.5px #FF653F;color:#FF653F}
+                .dh-pill.active{background:#FF653F;color:#fff;box-shadow:0 2px 8px rgba(255,101,63,.28)}
+                .dh-mode-btn{display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid #f0f0f0;background:#fff;cursor:pointer;transition:all .13s;text-align:left}
+                .dh-mode-btn:hover{border-color:#fec9b0;background:#fffaf8;box-shadow:0 2px 10px rgba(255,101,63,.08)}
+                .dh-card{background:#fafafa;border:1px solid #f0f0f0;border-radius:14px;padding:20px}
+                .dh-lbl{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b0b8c4;margin-bottom:10px}
+                .dh-result-row{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid #f5f5f5;background:none;border-left:none;border-right:none;border-top:none;width:100%;cursor:pointer;transition:background .1s;border-radius:0}
+                .dh-result-row:last-child{border-bottom:none}
+                .dh-result-row:hover{background:#fafafa}
+                .dh-sec-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:1px}
+                @media(max-width:860px){
+                  .dh-grid{flex-direction:column!important}
+                  .dh-left{padding-right:0!important}
+                  .dh-right{width:100%!important;flex-shrink:1!important;border-left:none!important;padding-left:0!important;margin-top:28px;border-top:1px solid #f0f0f0;padding-top:28px}
+                  .dh-right-inner{display:grid!important;grid-template-columns:1fr 1fr!important;gap:16px!important}
+                }
+                @media(max-width:600px){
+                  .dh-header-row{flex-direction:column!important;gap:12px!important}
+                  .dh-header-btns{padding-top:0!important}
+                  .dh-right-inner{grid-template-columns:1fr!important}
+                }
+              `}</style>
+
+              {/* ── Header ── */}
+              <div className="dh-header-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,paddingBottom:16,marginBottom:22}}>
+                <div style={{minWidth:0,flex:1}}>
+                  <h1 style={{fontSize:24,fontWeight:900,color:'#111827',letterSpacing:'-.03em',lineHeight:1.2,margin:0}}>
+                    Welcome back, {(userName||'').split(' ')[0].replace(/\b\w/g,c=>c.toUpperCase())}
+                  </h1>
+                  <p style={{margin:'6px 0 0',fontSize:13.5,color:'#6b7280',fontWeight:500,lineHeight:1.5}}>
+                    {[
+                      'The score you want tomorrow is earned in the quiet hours you put in today.',
+                      'Preparation isn\'t a moment — it\'s a discipline you choose every single day.',
+                      'Champions are made long before the exam hall — they\'re made right here, right now.',
+                      'Every session you show up for is quietly building the version of you that succeeds.',
+                      'Your dedication in these hours is the difference between almost and absolutely.',
+                      'Small, consistent effort compounds into extraordinary results — keep going.',
+                      'The exam doesn\'t test potential; it reveals preparation. Make yours count.',
+                    ][new Date().getDay()]}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => onStartTest?.('mock', selectedExamId)}
-                    className="flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl text-white transition-all hover:opacity-90 active:scale-95"
-                    style={{ background:'#FF653F' }}>
-                    {history.length > 0 ? '▶ Resume Mock Test' : '▶ Start Mock Test'}
-                  </button>
-                  <button
-                    onClick={() => onStartTest?.('topic', selectedExamId)}
-                    className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-all active:scale-95">
-                    ◈ Topic Practice
-                  </button>
-                </div>
               </div>
 
-              {/* ── KPI strip — all-time across all exams ── */}
-              <div className="flex items-baseline gap-2 mb-4">
-                <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color:'#FF653F' }}>All-time Stats</h2>
-                <span className="text-xs text-gray-400">· across all exams</span>
-              </div>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
-                {[
-                  { label:'Tests Taken',    value:String(history.length),          hex:'#111827', icon:'📝', bg:'#f1f5f9' },
-                  { label:'Best Score',     value:(best!=null?best+'%':'—'),       hex:'#16a34a', icon:'🏆', bg:'#ecfdf5' },
-                  { label:'Average Score',  value:(avg!=null?avg+'%':'—'),         hex:'#FF653F', icon:'📊', bg:'#FFF3EE' },
-                  { label:'Exam Readiness', value:(examResults.length?readiness+'%':'—'), hex:'#7048E8', icon:'🎯', bg:'#f3effe' },
-                ].map(k => (
-                  <div key={k.label} className="bg-white rounded-2xl border border-gray-200 px-4 py-4 flex items-center gap-3 hover:shadow-md transition-shadow"
-                    style={{ boxShadow:'0 1px 3px rgba(0,0,0,.05)' }}>
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background:k.bg }}>{k.icon}</div>
-                    <div className="min-w-0">
-                      <div className="text-2xl font-black leading-none" style={{ color:k.hex }}>{k.value}</div>
-                      <div className="text-xs text-gray-400 mt-1">{k.label}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {/* ── Two-column body ── */}
+              <div className="dh-grid" style={{display:'flex',gap:0}}>
 
-              {/* ── STUDY PLAN WIDGET (UWorld-style: upcoming + progress ring) ── */}
-              {savedPlan && (() => {
-                const days      = savedPlan.days || []
-                const total     = days.length
-                const completed = Object.values(completedDays).filter(Boolean).length
-                const remaining = Math.max(0, total - completed)
-                const pct       = total ? Math.round((completed / total) * 100) : 0
-                const upcoming  = days.filter(d => !completedDays[d.day]).slice(0, 6)
-                const typeIcon  = (t)=> t==='mock'?'📝':t==='revision'?'🔁':'📖'
-                return (
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-                    {/* Upcoming list */}
-                    <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl overflow-hidden">
-                      <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
-                        <span className="font-bold text-gray-900 text-sm">📅 Study Planner</span>
-                        <button onClick={() => setActiveTab('studyplan')} className="text-xs font-bold" style={{color:'#FF653F'}}>View Plan →</button>
-                      </div>
-                      <div className="divide-y divide-gray-50">
-                        {upcoming.length === 0 ? (
-                          <div className="px-5 py-6 text-center text-sm text-gray-400">🎉 All planned days completed!</div>
-                        ) : upcoming.map(d => (
-                          <div key={d.day} className="flex items-center gap-3 px-5 py-3">
-                            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0"
-                              style={{ background:'#FFF3EE' }}>{typeIcon(d.type)}</div>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-sm font-semibold text-gray-900 truncate">{(d.topics||[]).join(', ')||'Study'}</div>
-                              <div className="text-xs text-gray-400">{d.date} · {d.duration}</div>
-                            </div>
-                            <button onClick={() => setActiveTab('studyplan')}
-                              className="text-xs font-bold rounded-lg px-3 py-1.5 border flex-shrink-0"
-                              style={{ color:'#FF653F', borderColor:'#fec9b0' }}>
-                              {d.type==='mock'?'Start':'Practice'}
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                {/* ── LEFT ── */}
+                <div className="dh-left" style={{flex:'1 1 0',minWidth:0,paddingRight:36}}>
 
-                    {/* Progress ring */}
-                    <div className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col items-center justify-center">
-                      <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 self-start">Study Plan Progress</div>
-                      <div className="text-sm text-gray-500 mb-3 self-start">{completed} / {total} · {remaining} days remaining</div>
-                      <div className="relative w-32 h-32 my-1">
-                        <svg viewBox="0 0 36 36" className="w-32 h-32 -rotate-90">
-                          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#f0f0f0" strokeWidth="3"/>
-                          {pct>0 && <circle cx="18" cy="18" r="15.9" fill="none" stroke="#FF653F" strokeWidth="3" strokeLinecap="round"
-                            strokeDasharray={`${pct} ${100-pct}`}/>}
-                        </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <span className="text-2xl font-black text-gray-900">{pct}%</span>
-                          <span className="text-xs text-gray-400">{pct===100?'Complete':'Done'}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 mt-3 text-xs">
-                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"/>Done {completed}</span>
-                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{background:'#FF653F'}}/>Left {remaining}</span>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })()}
+                  {/* ── All Exams Readiness Circles ── */}
+                  {history.length > 0 && (() => {
+                    const shortLbl = l => l.replace(/\s*(exams?|tests?)\s*$/i,'').trim()
+                    const groupStats = ACTIVE_GROUPS.map(g => {
+                      const ids = g.exams.map(e => e.id)
+                      const res = history.filter(r => ids.includes(r.exam || ''))
+                      const best = res.length ? Math.round(Math.max(...res.map(r => Number(r.percentage||0)))) : 0
+                      const avg  = res.length ? Math.round(res.reduce((s,r)=>s+Number(r.percentage||0),0)/res.length) : 0
+                      return { ...g, count: res.length, best, avg }
+                    }).filter(g => g.count > 0)
+                    if (!groupStats.length) return null
 
-              {/* ── GET-STARTED HERO (shown until an exam is chosen) ── */}
-              {user && !hasChosenExam && (
-                <div className="mb-8 rounded-2xl p-6 sm:p-7 relative overflow-hidden text-white"
-                  style={{ background:'linear-gradient(135deg,#FF8A5F 0%,#FFB088 100%)' }}>
-                  {/* decorative bubbles */}
-                  <div className="absolute -top-12 -right-10 w-44 h-44 rounded-full bg-white/10 pointer-events-none"/>
-                  <div className="absolute -bottom-16 right-16 w-36 h-36 rounded-full bg-white/10 pointer-events-none"/>
-                  <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-                    <div className="max-w-xl">
-                      <div className="inline-flex items-center gap-1.5 bg-white/20 rounded-full px-3 py-1 text-xs font-bold mb-3">✨ expert-crafted exam prep</div>
-                      <h2 className="text-xl sm:text-2xl font-black mb-1.5">Ready to crack your exam, {(userName||'there').split(' ')[0]}?</h2>
-                      <p className="text-sm text-white/90 mb-4 leading-relaxed">Pick your target exam to unlock the full syllabus blueprint, topic-wise weightage, cut-offs and unlimited mock tests — or jump straight into practice.</p>
-                      <div className="flex flex-wrap gap-2">
-                        {['📝 Realistic mocks','📄 PDF solutions','🎯 Adaptive practice','📊 Readiness tracking'].map(f=>(
-                          <span key={f} className="text-xs font-semibold bg-white/15 rounded-lg px-2.5 py-1">{f}</span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+                    const SZ=110, R=42, CX=55, CY=55, CIRC=+(2*Math.PI*R).toFixed(1)
 
-              {/* ── PROGRESS — for the selected exam ── */}
-              {hasChosenExam && (
-              <div className="mb-8">
-                <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
-                  Your Progress · {selectedGroup.label}
-                </h2>
+                    return (
+                      <div style={{marginBottom:24}}>
+                        <style>{`
+                          @keyframes rg-pulse{0%,100%{opacity:.45;transform:scale(1)}50%{opacity:.9;transform:scale(1.07)}}
+                          @keyframes rg-card-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+                          .rg-grid{display:grid;gap:10px}
+                          .rg-card{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;cursor:pointer;outline:none;border-radius:16px;padding:14px 10px 14px;position:relative;transition:border-color .08s,background .08s,box-shadow .08s,transform .08s}
+                          .rg-ring-wrap{position:relative;width:110px;height:110px;flex-shrink:0}
+                          .rg-footer{display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap}
+                          @media(max-width:600px){
+                            .rg-grid{grid-template-columns:1fr 1fr!important;gap:10px!important}
+                            .rg-card{padding:12px 8px 12px!important;min-height:0;gap:6px!important}
+                            .rg-ring-wrap{width:95px!important;height:95px!important}
+                            .rg-ring-wrap svg{width:95px!important;height:95px!important}
+                            .rg-footer{flex-direction:column!important;align-items:center!important;gap:3px!important}
+                          }
+                        `}</style>
 
-                {examResults.length === 0 ? (
-                  /* No attempts yet */
-                  <div className="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0" style={{ background:'#FFF3EE' }}>🚀</div>
-                      <div>
-                        <div className="text-sm font-bold text-gray-900">No attempts yet for {selectedGroup.label}</div>
-                        <div className="text-xs text-gray-500 mt-0.5">Take your first test to start tracking readiness, scores and weak areas.</div>
-                      </div>
-                    </div>
-                    <button onClick={() => onStartTest('mock', selectedExamId)}
-                      className="text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all flex-shrink-0 whitespace-nowrap"
-                      style={{ background:'#FF653F' }}
-                      onMouseOver={e=>e.currentTarget.style.background='#e5512f'}
-                      onMouseOut={e=>e.currentTarget.style.background='#FF653F'}>
-                      Take first test →
-                    </button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    {/* Readiness */}
-                    <div className="bg-white border border-gray-200 rounded-2xl p-5">
-                      <div className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-3">Exam readiness</div>
-                      <div className="flex items-end gap-2 mb-3">
-                        <span className="text-3xl font-black" style={{ color:'#FF653F' }}>{readiness}%</span>
-                        <span className="text-xs text-gray-400 mb-1">based on best score</span>
-                      </div>
-                      <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all" style={{ width:`${readiness}%`, background:'#FF653F' }}/>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-2">
-                        {readiness >= 60 ? 'On track — keep practising to stay sharp.' : readiness >= 40 ? 'Getting there — focus on weak sections.' : 'Early days — build consistency with daily practice.'}
-                      </div>
-                    </div>
+                        {/* Circle cards — equal-width grid */}
+                        <div className="rg-grid" style={{gridTemplateColumns:`repeat(${Math.min(groupStats.length,3)},1fr)`}}>
+                          {groupStats.map((g, gi) => {
+                            const col      = gcol(g.best, g.count)
+                            const dashBest = +((g.best/100)*CIRC).toFixed(1)
+                            const dashAvg  = +((g.avg/100)*CIRC).toFixed(1)
+                            const isActive = g.id === selectedGroup?.id
+                            const gid      = `rg-${g.id}`
+                            const tipAngle = (g.best/100)*2*Math.PI - Math.PI/2
+                            const tipX     = (CX + R*Math.cos(tipAngle)).toFixed(2)
+                            const tipY     = (CY + R*Math.sin(tipAngle)).toFixed(2)
+                            const statusLbl = g.best>=82?'On Track':g.best>=65?'Improving':g.best>=40?'Needs Work':'Needs Focus'
 
-                    {/* Score stats */}
-                    <div className="bg-white border border-gray-200 rounded-2xl p-5">
-                      <div className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-3">Scores</div>
-                      <div className="grid grid-cols-3 gap-2 text-center">
-                        <div>
-                          <div className="text-2xl font-black text-gray-900">{examResults.length}</div>
-                          <div className="text-xs text-gray-400 mt-0.5">Tests</div>
-                        </div>
-                        <div>
-                          <div className="text-2xl font-black text-green-600">{examBest?.toFixed(0)}%</div>
-                          <div className="text-xs text-gray-400 mt-0.5">Best</div>
-                        </div>
-                        <div>
-                          <div className="text-2xl font-black" style={{ color:'#FF653F' }}>{examAvg?.toFixed(0)}%</div>
-                          <div className="text-xs text-gray-400 mt-0.5">Average</div>
-                        </div>
-                      </div>
-                      {lastAttempt && (
-                        <div className="text-xs text-gray-500 mt-4 pt-3 border-t border-gray-100">
-                          Last attempt: {new Date(lastAttempt.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · {Number(lastAttempt.percentage||0).toFixed(0)}%
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Weak areas / next step */}
-                    <div className="bg-white border border-gray-200 rounded-2xl p-5">
-                      <div className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-3">Focus next</div>
-                      {Array.isArray(lastAttempt?.weak_topics) && lastAttempt.weak_topics.length > 0 ? (
-                        <div className="flex flex-wrap gap-1.5 mb-4">
-                          {lastAttempt.weak_topics.slice(0,6).map((t,i) => {
-                            const label = typeof t === 'string'
-                              ? t
-                              : (t?.topic || t?.name || t?.label || t?.section || '')
-                            if (!label) return null
                             return (
-                              <span key={i} className="text-xs px-2 py-1 rounded-full font-medium" style={{ background:'#FFF3EE', color:'#FF653F' }}>
-                                {String(label).replace(/_/g,' ')}
-                              </span>
+                              <button key={g.id}
+                                className="rg-card"
+                                onClick={() => setSelectedExamId(g.exams[0].id)}
+                                style={{
+                                  background: isActive ? `${col}0d` : '#f8fafc',
+                                  border: `2px solid ${isActive ? col : '#eef0f3'}`,
+                                  boxShadow: isActive
+                                    ? `0 8px 32px ${col}28, 0 2px 10px rgba(0,0,0,.06)`
+                                    : '0 1px 4px rgba(0,0,0,.04)',
+                                  transform: isActive ? 'translateY(-4px)' : 'none',
+                                  animation:`rg-card-in .4s ease-out ${gi*0.07}s both`,
+                                }}>
+
+                                {/* Accent top strip */}
+                                {isActive && (
+                                  <div style={{position:'absolute',top:0,left:16,right:16,height:3,borderRadius:'0 0 4px 4px',background:`linear-gradient(90deg,${col}88,${col})`}}/>
+                                )}
+
+                                <div className="rg-ring-wrap">
+                                  {/* ambient glow */}
+                                  {isActive && (
+                                    <div style={{
+                                      position:'absolute',inset:-10,borderRadius:'50%',
+                                      background:`radial-gradient(circle, ${col}22 0%, transparent 68%)`,
+                                      animation:'rg-pulse 2.8s ease-in-out infinite'
+                                    }}/>
+                                  )}
+
+                                  <svg width={SZ} height={SZ} viewBox={`0 0 ${SZ} ${SZ}`}
+                                    style={{display:'block',overflow:'visible'}}>
+                                    <defs>
+                                      <linearGradient id={gid} x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stopColor={col} stopOpacity="0.55"/>
+                                        <stop offset="100%" stopColor={col} stopOpacity="1"/>
+                                      </linearGradient>
+                                      <filter id={`${gid}-glow`} x="-30%" y="-30%" width="160%" height="160%">
+                                        <feGaussianBlur stdDeviation="3.5" result="blur"/>
+                                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                                      </filter>
+                                    </defs>
+
+                                    {/* background disc */}
+                                    <circle cx={CX} cy={CY} r={R+7}
+                                      fill={isActive ? `${col}09` : '#f8f9fa'}
+                                      stroke={isActive ? `${col}20` : '#f0f0f0'}
+                                      strokeWidth="1.5"/>
+
+                                    {/* track ring */}
+                                    <circle cx={CX} cy={CY} r={R}
+                                      fill="none" stroke={isActive ? `${col}25` : '#ebebeb'} strokeWidth="10"
+                                      strokeLinecap="round"/>
+
+                                    {/* avg ghost ring */}
+                                    {g.avg > 0 && g.avg !== g.best && (
+                                      <circle cx={CX} cy={CY} r={R}
+                                        fill="none" stroke={`${col}30`} strokeWidth="10"
+                                        strokeLinecap="round"
+                                        strokeDasharray={`${dashAvg} ${CIRC}`}
+                                        transform={`rotate(-90 ${CX} ${CY})`}/>
+                                    )}
+
+                                    {/* main arc */}
+                                    {g.best > 0 && (
+                                      <circle cx={CX} cy={CY} r={R}
+                                        fill="none"
+                                        stroke={`url(#${gid})`}
+                                        strokeWidth="10"
+                                        strokeLinecap="round"
+                                        strokeDasharray={`${dashBest} ${CIRC}`}
+                                        transform={`rotate(-90 ${CX} ${CY})`}
+                                        filter={isActive ? `url(#${gid}-glow)` : 'none'}/>
+                                    )}
+
+                                    {/* tip dot */}
+                                    {g.best > 0 && g.best < 100 && (
+                                      <>
+                                        <circle cx={tipX} cy={tipY} r="8" fill={col} opacity="0.18"/>
+                                        <circle cx={tipX} cy={tipY} r="5" fill={col} opacity={isActive?1:0.7}/>
+                                        <circle cx={tipX} cy={tipY} r="2.5" fill="#fff"/>
+                                      </>
+                                    )}
+                                  </svg>
+
+                                  {/* center content */}
+                                  <div style={{
+                                    position:'absolute',inset:0,
+                                    display:'flex',flexDirection:'column',
+                                    alignItems:'center',justifyContent:'center',gap:2
+                                  }}>
+                                    <span style={{
+                                      fontSize:g.best>=100?14:17,fontWeight:900,
+                                      color:g.best>0?col:'#d1d5db',
+                                      lineHeight:1,letterSpacing:'-.02em',
+                                      fontVariantNumeric:'tabular-nums'
+                                    }}>
+                                      {g.best>0?`${g.best}%`:'0%'}
+                                    </span>
+                                    {g.best > 0 ? (
+                                      <span style={{fontSize:8,fontWeight:800,color:'#b0b8c4',letterSpacing:'.07em',textTransform:'uppercase',marginTop:1}}>BEST</span>
+                                    ) : (
+                                      <span style={{fontSize:9,fontWeight:700,color:'#c4c9d4',marginTop:1}}>Not Started</span>
+                                    )}
+                                    {g.avg > 0 && g.avg !== g.best && (
+                                      <span style={{fontSize:9.5,fontWeight:700,color:`${col}aa`,marginTop:2}}>
+                                        {g.avg}% avg
+                                      </span>
+                                    )}
+                                  </div>
+
+                                </div>
+
+                                {/* label + status */}
+                                <div className="rg-footer" style={{textAlign:'center'}}>
+                                  <div style={{fontSize:13,fontWeight:800,lineHeight:1.2,color:isActive?col:'#374151',whiteSpace:'nowrap'}}>
+                                    {shortLbl(g.label)}
+                                  </div>
+                                  <div style={{
+                                    fontSize:10.5,fontWeight:700,
+                                    color: isActive ? col : '#b0b8c4',
+                                    background: isActive ? `${col}15` : '#f5f5f5',
+                                    borderRadius:99,padding:'2px 8px',
+                                    display:'inline-block',
+                                    transition:'color .08s,background .08s',
+                                    whiteSpace:'nowrap',
+                                    flexShrink:0
+                                  }}>
+                                    {statusLbl}
+                                  </div>
+                                </div>
+                              </button>
                             )
                           })}
                         </div>
-                      ) : (
-                        <div className="text-xs text-gray-500 mb-4">Take a few more tests and we'll highlight your weakest topics here.</div>
-                      )}
-                      <button onClick={() => setActiveTab('studyplan')}
-                        className="w-full text-xs font-bold rounded-lg py-2 border transition-all"
-                        style={{ color:'#FF653F', borderColor:'#fec9b0' }}
-                        onMouseOver={e=>e.currentTarget.style.background='#FFF3EE'}
-                        onMouseOut={e=>e.currentTarget.style.background=''}>
-                        Open Study Planner →
-                      </button>
+                      </div>
+                    )
+                  })()}
+
+                  {/* No exam chosen — rich onboarding */}
+                  {!hasChosenExam && (
+                    <div style={{marginBottom:28}}>
+
+                      {/* Hero banner */}
+                      <div style={{background:'linear-gradient(135deg,#FF653F 0%,#ff9a5f 100%)',borderRadius:18,padding:'24px 28px',marginBottom:22,position:'relative',overflow:'hidden'}}>
+                        <div style={{position:'absolute',top:-20,right:-20,width:120,height:120,borderRadius:'50%',background:'rgba(255,255,255,.08)'}}/>
+                        <div style={{position:'absolute',bottom:-30,right:40,width:80,height:80,borderRadius:'50%',background:'rgba(255,255,255,.06)'}}/>
+                        <div style={{position:'relative'}}>
+                          <div style={{fontSize:11,fontWeight:800,color:'rgba(255,255,255,.75)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>Welcome to MockTest</div>
+                          <div style={{fontSize:20,fontWeight:900,color:'#fff',lineHeight:1.3,marginBottom:10,letterSpacing:'-.02em'}}>
+                            Your path to exam success<br/>starts with one decision
+                          </div>
+                          <p style={{fontSize:13,color:'rgba(255,255,255,.85)',lineHeight:1.65,marginBottom:18,maxWidth:360}}>
+                            Choose your target exam and unlock full-length mock tests, topic-wise drills, instant analytics, and a personalised study plan — all in one place.
+                          </p>
+                          <button className="dh-btn" onClick={() => setActiveTab('explore')}
+                            style={{background:'#fff',color:'#FF653F',fontWeight:800,boxShadow:'0 4px 16px rgba(0,0,0,.15)'}}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            Browse Exams
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 3-step journey */}
+                      <div style={{marginBottom:22}}>
+                        <div className="dh-lbl">How it works</div>
+                        <div style={{display:'flex',flexDirection:'column',gap:0}}>
+                          {[
+                            { n:'01', title:'Choose your exam', desc:'Select from IBPS, SBI, SSC, Railway, RBI, SAT, ACT and more. Your dashboard adapts to your target.', col:'#3b82f6' },
+                            { n:'02', title:'Practice intelligently', desc:'Take full mocks, topic-wise drills, or section tests — each with a timer, negative marking and instant scoring.', col:'#8b5cf6' },
+                            { n:'03', title:'Analyse & improve', desc:'Get a detailed result PDF, topic-wise accuracy breakdown, and an AI study plan every time you attempt a test.', col:'#10b981' },
+                          ].map((s,i) => (
+                            <div key={s.n} style={{display:'flex',gap:16,paddingBottom:i<2?18:0,borderBottom:i<2?'1px dashed #f0f0f0':'none',marginBottom:i<2?18:0}}>
+                              <div style={{width:36,height:36,borderRadius:10,background:`${s.col}15`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:2}}>
+                                <span style={{fontSize:11,fontWeight:900,color:s.col}}>{s.n}</span>
+                              </div>
+                              <div>
+                                <div style={{fontSize:14,fontWeight:800,color:'#111827',marginBottom:3}}>{s.title}</div>
+                                <div style={{fontSize:12.5,color:'#6b7280',lineHeight:1.65}}>{s.desc}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Exam category quick-picks */}
+                      <div>
+                        <div className="dh-lbl">Popular exam categories</div>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                          {[
+                            { label:'Banking Exams', sub:'IBPS · SBI · RBI · NABARD', col:'#3b82f6', id:'explore' },
+                            { label:'SSC Exams',     sub:'CGL · CHSL · MTS · CPO',   col:'#8b5cf6', id:'explore' },
+                            { label:'Railway',       sub:'NTPC · Group D · ALP',       col:'#10b981', id:'explore' },
+                            { label:'US Exams',      sub:'SAT · ACT · AP · PSAT',      col:'#f59e0b', id:'us-exams' },
+                          ].map(cat => (
+                            <button key={cat.label} onClick={() => setActiveTab(cat.id)}
+                              style={{textAlign:'left',padding:'12px 14px',borderRadius:12,border:`1.5px solid ${cat.col}22`,background:`${cat.col}08`,cursor:'pointer',transition:'all .15s'}}
+                              onMouseOver={e=>{e.currentTarget.style.background=`${cat.col}15`;e.currentTarget.style.borderColor=`${cat.col}55`}}
+                              onMouseOut={e=>{e.currentTarget.style.background=`${cat.col}08`;e.currentTarget.style.borderColor=`${cat.col}22`}}>
+                              <div style={{fontSize:13,fontWeight:800,color:'#111827',marginBottom:2}}>{cat.label}</div>
+                              <div style={{fontSize:11,color:'#9ca3af',fontWeight:600}}>{cat.sub}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                     </div>
-                  </div>
-                )}
+                  )}
 
-              </div>
-              )}
+                  {/* Progress panel — detailed exam card */}
+                  {hasChosenExam && examResults.length > 0 && (() => {
+                    const stCol    = gcol(readiness, examResults.length)
+                    const st       = readinessStatus(readiness)
+                    const totalCorrect = examResults.reduce((s,r)=>s+(r.correct_count||0),0)
+                    const totalWrong   = examResults.reduce((s,r)=>s+(r.wrong_count||0),0)
 
-              {/* Quick practice */}
-              <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Quick Practice</h2>
-              <div className="flex gap-2 mb-8">
-                {ACTIVE_MODES.map(m => (
-                  <button key={m.id} onClick={() => onStartTest(m.id)}
-                    className={`flex-1 flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all hover:shadow-sm ${m.light} ${m.border}`}
-                    onMouseOver={e=>e.currentTarget.style.opacity='0.85'}
-                    onMouseOut={e=>e.currentTarget.style.opacity='1'}>
-                    <div className={`w-7 h-7 ${m.bg} rounded-lg flex items-center justify-center text-white flex-shrink-0`}><m.Icon /></div>
-                    <span className={`text-xs font-bold ${m.text} text-left leading-tight`}>{m.label}</span>
-                  </button>
-                ))}
-              </div>
+                    /* sparkline for the score trend row */
+                    const sparkData = [...examResults].reverse().slice(-8).map(r=>Number(r.percentage||0))
+                    const trend     = sparkData.length>=2 ? sparkData[sparkData.length-1]-sparkData[0] : 0
+                    const sparkCol  = trend>0?'#16a34a':trend<0?'#f97316':'#9ca3af'
+                    const SW=160,SH=52,PAD={t:6,b:6,l:2,r:2}
+                    const sMinS=Math.min(...sparkData),sMaxS=Math.max(...sparkData,1),sRangeS=sMaxS-sMinS||1
+                    const iW=SW-PAD.l-PAD.r,iH=SH-PAD.t-PAD.b
+                    const spx=i=>PAD.l+((i/Math.max(sparkData.length-1,1))*iW)
+                    const spy=v=>PAD.t+iH-((v-sMinS)/sRangeS)*iH
+                    const linePts=sparkData.map((_,i)=>`${spx(i).toFixed(1)},${spy(sparkData[i]).toFixed(1)}`).join(' ')
+                    const areaPath=`M${spx(0).toFixed(1)},${(SH-PAD.b).toFixed(1)} `+sparkData.map((_,i)=>`L${spx(i).toFixed(1)},${spy(sparkData[i]).toFixed(1)}`).join(' ')+` L${spx(sparkData.length-1).toFixed(1)},${(SH-PAD.b).toFixed(1)} Z`
+                    const gradId=`sgt-${selectedGroup.id}`
 
-              {/* ── YOUR EXAM — driven by signup selection, changeable ── */}
-              {hasChosenExam && (
-              <div className="mb-8">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Your Exam</h2>
-                    <p className="text-sm text-gray-500 mt-0.5">
-                      You're preparing for <span className="font-bold text-gray-800">{selectedGroup.label}</span>
-                      {examSaving && <span className="ml-2 text-xs text-gray-400">saving…</span>}
-                    </p>
-                  </div>
-                  <button onClick={() => setChangingExam(v => !v)}
-                    className="text-xs font-bold rounded-lg px-3 py-2 border transition-all flex-shrink-0"
-                    style={{ color:'#FF653F', borderColor:'#fec9b0' }}
-                    onMouseOver={e=>{ e.currentTarget.style.background='#FFF3EE' }}
-                    onMouseOut={e=>{ e.currentTarget.style.background='' }}>
-                    {changingExam ? 'Close' : '✎ Change exam'}
-                  </button>
+                    return (
+                      <div style={{marginBottom:28}}>
+                        <div style={{
+                          background:'#fff',
+                          border:'1.5px solid #f0f0f0',
+                          borderRadius:18,
+                          overflow:'hidden',
+                          boxShadow:'0 2px 16px rgba(0,0,0,.06)',
+                          transition:'all .3s'
+                        }}>
+                          {/* Accent bar */}
+                          <div style={{height:4,background:`linear-gradient(90deg,${stCol},${stCol}66)`}}/>
+
+                          <div style={{padding:'18px 20px 20px'}}>
+                            {/* Header: exam name + status badge */}
+                            <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,marginBottom:18,flexWrap:'wrap'}}>
+                              <div style={{display:'flex',alignItems:'center',gap:12}}>
+                                <div style={{width:44,height:44,borderRadius:12,background:`${stCol}15`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                                  <svg width="20" height="20" fill="none" stroke={stCol} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                </div>
+                                <div>
+                                  <div style={{fontSize:16,fontWeight:900,color:'#111827',letterSpacing:'-.01em',lineHeight:1.2}}>{shortGroupLbl(selectedGroup.label)}</div>
+                                </div>
+                              </div>
+                              {/* Status badge */}
+                              <div style={{background:st.bg,border:`1.5px solid ${st.bdr}`,borderRadius:12,padding:'8px 14px',flexShrink:0}}>
+                                <div style={{fontSize:12,fontWeight:800,color:st.col,lineHeight:1.2,display:'flex',alignItems:'center',gap:5}}>
+                                  {readiness>=65 && <svg width="12" height="12" fill={st.col} viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293l-4 4a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L9 10.586l3.293-3.293a1 1 0 011.414 1.414z"/></svg>}
+                                  {st.msg}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Stats grid + sparkline */}
+                            <div style={{marginBottom:18}}>
+                              {/* 4-stat grid */}
+                              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                                {[
+                                  { val:examResults.length,            lbl:'Tests Attempted', col:'#374151', bg:'#f8fafc' },
+                                  { val:(examBest!=null?Math.round(examBest)+'%':'—'), lbl:'Best Score',     col:stCol,    bg:`${stCol}08` },
+                                  { val:(examAvg!=null?Math.round(examAvg)+'%':'—'),  lbl:'Average Score',  col:'#6b7280', bg:'#f8fafc' },
+                                  { val:totalCorrect,                  lbl:'Correct Answers',col:'#16a34a', bg:'#f0fdf4' },
+                                ].map(s=>(
+                                  <div key={s.lbl} style={{background:s.bg,borderRadius:12,padding:'14px 16px',border:'1px solid #f0f0f0'}}>
+                                    <div style={{fontSize:26,fontWeight:900,color:s.col,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{s.val}</div>
+                                    <div style={{fontSize:10.5,color:'#9ca3af',fontWeight:600,marginTop:6,lineHeight:1.3}}>{s.lbl}</div>
+                                  </div>
+                                ))}
+                              </div>
+
+                            </div>
+
+                            {/* Action buttons */}
+                            <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+                              <button className="dh-btn dh-btn-primary"
+                                onClick={() => onStartTest?.('mock', selectedExamId)}
+                                style={{flex:'1 1 140px',justifyContent:'center'}}>
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                Continue Practicing
+                              </button>
+                              <button className="dh-btn dh-btn-ghost"
+                                onClick={() => setActiveTab('results')}
+                                style={{flex:'1 1 140px',justifyContent:'center'}}>
+                                <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                                View Detailed Analysis
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+
+                  {/* No results yet — rich first-test experience */}
+                  {hasChosenExam && examResults.length === 0 && (
+                    <div style={{marginBottom:28}}>
+
+                      {/* Exam hero */}
+                      <div style={{background:'#f8fafc',border:'1.5px solid #e5e7eb',borderRadius:16,padding:'20px 20px 16px',marginBottom:18,position:'relative',overflow:'hidden'}}>
+                        <div style={{position:'absolute',top:0,left:0,right:0,height:3,background:'linear-gradient(90deg,#FF653F,#ff9a5f)'}}/>
+                        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+                          <div style={{width:36,height:36,borderRadius:10,background:'linear-gradient(135deg,#FF653F,#ff9a5f)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                            <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                          </div>
+                          <div>
+                            <div style={{fontSize:11,fontWeight:700,color:'#9ca3af',letterSpacing:'.06em',textTransform:'uppercase'}}>Your exam</div>
+                            <div style={{fontSize:15,fontWeight:900,color:'#111827',letterSpacing:'-.01em'}}>{selectedGroup?.label || 'Mock Test'}</div>
+                          </div>
+                        </div>
+                        <p style={{fontSize:13,color:'#6b7280',lineHeight:1.65,marginBottom:16}}>
+                          You've set your target. Now it's time to take your first full-length mock test and get a real picture of where you stand.
+                        </p>
+                        <button className="dh-btn dh-btn-primary" onClick={() => onStartTest('mock', selectedExamId)}
+                          style={{display:'flex',alignItems:'center',gap:8}}>
+                          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                          Start first mock test
+                        </button>
+                      </div>
+
+                      {/* What to expect */}
+                      <div style={{marginBottom:18}}>
+                        <div className="dh-lbl">What happens after you submit</div>
+                        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                          {[
+                            { icon: '📊', title: 'Instant score & percentile', desc: 'See your marks, accuracy, and where you rank among test-takers.' },
+                            { icon: '📄', title: 'Downloadable result PDF', desc: 'A full paper with correct answers and detailed explanations.' },
+                            { icon: '🎯', title: 'Topic-wise weak-area report', desc: 'Find out exactly which topics need more attention.' },
+                          ].map(item => (
+                            <div key={item.title} style={{display:'flex',gap:12,padding:'12px 14px',background:'#fff',border:'1px solid #f0f0f0',borderRadius:12}}>
+                              <div style={{fontSize:20,flexShrink:0,lineHeight:1}}>{item.icon}</div>
+                              <div>
+                                <div style={{fontSize:13,fontWeight:800,color:'#111827',marginBottom:2}}>{item.title}</div>
+                                <div style={{fontSize:12,color:'#6b7280',lineHeight:1.55}}>{item.desc}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Quick tips */}
+                      <div style={{background:'#fffbf5',border:'1px solid #fed7aa',borderRadius:12,padding:'14px 16px'}}>
+                        <div style={{fontSize:11,fontWeight:800,color:'#f97316',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:8}}>Before you start — 3 tips</div>
+                        <ol style={{margin:0,paddingLeft:18,display:'flex',flexDirection:'column',gap:6}}>
+                          {[
+                            'Sit in a quiet place with at least 90 uninterrupted minutes.',
+                            'Don\'t skip negative-marking rules — read them in the "Before you start" panel.',
+                            'Treat it like the real exam: no pausing, no switching tabs.',
+                          ].map((t,i) => (
+                            <li key={i} style={{fontSize:12.5,color:'#374151',lineHeight:1.6}}>{t}</li>
+                          ))}
+                        </ol>
+                      </div>
+
+                    </div>
+                  )}
+
+                  {/* Recent Tests */}
+                  {history.length > 0 && (
+                    <div>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                        <div className="dh-lbl" style={{margin:0}}>Recent Tests</div>
+                        <button onClick={() => setActiveTab('results')}
+                          style={{fontSize:11,fontWeight:700,color:'#FF653F',background:'none',border:'none',cursor:'pointer',padding:0}}>
+                          View all →
+                        </button>
+                      </div>
+                      <div style={{background:'#fafafa',border:'1px solid #f0f0f0',borderRadius:12,overflow:'hidden'}}>
+                        {history.slice(0,5).map((r,i,arr)=>{
+                          const pct=Number(r.percentage||0)
+                          const toTitle=s=>(s||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
+                          const name=r.test_type==='topic_diagnostic'?`Topicwise${r.topic?` · ${toTitle(r.topic)}`:''}`
+                            :r.test_type==='mini'||r.test_type==='concept_mini'?`Practice${r.topic?` · ${toTitle(r.topic)}`:r.section?` · ${toTitle(r.section)}`:''}`
+                            :`Mock Test · ${toTitle(r.exam)||'Clerk Prelims'}`
+                          const date=new Date(r.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})
+                          const pass=pct>=40
+                          return (
+                            <button key={r.id||i} onClick={()=>onOpenResult?.(r)}
+                              className="dh-result-row"
+                              style={{padding:'10px 16px',borderRadius:0,borderBottom:i<arr.length-1?'1px solid #f0f0f0':'none'}}>
+                              <span style={{
+                                fontSize:13,fontWeight:900,width:40,textAlign:'right',flexShrink:0,
+                                color:pass?'#16a34a':'#f97316',fontVariantNumeric:'tabular-nums'
+                              }}>{pct.toFixed(0)}%</span>
+                              <div style={{flex:1,minWidth:0,marginLeft:4}}>
+                                <div style={{fontSize:12.5,fontWeight:600,color:'#374151',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</div>
+                                <div style={{fontSize:11,color:'#b0b8c4',marginTop:1}}>{date} · {r.correct_count||0} correct · {r.wrong_count||0} wrong</div>
+                              </div>
+                              <span style={{fontSize:11,fontWeight:700,color:'#FF653F',flexShrink:0,opacity:0,transition:'opacity .15s'}}
+                                onMouseEnter={e=>e.currentTarget.style.opacity=1}
+                                onMouseLeave={e=>e.currentTarget.style.opacity=0}>
+                                Review →
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Change-exam picker */}
-                {changingExam && (
-                  <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
-                    <p className="text-xs font-semibold text-gray-500 mb-3">Pick the exam you want to prepare for:</p>
-                    <div className="space-y-4">
-                      {/* Free users only see their current group; Pro users see all */}
-                      {(isPro ? ACTIVE_GROUPS : ACTIVE_GROUPS.filter(g => g.id === selectedGroup.id)).map(g => (
-                        <div key={g.id}>
-                          <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{g.label}</div>
-                          <div className="flex flex-wrap gap-2">
-                            {g.exams.map(e => {
-                              const sel = e.id === selectedExamId
+                {/* ── RIGHT ── */}
+                <div className="dh-right" style={{width:270,flexShrink:0,borderLeft:'1px solid #f0f0f0',paddingLeft:28}}>
+
+                  {/* ── Tests Overview breakdown ── */}
+                  {history.length > 0 && (() => {
+                    const groupBreakdown = ACTIVE_GROUPS.map(g => ({
+                      ...g,
+                      count: history.filter(r => g.exams.map(e=>e.id).includes(r.exam||'')).length
+                    })).filter(g => g.count > 0)
+                    const shortLbl = l => l.replace(/\s*(exams?|tests?)\s*$/i,'').trim()
+                    return (
+                      <div style={{marginBottom:22}}>
+                        <div className="dh-lbl">Tests Overview</div>
+                        <div style={{background:'#fff',border:'1.5px solid #f0f0f0',borderRadius:14,padding:'14px 16px',boxShadow:'0 1px 6px rgba(0,0,0,.04)'}}>
+                          {/* Total pill */}
+                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingBottom:10,marginBottom:10,borderBottom:'1px solid #f5f5f5'}}>
+                            <span style={{fontSize:11.5,fontWeight:700,color:'#6b7280'}}>Total Tests Taken</span>
+                            <span style={{fontSize:22,fontWeight:900,color:'#111827',lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{history.length}</span>
+                          </div>
+                          {/* Per-group rows */}
+                          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                            {groupBreakdown.map(g => {
+                              const pct = Math.round((g.count/history.length)*100)
                               return (
-                                <button key={e.id} onClick={() => handleChangeExam(e.id)}
-                                  className="px-3 py-1.5 rounded-full text-xs font-semibold border transition-all"
-                                  style={sel
-                                    ? { background:'#FF653F', color:'#fff', borderColor:'#FF653F' }
-                                    : { background:'#fff', color:'#555', borderColor:'#e5e7eb' }}>
-                                  {e.name}
-                                </button>
+                                <div key={g.id}>
+                                  <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:4}}>
+                                    <div style={{width:8,height:8,borderRadius:'50%',background:g.hex,flexShrink:0}}/>
+                                    <span style={{fontSize:12,fontWeight:700,color:'#374151',flex:1}}>{shortLbl(g.label)}</span>
+                                    <span style={{fontSize:13,fontWeight:900,color:g.hex,fontVariantNumeric:'tabular-nums',minWidth:20,textAlign:'right'}}>{g.count}</span>
+                                  </div>
+                                  <div style={{height:4,background:'#f0f0f0',borderRadius:99,overflow:'hidden'}}>
+                                    <div style={{height:'100%',width:`${pct}%`,background:g.hex,borderRadius:99,transition:'width .8s ease'}}/>
+                                  </div>
+                                </div>
                               )
                             })}
                           </div>
                         </div>
+                      </div>
+                    )
+                  })()}
+
+                  {/* Quick launch */}
+                  <div style={{marginBottom:24}}>
+                    <div className="dh-lbl">Quick Launch</div>
+                    <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                      {ACTIVE_MODES.map(m=>(
+                        <button key={m.id} onClick={()=>onStartTest(m.id)}
+                          style={{display:'flex',gap:13,padding:'13px 14px',borderRadius:13,border:'1.5px solid #f0f0f0',background:'#fff',cursor:'pointer',transition:'all .15s',textAlign:'left',alignItems:'flex-start',width:'100%'}}
+                          onMouseOver={e=>{e.currentTarget.style.borderColor='#fec9b0';e.currentTarget.style.background='#fffaf8';e.currentTarget.style.boxShadow='0 2px 12px rgba(255,101,63,.10)'}}
+                          onMouseOut={e=>{e.currentTarget.style.borderColor='#f0f0f0';e.currentTarget.style.background='#fff';e.currentTarget.style.boxShadow='none'}}>
+                          <span className={`${m.bg} rounded-xl flex items-center justify-center text-white flex-shrink-0`}
+                            style={{width:38,height:38,fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                            <m.Icon/>
+                          </span>
+                          <span style={{display:'flex',flexDirection:'column',gap:3,minWidth:0}}>
+                            <span style={{fontSize:13,fontWeight:800,color:'#111827',lineHeight:1.2}}>{m.label}</span>
+                            <span style={{fontSize:11.5,color:'#9ca3af',lineHeight:1.55,fontWeight:500}}>{m.desc}</span>
+                          </span>
+                        </button>
                       ))}
                     </div>
+                  </div>
 
-                    {/* Upgrade CTA for free users — unlocks other exams */}
-                    {!isPro && (
-                      <div className="mt-4 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3"
-                        style={{ background:'#1a1a2e' }}>
-                        <div className="text-center sm:text-left">
-                          <div className="text-sm font-bold text-white">Want to prepare for more exams?</div>
-                          <div className="text-xs text-gray-300 mt-0.5">{examRegion === 'us' ? 'Free covers one exam. Upgrade to Pro for unlimited SAT practice, PDF solutions and more.' : 'Free covers one exam. Upgrade to Pro to unlock SBI, RRB, PSU and more.'}</div>
-                        </div>
-                        <button onClick={() => onNav?.('subscriptions')}
-                          className="text-white text-xs font-bold px-5 py-2.5 rounded-xl flex-shrink-0 transition-all"
-                          style={{ background:'#FF653F' }}
-                          onMouseOver={e=>e.currentTarget.style.background='#e5512f'}
-                          onMouseOut={e=>e.currentTarget.style.background='#FF653F'}>
-                          ⭐ Upgrade to Pro
+                  {/* Your exam */}
+                  {hasChosenExam && (
+                    <div style={{marginBottom:24}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                        <div className="dh-lbl" style={{margin:0}}>Your Exam</div>
+                        <button onClick={()=>setChangingExam(v=>!v)}
+                          style={{fontSize:11,fontWeight:700,color:'#FF653F',background:'none',border:'none',cursor:'pointer',padding:0}}>
+                          {changingExam?'Done':'Change'}
                         </button>
                       </div>
-                    )}
-                  </div>
-                )}
+                      {changingExam ? (
+                        <div>
+                          {(isPro?ACTIVE_GROUPS:ACTIVE_GROUPS.filter(g=>g.id===selectedGroup.id)).map(g=>(
+                            <div key={g.id} style={{marginBottom:12}}>
+                              <div style={{fontSize:10,fontWeight:700,color:'#b0b8c4',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>{g.label}</div>
+                              <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                                {g.exams.map(e=>(
+                                  <button key={e.id} onClick={()=>handleChangeExam(e.id)} className={`dh-pill ${e.id===selectedExamId?'active':''}`}>
+                                    {e.name}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                          {!isPro && (
+                            <button onClick={()=>onNav?.('subscriptions')}
+                              style={{marginTop:4,fontSize:11.5,fontWeight:700,color:'#FF653F',background:'none',border:'none',cursor:'pointer',padding:0}}>
+                              Unlock more exams →
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5}}>
+                          {visibleGroupExams.map(e=>(
+                            <button key={e.id} onClick={()=>onStartTest('mock',e.id)}
+                              className={`dh-pill ${e.id===selectedExamId?'active':''}`}
+                              style={{width:'100%',justifyContent:'center',textAlign:'center'}}>
+                              {e.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                {/* Selected exam group's papers (registered only for free users) */}
-                <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                  <div className={`bg-gradient-to-r ${selectedGroup.color} px-5 py-3 flex items-center justify-between`}>
-                    <span className="font-bold text-white text-sm">{selectedGroup.label}</span>
-                    <span className="text-white/70 text-xs">{visibleGroupExams.length} exam{visibleGroupExams.length>1?'s':''}</span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-0 divide-x divide-gray-100">
-                    {visibleGroupExams.map((e, i) => {
-                      const isPicked = e.id === selectedExamId
-                      return (
-                        <div key={e.id} className={`p-4 flex flex-col gap-2 ${i>=2?'border-t sm:border-t-0 border-gray-100':''}`}
-                          style={isPicked ? { background:'#FFF8F4' } : {}}>
-                          <div className="flex items-start justify-between gap-1">
-                            <span className="text-sm font-bold text-gray-900 leading-tight">{e.name}</span>
-                            {e.tag && <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${e.tagColor||'bg-gray-100 text-gray-500'}`}>{e.tag}</span>}
-                          </div>
-                          <span className="text-xs text-gray-400">{e.sub}</span>
-                          <button onClick={() => onStartTest('mock', e.id)}
-                            className="mt-auto text-xs font-bold rounded-lg py-1.5 transition-all text-center w-full border"
-                            style={{color:'#FF653F',borderColor:'#fec9b0'}}
-                            onMouseOver={ev=>{ ev.currentTarget.style.background='#FF653F'; ev.currentTarget.style.color='#fff'; ev.currentTarget.style.borderColor='#FF653F' }}
-                            onMouseOut={ev=>{ ev.currentTarget.style.background=''; ev.currentTarget.style.color='#FF653F'; ev.currentTarget.style.borderColor='#fec9b0' }}>
-                            Launch
+                  {/* Study plan */}
+                  {savedPlan && (() => {
+                    const days=savedPlan.days||[]
+                    const total=days.length
+                    const completed=Object.values(completedDays).filter(Boolean).length
+                    const pct=total?Math.round((completed/total)*100):0
+                    const next=days.filter(d=>!completedDays[d.day])[0]
+                    return (
+                      <div>
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                          <div className="dh-lbl" style={{margin:0}}>Study Plan</div>
+                          <button onClick={()=>setActiveTab('studyplan')}
+                            style={{fontSize:11,fontWeight:700,color:'#FF653F',background:'none',border:'none',cursor:'pointer',padding:0}}>
+                            View →
                           </button>
                         </div>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Browse all exams toggle */}
-                <button onClick={() => setShowAllExams(v => !v)}
-                  className="mt-3 text-xs font-semibold text-gray-500 hover:text-gray-800 transition-colors">
-                  {showAllExams ? '▲ Hide other exams' : '▼ Browse all other exams'}
-                </button>
-
-                {showAllExams && (() => {
-                  // only exams the user has actually attempted, outside the current group
-                  const otherGroups = ACTIVE_GROUPS
-                    .filter(g => g.id !== selectedGroup.id)
-                    .map(g => ({ ...g, exams: g.exams.filter(e => attemptedExamIds.includes(e.id)) }))
-                    .filter(g => g.exams.length > 0)
-
-                  if (otherGroups.length === 0) return (
-                    <div className="mt-3 bg-white rounded-2xl border border-gray-200 p-5 text-center">
-                      <div className="text-sm text-gray-500">You haven't attempted any other exams yet.</div>
-                      <div className="text-xs text-gray-400 mt-1">Exams you practise will show up here.</div>
-                    </div>
-                  )
-
-                  return (
-                    <div className="space-y-4 mt-3">
-                      {otherGroups.map(g => (
-                        <div key={g.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                          <div className={`bg-gradient-to-r ${g.color} px-5 py-3 flex items-center justify-between`}>
-                            <span className="font-bold text-white text-sm">{g.label}</span>
-                            <span className="text-white/70 text-xs">{g.exams.length} attempted</span>
+                        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                          <div style={{flex:1,height:3,background:'#ebebeb',borderRadius:99,overflow:'hidden'}}>
+                            <div style={{height:'100%',width:`${pct}%`,background:'#FF653F',borderRadius:99,transition:'width .5s'}}/>
                           </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-0 divide-x divide-gray-100">
-                            {g.exams.map((e, i) => (
-                              <div key={e.id} className={`p-4 flex flex-col gap-2 ${i>=2?'border-t sm:border-t-0 border-gray-100':''}`}>
-                                <div className="flex items-start justify-between gap-1">
-                                  <span className="text-sm font-bold text-gray-900 leading-tight">{e.name}</span>
-                                  {e.tag && <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${e.tagColor||'bg-gray-100 text-gray-500'}`}>{e.tag}</span>}
-                                </div>
-                                <span className="text-xs text-gray-400">{e.sub}</span>
-                                <button onClick={() => handleChangeExam(e.id)}
-                                  className="mt-auto text-xs font-bold rounded-lg py-1.5 transition-all text-center w-full border border-gray-200 text-gray-600 hover:bg-gray-50">
-                                  Select this exam
-                                </button>
-                              </div>
-                            ))}
-                          </div>
+                          <span style={{fontSize:11.5,fontWeight:800,color:'#374151'}}>{pct}%</span>
                         </div>
-                      ))}
-                    </div>
-                  )
-                })()}
-              </div>
-              )}
-
-              {/* Recent results — existing */}
-              {history.length > 0 && (
-                <div className="mb-6">
-                  <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Recent Activity</h2>
-                  <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                    {history.slice(0,3).map((r, i, arr) => {
-                      const pct  = Number(r.percentage || 0)
-                      const name = (() => {
-                        const toTitle = s => (s||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
-                        if (r.test_type === 'topic_diagnostic') return `Topicwise Test${r.topic ? ` — ${toTitle(r.topic)}` : ''}`
-                        if (r.test_type === 'mini' || r.test_type === 'concept_mini') return `Practice Test${r.topic ? ` — ${toTitle(r.topic)}` : r.section ? ` — ${toTitle(r.section)}` : ''}`
-                        return `Mock Test — ${toTitle(r.exam) || 'Bank Clerk Prelims'}`
-                      })()
-                      const date = new Date(r.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})
-                      const pass = pct >= 40
-                      return (
-                        <button key={r.id||i} onClick={()=>onOpenResult?.(r)}
-                          className={`w-full text-left flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors ${i<arr.length-1?'border-b border-gray-100':''}`}>
-                          <div className={`w-11 h-11 rounded-xl flex flex-col items-center justify-center flex-shrink-0 ${pass?'bg-green-50 text-green-700':'bg-orange-50 text-orange-700'}`}>
-                            <span className="text-sm font-black">{pct.toFixed(0)}%</span>
-                            <span className="text-xs opacity-60">{pass?'Pass':'Fail'}</span>
+                        <div style={{fontSize:11,color:'#b0b8c4',marginBottom:8}}>{completed}/{total} days · {total-completed} remaining</div>
+                        {next && (
+                          <div style={{fontSize:12,fontWeight:600,color:'#374151',lineHeight:1.5}}>
+                            Up next: {(next.topics||[]).slice(0,2).join(', ')||'Study session'}
+                            <span style={{fontSize:11,color:'#b0b8c4',display:'block'}}>{next.date} · {next.duration}</span>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-bold text-gray-900 truncate">{name}</div>
-                            <div className="text-xs text-gray-400 mt-0.5">{date} · {r.correct_count||0} correct · {r.wrong_count||0} wrong · {r.skipped_count||0} skipped</div>
-                          </div>
-                          <span className="text-xs font-bold flex-shrink-0" style={{color:'#FF653F'}}>Review →</span>
-                        </button>
-                      )
-                    })}
-                  </div>
+                        )}
+                      </div>
+                    )
+                  })()}
                 </div>
-              )}
+              </div>
             </>}
 
             {/* ── PRACTICE tab ── */}
@@ -1611,16 +2056,44 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
               return (
               <div>
                 {!exam ? (
-                  /* ── LIST ── */
+                  /* ── SINGLE-SCREEN EXPLORE ── */
                   <>
                     <h2 className="text-xl font-black text-gray-900 mb-1">Explore Exams</h2>
-                    <p className="text-sm text-gray-500 mb-6">Pick an exam to see its pattern, cut-offs, pricing and start a mock test</p>
-                    {ACTIVE_GROUPS.map(g => (
-                      <div key={g.id} className="mb-5">
-                        <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color:g.hex }}>{g.label}</div>
+                    <p className="text-sm text-gray-500 mb-5">Select a category then click any exam to start a mock test</p>
+
+                    {/* Category filter tabs */}
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      <button onClick={()=>setActiveExploreGroup(null)}
+                        className="px-4 py-1.5 rounded-full text-xs font-bold border transition-all"
+                        style={!activeExploreGroup
+                          ? {background:'#FF653F',color:'#fff',borderColor:'#FF653F'}
+                          : {color:'#6b7280',borderColor:'#e5e7eb',background:'#fff'}}>
+                        All Exams
+                      </button>
+                      {ACTIVE_GROUPS.map(g => (
+                        <button key={g.id} onClick={()=>setActiveExploreGroup(g.id)}
+                          className="px-4 py-1.5 rounded-full text-xs font-bold border transition-all"
+                          style={activeExploreGroup===g.id
+                            ? {background:g.hex,color:'#fff',borderColor:g.hex}
+                            : {color:'#6b7280',borderColor:'#e5e7eb',background:'#fff'}}>
+                          {g.label.replace(' Exams','')}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Exam cards — filtered by selected category */}
+                    {(activeExploreGroup
+                      ? ACTIVE_GROUPS.filter(g=>g.id===activeExploreGroup)
+                      : ACTIVE_GROUPS
+                    ).map(g => (
+                      <div key={g.id} className="mb-6">
+                        {!activeExploreGroup && (
+                          <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color:g.hex }}>{g.label}</div>
+                        )}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
                           {g.exams.map(e => (
-                            <button key={e.id} onClick={()=>{ setExploreExam(e.id); window.scrollTo(0,0) }}
+                            <button key={e.id}
+                              onClick={() => { onStartTest('mock', e.id); window.scrollTo(0,0) }}
                               className="text-left border rounded-xl p-3 hover:shadow-md transition-all"
                               style={{ background:`${g.hex}0D`, borderColor:`${g.hex}33`, borderLeftColor:g.hex, borderLeftWidth:4 }}>
                               <div className="flex items-start justify-between gap-1.5">
@@ -1628,7 +2101,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                                 {e.tag && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 text-white" style={{ background:g.hex }}>{e.tag}</span>}
                               </div>
                               <div className="text-[11px] text-gray-500 mt-1">{e.sub}</div>
-                              <div className="text-[11px] font-semibold mt-1.5" style={{ color:'#FF653F' }}>View details →</div>
+                              <div className="text-[11px] font-semibold mt-1.5" style={{ color:'#FF653F' }}>Start Test →</div>
                             </button>
                           ))}
                         </div>
@@ -1650,7 +2123,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                           style={{ background:'#FF653F' }}
                           onMouseOver={e=>e.currentTarget.style.background='#e5512f'}
                           onMouseOut={e=>e.currentTarget.style.background='#FF653F'}>
-                          🚀 Start Mock Test →
+                          Start Mock Test →
                         </button>
                         <button onClick={()=>{ setExploreExam(null); window.scrollTo(0,0) }}
                           className="text-xs font-semibold text-gray-500 hover:text-gray-800 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50">
@@ -1834,45 +2307,91 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
 
                     {/* ════ LEFT column: exam + weak topics ════ */}
                     <div>
-                    {/* Exam selector */}
-                    <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden">
-                      <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
-                        <span>🎓</span>
-                        <span className="text-sm font-bold text-gray-900">Select your target exam</span>
-                      </div>
-                      <div className="px-5 py-4">
-                        {/* Mobile: dropdown */}
-                        <select value={planExam} onChange={e=>setPlanExam(e.target.value)}
-                          className="sm:hidden w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 bg-white outline-none focus:border-blue-500">
-                          <option value="">Select an exam…</option>
-                          {ACTIVE_GROUPS.map(g => (
-                            <optgroup key={g.id} label={g.label}>
-                              {g.exams.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-                            </optgroup>
-                          ))}
-                        </select>
-                        {/* Desktop: chips (colored by exam family) */}
-                        <div className="hidden sm:grid grid-cols-2 md:grid-cols-3 gap-2">
-                          {ACTIVE_GROUPS.flatMap(g => g.exams.map(e => {
-                            const sel = planExam===e.id
-                            return (
-                            <button key={e.id} onClick={() => setPlanExam(e.id)}
-                              className="px-3 py-1.5 rounded-full text-xs font-semibold border transition-all hover:shadow-sm text-center truncate"
-                              style={sel
-                                ? { background:g.hex, borderColor:g.hex, color:'#fff' }
-                                : { background:`${g.hex}12`, borderColor:`${g.hex}40`, color:g.hex }}>
-                              {e.name}
-                            </button>
-                          )}))}
+                    {/* Exam selector — tabbed by category */}
+                    {(() => {
+                      const activeGrp = ACTIVE_GROUPS.find(g => g.id === planExamTab) || ACTIVE_GROUPS[0]
+                      return (
+                      <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden">
+                        {/* Header */}
+                        <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
+                          <DIcGrad s={18} c='#374151'/>
+                          <span className="text-sm font-bold text-gray-900">Select your target exam</span>
+                          {planExam && (() => {
+                            const g = ACTIVE_GROUPS.find(gr => gr.exams.find(e => e.id === planExam))
+                            const e = g?.exams.find(e => e.id === planExam)
+                            return e ? (
+                              <span className="ml-auto text-xs font-bold px-2.5 py-0.5 rounded-full" style={{background:`${g.hex}18`,color:g.hex}}>
+                                ✓ {e.name}
+                              </span>
+                            ) : null
+                          })()}
+                        </div>
+                        {/* Category tabs — scrollable */}
+                        <div style={{overflowX:'auto',scrollbarWidth:'none',borderBottom:'1px solid #f3f4f6'}}>
+                          <div style={{display:'flex',minWidth:'max-content',padding:'0 16px'}}>
+                            {ACTIVE_GROUPS.map(g => {
+                              const isTab = (planExamTab||ACTIVE_GROUPS[0].id) === g.id
+                              const hasSelected = g.exams.some(e => e.id === planExam)
+                              return (
+                                <button key={g.id}
+                                  onClick={() => setPlanExamTab(g.id)}
+                                  style={{
+                                    padding:'10px 14px',
+                                    fontSize:12,fontWeight:700,
+                                    whiteSpace:'nowrap',
+                                    border:'none',background:'transparent',cursor:'pointer',
+                                    borderBottom: isTab ? `2.5px solid ${g.hex}` : '2.5px solid transparent',
+                                    color: isTab ? g.hex : hasSelected ? g.hex : '#9ca3af',
+                                    transition:'all .12s',
+                                    position:'relative',
+                                  }}>
+                                  {g.label.replace(' Exams','').replace(' Exam','')}
+                                  {hasSelected && !isTab && (
+                                    <span style={{position:'absolute',top:8,right:6,width:6,height:6,borderRadius:'50%',background:g.hex}}/>
+                                  )}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                        {/* Exam chips for selected category */}
+                        <div style={{padding:'14px 16px'}}>
+                          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))',gap:8}}>
+                            {activeGrp.exams.map(e => {
+                              const sel = planExam === e.id
+                              return (
+                                <button key={e.id} onClick={() => setPlanExam(e.id)}
+                                  style={{
+                                    padding:'8px 10px',
+                                    borderRadius:10,
+                                    fontSize:12,fontWeight:600,
+                                    border:`1.5px solid ${sel ? activeGrp.hex : activeGrp.hex+'40'}`,
+                                    background: sel ? activeGrp.hex : `${activeGrp.hex}0d`,
+                                    color: sel ? '#fff' : activeGrp.hex,
+                                    textAlign:'left',cursor:'pointer',
+                                    transition:'all .12s',
+                                    lineHeight:1.3,
+                                  }}>
+                                  <div>{e.name}</div>
+                                  {e.sub && <div style={{fontSize:10,opacity:.7,marginTop:2,fontWeight:500}}>{e.sub}</div>}
+                                </button>
+                              )
+                            })}
+                          </div>
+                          {/* Count hint */}
+                          <div style={{marginTop:10,fontSize:11,color:'#9ca3af',fontWeight:500}}>
+                            {activeGrp.exams.length} exam{activeGrp.exams.length!==1?'s':''} in {activeGrp.label}
+                          </div>
                         </div>
                       </div>
-                    </div>
+                      )
+                    })()}
 
                     {/* Weak topics */}
                     <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden">
                       <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span>⚡</span>
+                          <DIcBolt s={16} c='#374151'/>
                           <div>
                             <span className="text-sm font-bold text-gray-900">Select and arrange weak topics</span>
                             <p className="text-xs text-gray-400 mt-0.5">These get extra days in your plan · {weakTopics.length} selected</p>
@@ -1924,7 +2443,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden">
                       <div className="px-5 py-3.5 border-b border-gray-100">
                         <div className="flex items-center gap-2">
-                          <span>📅</span>
+                          <DIcCal s={18} c='#374151'/>
                           <span className="text-sm font-bold text-gray-900">Choose your start and end dates</span>
                         </div>
                         <p className="text-xs text-gray-400 mt-1 ml-6">Based on your selections, we'll evenly distribute topics across your plan</p>
@@ -1983,6 +2502,129 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                         })}
                       </div>
                     </div>
+
+                    {/* Mark off unavailable days */}
+                    <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden">
+                      <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
+                        <span style={{fontSize:16}}>🚫</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-bold text-gray-900">Mark off unavailable days</div>
+                          <div className="text-xs text-gray-400 mt-0.5">Tap any study day to block it — no tasks will be scheduled for those days</div>
+                        </div>
+                        {blockedDates.length > 0 && (
+                          <button onClick={()=>setBlockedDates([])}
+                            className="text-xs font-semibold flex-shrink-0"
+                            style={{color:'#ef4444'}}>
+                            Clear all
+                          </button>
+                        )}
+                      </div>
+                      <div className="px-5 py-4">
+                        {(!startDate || !endDate) ? (
+                          <p className="text-xs text-gray-400">Pick your start and end dates first.</p>
+                        ) : (() => {
+                          const pills = []
+                          const s = new Date(startDate)
+                          const e = new Date(endDate)
+                          for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+                            const dateStr  = d.toISOString().split('T')[0]
+                            const dow      = WEEKDAYS[d.getDay() === 0 ? 6 : d.getDay() - 1]
+                            const isStudy  = studyDays.includes(dow)
+                            const blocked  = blockedDates.includes(dateStr)
+                            const dayName  = d.toLocaleDateString('en-IN',{weekday:'short'})
+                            const dayNum   = d.getDate()
+                            const monthAb  = d.toLocaleDateString('en-IN',{month:'short'})
+                            pills.push(
+                              <button key={dateStr}
+                                onClick={()=>isStudy && toggleBlockedDate(dateStr)}
+                                title={isStudy ? (blocked ? 'Click to unblock' : 'Click to block') : 'Not a study day'}
+                                style={{
+                                  position:'relative',
+                                  padding:'8px 12px',
+                                  borderRadius:10,
+                                  textAlign:'center',
+                                  minWidth:52,
+                                  cursor: isStudy ? 'pointer' : 'default',
+                                  border: `1.5px solid ${blocked ? '#fca5a5' : isStudy ? '#e5e7eb' : '#f3f4f6'}`,
+                                  background: blocked ? '#fee2e2' : isStudy ? '#f9fafb' : '#fafafa',
+                                  color: blocked ? '#ef4444' : isStudy ? '#374151' : '#d1d5db',
+                                  transition:'all .12s',
+                                  opacity: isStudy ? 1 : 0.5,
+                                }}>
+                                <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',
+                                  textDecoration: blocked ? 'line-through' : 'none'}}>
+                                  {dayName}
+                                </div>
+                                <div style={{fontSize:15,fontWeight:900,lineHeight:1.1,marginTop:2,
+                                  textDecoration: blocked ? 'line-through' : 'none'}}>
+                                  {dayNum}
+                                </div>
+                                <div style={{fontSize:9,color: blocked ? '#f87171' : '#9ca3af',marginTop:1}}>
+                                  {monthAb}
+                                </div>
+                                {blocked && (
+                                  <div style={{position:'absolute',top:-5,right:-5,width:16,height:16,
+                                    background:'#ef4444',borderRadius:'50%',
+                                    display:'flex',alignItems:'center',justifyContent:'center',
+                                    fontSize:9,fontWeight:900,color:'#fff',border:'1.5px solid #fff'}}>
+                                    ✕
+                                  </div>
+                                )}
+                                {!isStudy && (
+                                  <div style={{fontSize:8,color:'#d1d5db',marginTop:1}}>Off</div>
+                                )}
+                              </button>
+                            )
+                          }
+                          return (
+                            <div>
+                              <div style={{display:'flex',flexWrap:'wrap',gap:8}}>{pills}</div>
+                              {blockedDates.length > 0 && (
+                                <div style={{marginTop:12,fontSize:12,fontWeight:600,color:'#d97706',
+                                  display:'flex',alignItems:'center',gap:5}}>
+                                  <span>⚠️</span>
+                                  {blockedDates.length} day{blockedDates.length>1?'s':''} blocked — plan will skip {blockedDates.length>1?'them':'it'}.
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })()}
+                      </div>
+                    </div>
+
+                    {/* Catch-up buffer days */}
+                    <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden">
+                      <div className="px-5 py-4 flex items-start gap-3">
+                        <div style={{paddingTop:1}}>
+                          <input type="checkbox" id="catchup-toggle" checked={catchupEnabled}
+                            onChange={e=>setCatchupEnabled(e.target.checked)}
+                            style={{width:16,height:16,accentColor:'#6366f1',cursor:'pointer'}}/>
+                        </div>
+                        <label htmlFor="catchup-toggle" style={{cursor:'pointer',flex:1}}>
+                          <div className="text-sm font-bold text-gray-900 leading-none mb-1">Add catch-up buffer days</div>
+                          <div className="text-xs text-gray-400">Reserved days to catch up on overdue topics — no new content is scheduled</div>
+                        </label>
+                        {catchupEnabled && (
+                          <select value={catchupEvery} onChange={e=>setCatchupEvery(Number(e.target.value))}
+                            className="text-xs font-bold border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 outline-none flex-shrink-0"
+                            style={{cursor:'pointer'}}>
+                            <option value={2}>Every 2 days</option>
+                            <option value={3}>Every 3 days</option>
+                            <option value={4}>Every 4 days</option>
+                            <option value={5}>Every 5 days</option>
+                            <option value={7}>Every 7 days</option>
+                          </select>
+                        )}
+                      </div>
+                      {catchupEnabled && (
+                        <div style={{margin:'0 16px 14px',padding:'10px 12px',borderRadius:8,
+                          background:'#f0f0ff',border:'1px solid #e0e0ff',
+                          fontSize:11,color:'#6366f1',fontWeight:600,display:'flex',alignItems:'center',gap:6}}>
+                          <span>📅</span>
+                          A buffer day is inserted every {catchupEvery} scheduled days. No new topics — just time to catch up.
+                        </div>
+                      )}
+                    </div>
                     </div>
 
                     </div>{/* ── end two-column grid ── */}
@@ -1996,7 +2638,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                           : (startDate&&endDate&&studyDays.length)
                             ? 'bg-gradient-to-r from-blue-600 to-violet-600 text-white hover:shadow-lg'
                             : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
-                        {planSaving ? 'Creating your plan…' : planSaved ? '✓ Plan created — View below' : '✨ Create Plan'}
+                        {planSaving ? 'Creating your plan…' : planSaved ? '✓ Plan created — View below' : 'Create Plan'}
                       </button>
                     </div>
 
@@ -2005,13 +2647,13 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                       <div>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
                           {[
-                            {label:'Scheduled', value:generatedPlan.scheduledDays, icon:'📅', cls:'text-blue-600'},
-                            {label:'Study days',value:generatedPlan.studyDays,     icon:'📖', cls:'text-violet-600'},
-                            {label:'Mocks',     value:generatedPlan.mockDays,      icon:'📝', cls:'text-cyan-600'},
-                            {label:'Revision',  value:generatedPlan.revisionDays,  icon:'🔁', cls:'text-green-600'},
+                            {label:'Scheduled', value:generatedPlan.scheduledDays, icon:<DIcCal s={20} c='#2563eb'/>,    cls:'text-blue-600'},
+                            {label:'Study days',value:generatedPlan.studyDays,     icon:<DIcBook s={20} c='#7c3aed'/>,   cls:'text-violet-600'},
+                            {label:'Mocks',     value:generatedPlan.mockDays,      icon:<DIcDoc s={20} c='#0891b2'/>,    cls:'text-cyan-600'},
+                            {label:'Revision',  value:generatedPlan.revisionDays,  icon:<DIcRepeat s={20} c='#16a34a'/>, cls:'text-green-600'},
                           ].map(c=>(
                             <div key={c.label} className="bg-white border border-gray-200 rounded-xl p-3 text-center">
-                              <div className="text-lg mb-1">{c.icon}</div>
+                              <div className="mb-1 flex justify-center">{c.icon}</div>
                               <div className={`text-xl font-black ${c.cls}`}>{c.value}</div>
                               <div className="text-xs text-gray-400 mt-0.5">{c.label}</div>
                             </div>
@@ -2063,7 +2705,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
 
                 {history.length < 1 ? (
                   <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center">
-                    <div className="text-4xl mb-3">📈</div>
+                    <div className="mb-3 flex justify-center"><DIcChart s={40} c='#9ca3af'/></div>
                     <div className="text-sm font-bold text-gray-900 mb-1">No data yet</div>
                     <div className="text-xs text-gray-500 mb-4">Take a topicwise test or mock test to unlock your progress graphs.</div>
                     <button onClick={()=>onStartTest()} className="bg-gradient-to-r from-blue-600 to-violet-600 text-white text-sm font-bold px-6 py-2.5 rounded-xl">
@@ -2207,7 +2849,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                 ) : (
                   <div className="bg-white border border-gray-200 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 mb-6">
                     <div className="flex items-center gap-4">
-                      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background:'#FFF3EE' }}>🎓</div>
+                      <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background:'#FFF3EE' }}><DIcGrad s={20} c='#FF653F'/></div>
                       <div>
                         <div className="text-sm font-bold text-gray-900">{trialActive ? `You're on the free trial — ${trialDaysLeft} day${trialDaysLeft>1?'s':''} left` : "You're on the Free tier"}</div>
                         <div className="text-xs text-gray-500 mt-0.5">Upgrade for unlimited mock tests, PDF solutions & study plans.</div>
@@ -2219,7 +2861,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                 {/* On the top plan (Ultimate) there's nothing to upgrade to — hide the options */}
                 {curPlan === 'ultimate' ? (
                   <div className="rounded-2xl border-2 border-green-200 bg-green-50 p-6 text-center">
-                    <div className="text-2xl mb-1">🎉</div>
+                    <div className="mb-1 flex justify-center"><DIcParty s={22} c='#16a34a'/></div>
                     <div className="text-base font-black text-gray-900">You're on the Ultimate plan — our highest tier</div>
                     <div className="text-sm text-gray-600 mt-1">You already have every feature. There's nothing more to upgrade.</div>
                   </div>
@@ -2494,19 +3136,270 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     </div>
                   ) : (
                     <div className="text-center py-6">
-                      <div className="text-3xl mb-2">🧾</div>
+                      <div className="mb-2 flex justify-center"><DIcReceipt s={28} c='#9ca3af'/></div>
                       <div className="text-sm font-semibold text-gray-600">No payments yet</div>
                       <div className="text-xs text-gray-400 mt-1">Your invoices will appear here after you subscribe.</div>
                     </div>
                   )}
                   <div className="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400 flex items-center gap-1.5">
-                    <span>🔒</span> Payments are processed securely via Stripe.
+                    <DIcLock s={13} c='#9ca3af'/> Payments are processed securely via Stripe.
                   </div>
                 </div>
               </div>
               )
             })()}
 
+
+            {/* ── WEAK AREAS tab ── */}
+            {activeTab === 'weakareas' && (() => {
+              const WA_SEC = {
+                english:            {label:'English',            dot:'#3b82f6', emoji:'📖', tip:'Focus on reading comprehension and grammar rules.'},
+                numerical_ability:  {label:'Numerical Ability',  dot:'#f59e0b', emoji:'🔢', tip:'Practise speed-math shortcuts and number series patterns.'},
+                reasoning:          {label:'Reasoning',          dot:'#8b5cf6', emoji:'🧠', tip:'Solve 10 puzzles daily — syllogisms, blood relations, coding.'},
+                general_awareness:  {label:'General Awareness',  dot:'#10b981', emoji:'🌐', tip:'Read one news digest per day + monthly current affairs PDFs.'},
+                computer_knowledge: {label:'Computer Knowledge', dot:'#6366f1', emoji:'💻', tip:'Revise hardware basics, MS Office shortcuts and networking concepts.'},
+                quantitative:       {label:'Quantitative',       dot:'#f97316', emoji:'📊', tip:'Prioritise DI sets, percentage, and profit & loss chapters.'},
+                verbal:             {label:'Verbal',             dot:'#ec4899', emoji:'💬', tip:'Build vocabulary with 5 new words/day + sentence correction drills.'},
+                reading:            {label:'Reading',            dot:'#0ea5e9', emoji:'📚', tip:'Do timed passage reads — aim for 250 wpm with 80%+ comprehension.'},
+                math:               {label:'Math',               dot:'#84cc16', emoji:'📐', tip:'Revise formulas first, then solve 20 varied problems per topic.'},
+                science:            {label:'Science',            dot:'#14b8a6', emoji:'🔬', tip:'Use concept maps and diagrams — visualise before memorising facts.'},
+                other:              {label:'Other',              dot:'#9ca3af', emoji:'📋', tip:'Identify the specific subtopic and find targeted practice material.'},
+              }
+
+              const allWeakSrc = history  // all exams, all time
+              const topicAgg = {}
+              allWeakSrc.forEach(r => {
+                ;(r.weak_topics || []).forEach(w => {
+                  const topic   = typeof w==='string' ? w : (w?.topic||w?.name||'')
+                  const section = (typeof w==='string' ? 'other' : w?.section) || 'other'
+                  const acc     = w?.accuracy != null ? Number(w.accuracy) : null
+                  if (!topic) return
+                  if (!topicAgg[topic]) topicAgg[topic] = { section, count:0, accSum:0, accN:0 }
+                  topicAgg[topic].count++
+                  if (acc != null) { topicAgg[topic].accSum += acc; topicAgg[topic].accN++ }
+                })
+              })
+
+              const sorted = Object.entries(topicAgg).sort((a,b) => {
+                const aAvg = a[1].accN ? a[1].accSum/a[1].accN : 999
+                const bAvg = b[1].accN ? b[1].accSum/b[1].accN : 999
+                return aAvg - bAvg
+              })
+
+              if (!sorted.length) return (
+                <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'80px 0',gap:16,textAlign:'center'}}>
+                  <div style={{fontSize:56,lineHeight:1}}>🎯</div>
+                  <div style={{fontSize:20,fontWeight:900,color:'#111827'}}>No Weak Areas Detected</div>
+                  <div style={{fontSize:14,color:'#9ca3af',maxWidth:320,lineHeight:1.65}}>
+                    Take more mock tests to build a picture of your weak areas and get AI-powered suggestions.
+                  </div>
+                  <button onClick={() => onStartTest?.('mock', selectedExamId)} className="dh-btn dh-btn-primary" style={{marginTop:8}}>
+                    Take a Mock Test
+                  </button>
+                </div>
+              )
+
+              const bySection = {}
+              sorted.forEach(([topic, info]) => {
+                if (!bySection[info.section]) bySection[info.section] = []
+                bySection[info.section].push({ topic, count:info.count, avgAcc:info.accN?Math.round(info.accSum/info.accN):null })
+              })
+
+              const sectionSummary = Object.entries(bySection).map(([sec, topics]) => {
+                const accVals = topics.filter(t=>t.avgAcc!=null).map(t=>t.avgAcc)
+                const secAvg  = accVals.length ? Math.round(accVals.reduce((a,b)=>a+b,0)/accVals.length) : null
+                return { sec, topics, secAvg, meta: WA_SEC[sec]||WA_SEC.other }
+              }).sort((a,b)=>(a.secAvg??100)-(b.secAvg??100))
+
+              const totalTopics    = sorted.length
+              const criticalCount  = sorted.filter(([,v])=>v.accN&&(v.accSum/v.accN)<40).length
+              const needsWorkCount = sorted.filter(([,v])=>v.accN&&(v.accSum/v.accN)>=40&&(v.accSum/v.accN)<65).length
+              const worstSec       = sectionSummary[0]
+
+              const suggestions = [
+                worstSec && {
+                  icon:'🎯', color:'#ef4444',
+                  title:`Start with ${worstSec.meta.label} — your lowest-scoring section`,
+                  desc:`Accuracy: ${worstSec.secAvg??'low'}%. Spend 40% of each study session here until you cross 65%.`,
+                },
+                criticalCount > 0 && {
+                  icon:'⚡', color:'#f97316',
+                  title:`${criticalCount} critical topic${criticalCount>1?'s':''} below 40% — high priority`,
+                  desc:`Negative marking hits hardest in topics you barely know. Master these with concept notes before attempting more questions.`,
+                },
+                {
+                  icon:'🔄', color:'#3b82f6',
+                  title:'Use Topic Practice for targeted drilling',
+                  desc:`Short 20-question sessions on a single topic build recall faster than full mocks. Use "Topic Practice" mode after each weak topic study session.`,
+                },
+                {
+                  icon:'📈', color:'#8b5cf6',
+                  title:'Retake benchmark mock after 1 week of focused study',
+                  desc:`Track your improvement cycle: study weak topic → take section test → verify accuracy gain. Aim for 15-20% improvement per week.`,
+                },
+              ].filter(Boolean)
+
+              const sevLabel = acc => acc==null?'Unscored':acc<40?'Critical':acc<65?'Needs Work':acc<82?'Improving':'Good'
+              const sevColor = acc => acc==null?'#9ca3af':acc<40?'#ef4444':acc<65?'#f97316':acc<82?'#3b82f6':'#16a34a'
+
+              return (
+                <div>
+                  {/* Header */}
+                  <div style={{marginBottom:24}}>
+                    <h1 style={{fontSize:24,fontWeight:900,color:'#111827',letterSpacing:'-.03em',margin:0}}>
+                      Weak Area Analysis
+                    </h1>
+                    <p style={{fontSize:13,color:'#9ca3af',marginTop:5,fontWeight:500}}>
+                      AI-powered insights from {allWeakSrc.length} test{allWeakSrc.length!==1?'s':''} · focus on these to maximise your score
+                    </p>
+                  </div>
+
+                  {/* Summary tiles */}
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:28}}>
+                    {[
+                      {val:totalTopics,    lbl:'Total Weak Topics',   col:'#FF653F', bg:'linear-gradient(135deg,#fff8f5 0%,#fff 100%)', border:'#FF653F22'},
+                      {val:criticalCount,  lbl:'Critical (< 40%)',    col:'#ef4444', bg:'linear-gradient(135deg,#fff5f5 0%,#fff 100%)', border:'#ef444422'},
+                      {val:needsWorkCount, lbl:'Needs Work (40–65%)', col:'#f97316', bg:'linear-gradient(135deg,#fff8f0 0%,#fff 100%)', border:'#f9731622'},
+                    ].map(s => (
+                      <div key={s.lbl} style={{background:s.bg,borderRadius:16,padding:'16px 18px',border:`1.5px solid ${s.border}`}}>
+                        <div style={{fontSize:32,fontWeight:900,color:s.col,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{s.val}</div>
+                        <div style={{fontSize:11,fontWeight:700,color:'#6b7280',marginTop:5,lineHeight:1.3}}>{s.lbl}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Section breakdown */}
+                  <div style={{marginBottom:28}}>
+                    <div className="dh-lbl">Section Breakdown</div>
+                    <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                      {sectionSummary.map(({sec,topics,secAvg,meta}) => {
+                        const sc = sevColor(secAvg), sl = sevLabel(secAvg)
+                        return (
+                          <div key={sec} style={{background:'#fff',border:'1.5px solid #f0f0f0',borderRadius:16,padding:'16px 18px',transition:'box-shadow .15s'}}
+                            onMouseOver={e=>e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,.06)'}
+                            onMouseOut={e=>e.currentTarget.style.boxShadow='none'}>
+                            <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:10}}>
+                              <div style={{
+                                width:40,height:40,borderRadius:12,flexShrink:0,
+                                background:`${meta.dot}15`,
+                                display:'flex',alignItems:'center',justifyContent:'center',fontSize:18
+                              }}>{meta.emoji}</div>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontSize:14,fontWeight:800,color:'#111827'}}>{meta.label}</div>
+                                <div style={{fontSize:11,color:'#9ca3af',fontWeight:500,marginTop:1}}>{topics.length} topic{topics.length!==1?'s':''} · {meta.tip}</div>
+                              </div>
+                              <div style={{textAlign:'right',flexShrink:0}}>
+                                {secAvg!=null && <div style={{fontSize:20,fontWeight:900,color:sc,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{secAvg}%</div>}
+                                <span style={{fontSize:10,fontWeight:700,color:sc,background:`${sc}15`,borderRadius:99,padding:'2px 8px',marginTop:3,display:'inline-block'}}>{sl}</span>
+                              </div>
+                            </div>
+                            {/* accuracy bar */}
+                            <div style={{height:6,background:'#f0f0f0',borderRadius:99,overflow:'hidden',marginBottom:10}}>
+                              <div style={{height:'100%',width:`${secAvg||2}%`,background:`linear-gradient(90deg,${sc}77,${sc})`,borderRadius:99,transition:'width .9s ease'}}/>
+                            </div>
+                            {/* topic chips */}
+                            <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                              {topics.slice(0,10).map(({topic,avgAcc},i) => {
+                                const tc = sevColor(avgAcc)
+                                return (
+                                  <span key={i} style={{
+                                    display:'inline-flex',alignItems:'center',gap:4,
+                                    fontSize:11,fontWeight:600,padding:'3px 9px',borderRadius:7,
+                                    background:`${tc}10`,color:tc,border:`1px solid ${tc}28`
+                                  }}>
+                                    {String(topic).replace(/_/g,' ')}
+                                    {avgAcc!=null && <span style={{fontWeight:900}}>{avgAcc}%</span>}
+                                  </span>
+                                )
+                              })}
+                              {topics.length>10 && <span style={{fontSize:11,color:'#9ca3af',alignSelf:'center',fontWeight:600}}>+{topics.length-10} more</span>}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* AI suggestions */}
+                  <div style={{marginBottom:28}}>
+                    <div className="dh-lbl" style={{display:'flex',alignItems:'center',gap:7}}>
+                      <span style={{fontSize:15}}>🤖</span>
+                      AI-Powered Suggestions
+                    </div>
+                    <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                      {suggestions.map((s,i) => (
+                        <div key={i} style={{
+                          display:'flex',gap:14,padding:'14px 18px',
+                          background:'#fff',borderRadius:14,
+                          border:'1.5px solid #f0f0f0',
+                          borderLeft:`4px solid ${s.color}`,
+                          transition:'box-shadow .15s'
+                        }}
+                          onMouseOver={e=>e.currentTarget.style.boxShadow='0 4px 16px rgba(0,0,0,.06)'}
+                          onMouseOut={e=>e.currentTarget.style.boxShadow='none'}>
+                          <div style={{fontSize:22,lineHeight:1,flexShrink:0,marginTop:1}}>{s.icon}</div>
+                          <div>
+                            <div style={{fontSize:13,fontWeight:800,color:'#111827',marginBottom:4}}>{s.title}</div>
+                            <div style={{fontSize:12.5,color:'#6b7280',lineHeight:1.65}}>{s.desc}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Study priority queue */}
+                  <div style={{marginBottom:28}}>
+                    <div className="dh-lbl">Top 5 Topics to Study Now</div>
+                    <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                      {sorted.slice(0,5).map(([topic,info],i) => {
+                        const avg = info.accN ? Math.round(info.accSum/info.accN) : null
+                        const sc  = sevColor(avg), sl = sevLabel(avg)
+                        const meta = WA_SEC[info.section]||WA_SEC.other
+                        return (
+                          <div key={topic} style={{
+                            display:'flex',alignItems:'center',gap:14,
+                            padding:'12px 16px',background:'#fff',
+                            border:'1.5px solid #f0f0f0',borderRadius:14
+                          }}>
+                            <div style={{
+                              width:32,height:32,borderRadius:99,
+                              background:`linear-gradient(135deg,${sc}22,${sc}44)`,
+                              color:sc,fontWeight:900,fontSize:14,
+                              display:'flex',alignItems:'center',justifyContent:'center',
+                              flexShrink:0
+                            }}>{i+1}</div>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontSize:13,fontWeight:800,color:'#111827',textTransform:'capitalize'}}>
+                                {String(topic).replace(/_/g,' ')}
+                              </div>
+                              <div style={{fontSize:11,color:'#9ca3af',fontWeight:500,marginTop:1}}>
+                                {meta.label} · appeared {info.count}×
+                              </div>
+                            </div>
+                            {avg!=null && (
+                              <div style={{textAlign:'right',flexShrink:0}}>
+                                <div style={{fontSize:16,fontWeight:900,color:sc,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{avg}%</div>
+                                <div style={{fontSize:10,fontWeight:700,color:sc,marginTop:2}}>{sl}</div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* CTA buttons */}
+                  <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+                    <button onClick={() => onStartTest?.('topic', selectedExamId)} className="dh-btn dh-btn-primary">
+                      Start Topic Practice
+                    </button>
+                    <button onClick={() => setActiveTab('results')} className="dh-btn dh-btn-ghost">
+                      View Full Results
+                    </button>
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* ── SETTINGS tab ── */}
             {activeTab === 'settings' && (
@@ -2543,18 +3436,18 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
       {panelOpen && (
         <>
           <div className="fixed inset-0 bg-black/40 z-40" onClick={()=>setPanelOpen(false)}/>
-          <div className="fixed right-0 top-0 h-full w-72 z-50 flex flex-col overflow-y-auto shadow-2xl" style={{ background:'#1a1a1a' }}>
-            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom:'1px solid rgba(255,255,255,.1)' }}>
+          <div className="fixed right-0 top-0 h-full w-72 z-50 flex flex-col overflow-y-auto shadow-2xl" style={{ background:'#fff' }}>
+            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom:'1px solid #e5e7eb' }}>
               <div className="flex items-center gap-2">
                 <div style={{ width:28, height:28, background:'#FF653F', borderRadius:7, display:'flex', alignItems:'center', justifyContent:'center' }}>
                   <span style={{ color:'#fff', fontWeight:900, fontSize:10 }}>MT</span>
                 </div>
                 <div>
-                  <div className="text-white font-bold text-sm">MockTest</div>
-                  <div className="text-xs" style={{ color:'#888' }}>by Arkaserve</div>
+                  <div className="font-bold text-sm" style={{color:'#111827'}}>MockTest</div>
+                  <div style={{fontSize:8.5,fontWeight:700,color:'#FF653F',letterSpacing:'.10em',textTransform:'uppercase',fontStyle:'italic',marginTop:3,lineHeight:1}}>Your World of Mock Tests</div>
                 </div>
               </div>
-              <button onClick={()=>setPanelOpen(false)} className="text-white/70 hover:text-white text-2xl w-8 h-8 flex items-center justify-center">×</button>
+              <button onClick={()=>setPanelOpen(false)} className="text-2xl w-8 h-8 flex items-center justify-center" style={{color:'#6b7280'}}>×</button>
             </div>
             <nav className="flex-1 py-3">
               {/* Dashboard sections — MOBILE ONLY (desktop already has the sidebar) */}
@@ -2563,11 +3456,11 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                 {SIDEBAR_NAV.map(item => (
                   <button key={item.id}
                     onClick={()=>{ setPanelOpen(false); setActiveTab(item.id) }}
-                    className="w-full flex items-center gap-3 px-5 py-2.5 text-white transition-colors"
-                    style={ activeTab===item.id ? { background:'rgba(255,107,53,.18)' } : {} }
-                    onMouseOver={e=>{ if(activeTab!==item.id) e.currentTarget.style.background='rgba(255,107,53,.10)' }}
+                    className="w-full flex items-center gap-3 px-5 py-2.5 transition-colors"
+                    style={ activeTab===item.id ? { background:'rgba(255,101,63,.1)', color:'#FF653F', fontWeight:700 } : { color:'#374151' } }
+                    onMouseOver={e=>{ if(activeTab!==item.id) e.currentTarget.style.background='#f3f4f6' }}
                     onMouseOut={e=>{ if(activeTab!==item.id) e.currentTarget.style.background='transparent' }}>
-                    <span className="text-white/90 flex-shrink-0"><item.Icon /></span>
+                    <span className="flex-shrink-0" style={{color: activeTab===item.id ? '#FF653F' : '#6b7280'}}><item.Icon /></span>
                     <span className="text-sm font-semibold">{item.label}</span>
                   </button>
                 ))}
@@ -2575,11 +3468,11 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
               <div className="px-5 pt-1 md:pt-1 pb-2 text-xs font-bold uppercase tracking-widest" style={{ color:'#FF653F' }}>Practice Modes</div>
               {ACTIVE_MODES.map(m => (
                 <button key={m.id} onClick={()=>{setPanelOpen(false);onStartTest(m.id)}}
-                  className="w-full flex items-center gap-3 px-5 py-3 text-white transition-colors"
-                  style={{ borderRadius:0 }}
-                  onMouseOver={e=>e.currentTarget.style.background='rgba(255,107,53,.15)'}
+                  className="w-full flex items-center gap-3 px-5 py-3 transition-colors"
+                  style={{ borderRadius:0, color:'#374151' }}
+                  onMouseOver={e=>e.currentTarget.style.background='#fef3f2'}
                   onMouseOut={e=>e.currentTarget.style.background='transparent'}>
-                  <span className="text-white flex-shrink-0"><m.Icon /></span>
+                  <span style={{color:'#FF653F'}} className="flex-shrink-0"><m.Icon /></span>
                   <div>
                     <div className="text-sm font-bold">{m.label}</div>
                   </div>
@@ -2587,26 +3480,27 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
               ))}
               {ACTIVE_GROUPS.map(g => (
                 <div key={g.id} className="mt-2">
-                  <div className="px-5 py-2 text-xs font-bold uppercase tracking-widest" style={{ color:'#FF653F', borderTop:'1px solid rgba(255,255,255,.08)' }}>{g.label}</div>
+                  <div className="px-5 py-2 text-xs font-bold uppercase tracking-widest" style={{ color:'#FF653F', borderTop:'1px solid #e5e7eb' }}>{g.label}</div>
                   {g.exams.map(e => (
                     <button key={e.id} onClick={()=>{setPanelOpen(false);onStartTest('mock', e.id)}}
-                      className="w-full flex items-center justify-between px-5 py-2.5 text-white transition-colors"
-                      onMouseOver={ev=>ev.currentTarget.style.background='rgba(255,107,53,.15)'}
+                      className="w-full flex items-center justify-between px-5 py-2.5 transition-colors"
+                      style={{color:'#374151'}}
+                      onMouseOver={ev=>ev.currentTarget.style.background='#f9fafb'}
                       onMouseOut={ev=>ev.currentTarget.style.background='transparent'}>
                       <div>
                         <span className="text-sm font-medium">{e.name}</span>
-                        <span className="text-xs ml-2" style={{ color:'#888' }}>{e.sub}</span>
+                        <span className="text-xs ml-2" style={{ color:'#9ca3af' }}>{e.sub}</span>
                       </div>
-                      {e.tag && <span className="text-xs bg-white/20 text-white px-2 py-0.5 rounded-full">{e.tag}</span>}
+                      {e.tag && <span className="text-xs px-2 py-0.5 rounded-full" style={{background:'#FFF3EE',color:'#FF653F'}}>{e.tag}</span>}
                     </button>
                   ))}
                 </div>
               ))}
-              <div className="mt-3 pt-2" style={{ borderTop:'1px solid rgba(255,255,255,.08)' }}>
+              <div className="mt-3 pt-2" style={{ borderTop:'1px solid #e5e7eb' }}>
                 {adminUser && (
-                  <button onClick={()=>{setPanelOpen(false);onNav?.('admin')}} className="w-full text-left px-5 py-2.5 text-sm" style={{ color:'#ccc' }}>⚙ Admin Panel</button>
+                  <button onClick={()=>{setPanelOpen(false);onNav?.('admin')}} className="w-full text-left px-5 py-2.5 text-sm flex items-center gap-2" style={{ color:'#6b7280' }}><DIcGear s={13} c='#6b7280'/> Admin Panel</button>
                 )}
-                <button onClick={onLogout} className="w-full text-left px-5 py-2.5 text-sm" style={{ color:'#ccc' }}>→ Log out</button>
+                <button onClick={onLogout} className="w-full text-left px-5 py-2.5 text-sm" style={{ color:'#ef4444' }}>→ Log out</button>
               </div>
             </nav>
           </div>

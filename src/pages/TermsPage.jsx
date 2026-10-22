@@ -2,7 +2,7 @@ export default function TermsPage() {
   const updated='25 May 2026'
   const S={page:{fontFamily:"'Inter','Segoe UI',system-ui,sans-serif",background:'#fff',color:'#111'},inner:{maxWidth:760,margin:'0 auto',padding:'0 24px'}}
   const sections=[
-    {title:'1. Acceptance of terms',body:`By accessing or using MockTest (mocktest.arkaserve.com), a service of Arkaserve, you agree to be bound by these Terms of Service and our Privacy Policy.`},
+    {title:'1. Acceptance of terms',body:`By accessing or using MockTest (prep.arkaserve.com), a service of Arkaserve, you agree to be bound by these Terms of Service and our Privacy Policy.`},
     {title:'2. Description of service',body:`MockTest provides expert-crafted mock tests for competitive examinations including Bank Clerk Prelims (IBPS/SBI), UPSC Prelims, SSC CGL, and GATE. The platform is provided for educational preparation purposes only.`},
     {title:'3. Eligibility and accounts',list:['You must be 18 years or older, or have parental consent if under 18','You must provide accurate information during registration','You are responsible for maintaining the security of your account and password','One account per person — creating multiple accounts is not permitted','We reserve the right to suspend or terminate accounts that violate these terms']},
     {title:'4. Acceptable use — you agree NOT to:',list:['Share your account or test questions with others for commercial purposes','Use automated tools, bots, or scripts to access or scrape the platform','Attempt to reverse-engineer, decompile, or hack the platform or its systems','Upload or transmit malicious code, spam, or any harmful content','Use the platform for any unlawful purpose under Indian law']},
@@ -39,8 +39,9 @@ export default function TermsPage() {
               {sec.contact&&<div style={{background:'#F8F8F8',border:'1px solid #EBEBEB',borderRadius:11,padding:18,fontSize:13,color:'#555',display:'flex',flexDirection:'column',gap:6}}>
                 <div><strong>Arkaserve</strong></div>
                 <div><strong>Team:</strong> Arkaserve Team</div>
+                <div><strong>Email:</strong> <a href="mailto:support@arkaserve.com" style={{color:'#FF653F'}}>support@arkaserve.com</a></div>
                 <div><strong>Website:</strong> www.arkaserve.com</div>
-                <div><strong>Platform:</strong> mocktest.arkaserve.com</div>
+                <div><strong>Platform:</strong> prep.arkaserve.com</div>
               </div>}
             </div>
           ))}

@@ -560,7 +560,7 @@ export default function AdminPage({ onBack }) {
 						</div>
                       {q.explanation && (
                         <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
-                          💡 {q.explanation}
+                          {q.explanation}
                         </p>
                       )}
                     </>

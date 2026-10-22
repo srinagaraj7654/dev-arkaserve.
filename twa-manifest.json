@@ -1,0 +1,54 @@
+{
+  "packageId": "com.arkaserve.prep",
+  "host": "prep.arkaserve.com",
+  "name": "MockTest",
+  "launcherName": "MockTest",
+  "display": "standalone",
+  "themeColor": "#FF653F",
+  "navigationColor": "#FF653F",
+  "navigationColorDark": "#FF653F",
+  "navigationDividerColor": "#FF653F",
+  "navigationDividerColorDark": "#FF653F",
+  "backgroundColor": "#ffffff",
+  "startUrl": "/",
+  "iconUrl": "https://prep.arkaserve.com/icon-512.png",
+  "maskableIconUrl": "https://prep.arkaserve.com/icon-maskable-512.png",
+  "monochromeIconUrl": "https://prep.arkaserve.com/icon-192.png",
+  "splashScreenFadeOutDuration": 300,
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://prep.arkaserve.com/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": { "enabled": false },
+    "playBilling": { "enabled": false }
+  },
+  "alphaDependencies": { "enabled": false },
+  "enableNotifications": false,
+  "shortcuts": [
+    {
+      "name": "Start Mock Test",
+      "short_name": "Mock Test",
+      "url": "/?start=mock",
+      "icon": "https://prep.arkaserve.com/icon-192.png"
+    },
+    {
+      "name": "Topic Practice",
+      "short_name": "Practice",
+      "url": "/?start=topic",
+      "icon": "https://prep.arkaserve.com/icon-192.png"
+    }
+  ],
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "mocktest-key"
+  },
+  "orientation": "portrait",
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://prep.arkaserve.com/",
+  "minSdkVersion": 21,
+  "targetSdkVersion": 34,
+  "appVersion": "1",
+  "appVersionCode": 1
+}

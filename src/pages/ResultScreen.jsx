@@ -1,5 +1,25 @@
 import { useState } from 'react'
 import ChartQuestion from '../components/ChartQuestion'
+
+const _sv = (c) => ({fill:'none',stroke:c||'currentColor',strokeWidth:'1.5',strokeLinecap:'round',strokeLinejoin:'round'})
+const RSIcMsg    = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+const RSIcWarn   = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+const RSIcArrow  = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+const RSIcClip   = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+const RSIcBulb   = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>
+const RSIcChart  = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+const RSIcTarget = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+const RSIcBrain  = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.07-4.15A3 3 0 0 1 4 11.5a3 3 0 0 1 1.5-2.6 2.5 2.5 0 0 1 4-2.9z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.07-4.15A3 3 0 0 0 20 11.5a3 3 0 0 0-1.5-2.6 2.5 2.5 0 0 0-4-2.9z"/></svg>
+const RSIcHome   = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+const RSIcTrophy = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+const RSIcRobot  = ({s=12,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><rect x="3" y="8" width="18" height="14" rx="2"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/><line x1="9" y1="13" x2="9.01" y2="13"/><line x1="15" y1="13" x2="15.01" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+const RSIcStar   = ({s=18,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+const RSIcDoc    = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+const RSIcBolt   = ({s=12,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+const RSIcBook   = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+const RSIcClock  = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+const RSIcFile   = ({s=28,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+const RSIcSeat   = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M4 3v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V3"/><path d="M4 15v4"/><path d="M20 15v4"/><path d="M8 19h8"/></svg>
 import QuestionContent from '../components/QuestionContent'
 import { generateMiniTest, generateTest } from '../api.js'
 import katex from 'katex'
@@ -204,7 +224,7 @@ function ShareModal({ result, studentName, onClose }) {
           </button>
           <button onClick={copyText}
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all">
-            {copied ? '✓ Copied!' : '📋 Copy text'}
+            {copied ? '✓ Copied!' : 'Copy text'}
           </button>
           <button onClick={onClose} className="w-full text-xs text-gray-400 py-1 hover:text-gray-600">Close</button>
         </div>
@@ -246,7 +266,7 @@ function SeatingDiagram({ meta }) {
     const n = arr.length, R = 110, cx = 160, cy = 160
     return (
       <div className="rounded-2xl border border-gray-200 p-3 mb-4" style={{background:'#FFF8F4'}}>
-        <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{color:'#FF653F'}}>🪑 Arrangement</div>
+        <div className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1" style={{color:'#FF653F'}}><RSIcSeat s={11} c='#FF653F'/> Arrangement</div>
         <div className="relative mx-auto" style={{width:320, height:320}}>
           <div className="absolute rounded-full border-2 border-dashed border-gray-300"
             style={{ left:cx-R, top:cy-R, width:2*R, height:2*R }}/>
@@ -268,7 +288,7 @@ function SeatingDiagram({ meta }) {
     const rows = Object.entries(arr).sort((a,b)=>b[1]-a[1])
     return (
       <div className="rounded-2xl border border-gray-200 p-3 mb-4" style={{background:'#FFF8F4'}}>
-        <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{color:'#FF653F'}}>🏢 Arrangement</div>
+        <div className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1" style={{color:'#FF653F'}}><RSIcSeat s={11} c='#FF653F'/> Arrangement</div>
         <div className="space-y-1.5">
           {rows.map(([name,fl])=>(
             <div key={name} className="flex items-center gap-3">
@@ -287,7 +307,7 @@ function SeatingDiagram({ meta }) {
     : Object.entries(arr).sort((a,b)=>a[1]-b[1])
   return (
     <div className="rounded-2xl border border-gray-200 p-3 mb-4" style={{background:'#FFF8F4'}}>
-      <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{color:'#FF653F'}}>🪑 Arrangement (facing North ↑)</div>
+      <div className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1" style={{color:'#FF653F'}}><RSIcSeat s={11} c='#FF653F'/> Arrangement (facing North ↑)</div>
       <div className="flex items-end gap-2 overflow-x-auto pb-1">
         {seats.map(([name],i)=>(
           <div key={i} className="flex flex-col items-center gap-1 flex-shrink-0">
@@ -334,7 +354,7 @@ function ShortcutBody({ q }) {
       {sc.title && (
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-bold"
           style={{ background: '#FFF3EE', color: '#FF653F', border: '1px solid #fec9b0' }}>
-          ⚡ {sc.title}
+          <RSIcBolt s={12} c='#FF653F'/> {sc.title}
         </div>
       )}
 
@@ -623,12 +643,12 @@ function ExplanationBody({ q }) {
 }
 
 const ALL_TABS = [
-  {id:'feedback',     icon:'💬', label:'Feedback',       fullOnly: false},
-  {id:'weak',         icon:'⚠',  label:'Weak Areas',     fullOnly: true },
-  {id:'time',         icon:'⏱',  label:'Time Analysis',  fullOnly: true },
-  {id:'steps',        icon:'🚀', label:'Next Steps',     fullOnly: true },
-  {id:'topics',       icon:'📋', label:'All Topics',     fullOnly: false},
-  {id:'explanations', icon:'💡', label:'Explanations',   fullOnly: false},
+  {id:'feedback',     icon:<RSIcMsg s={13}/>,   label:'Feedback',       fullOnly: false},
+  {id:'weak',         icon:<RSIcWarn s={13}/>,  label:'Weak Areas',     fullOnly: true },
+  {id:'time',         icon:<RSIcClock s={13}/>, label:'Time Analysis',  fullOnly: true },
+  {id:'steps',        icon:<RSIcArrow s={13}/>, label:'Next Steps',     fullOnly: true },
+  {id:'topics',       icon:<RSIcClip s={13}/>,  label:'All Topics',     fullOnly: false},
+  {id:'explanations', icon:<RSIcBulb s={13}/>,  label:'Explanations',   fullOnly: false},
 ]
 
 const TAB_COLORS = [
@@ -762,7 +782,7 @@ function RecoBanner({ children }) {
   return (
     <div className="rounded-2xl border-2 px-5 py-4 flex items-start gap-3"
       style={{ background:'#FFF3EE', borderColor:'#FF653F' }}>
-      <span className="text-2xl leading-none flex-shrink-0 mt-0.5">💡</span>
+      <span className="flex-shrink-0 mt-0.5"><RSIcBulb s={20} c='#FF653F'/></span>
       <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
         <b style={{ color:'#FF653F' }}>Recommended: </b>{children}
       </p>
@@ -839,6 +859,204 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
   const levelMsg    = result.level_message       || null
   const DIFF_BADGE  = { easy: {label:'Easy', bg:'#e8f5e9', color:'#2e7d32'}, medium: {label:'Medium', bg:'#fff8e1', color:'#f57f17'}, hard: {label:'Hard', bg:'#fce4ec', color:'#c62828'} }
 
+  /* ── PDF GENERATION ── */
+  const generatePDF = () => {
+    const examName  = examDisplay(result.exam)
+    const now       = new Date()
+    const dateStr   = now.toLocaleDateString('en-IN', { day:'2-digit', month:'long', year:'numeric' })
+    const timeStr   = now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' })
+    const pctColor  = pct >= 60 ? '#16a34a' : pct >= 35 ? '#d97706' : '#dc2626'
+    const grade     = pct >= 80 ? 'A+' : pct >= 60 ? 'A' : pct >= 40 ? 'B' : 'C'
+
+    const secRows = Object.entries(secStats).map(([sec, st]) => {
+      const p       = st.total > 0 ? ((st.correct || 0) / st.total * 100).toFixed(1) : '0.0'
+      const timeMins= st.time_ms ? (st.time_ms / 60000).toFixed(1) : '—'
+      const lbl     = getSectionLabel(sec)
+      const ok      = parseFloat(p) >= 35
+      return `<tr>
+        <td>${lbl}</td>
+        <td class="num">${st.total || 0}</td>
+        <td class="num green">${st.correct || 0}</td>
+        <td class="num red">${st.wrong || 0}</td>
+        <td class="num gray">${st.skipped || 0}</td>
+        <td class="num"><span class="${ok ? 'tag-green' : 'tag-red'}">${p}%</span></td>
+        <td class="num">${timeMins} min</td>
+      </tr>`
+    }).join('')
+
+    const toLabel = t => typeof t === 'string' ? t : (t.topic || t.name || '')
+    const strongRows = strongTopics.slice(0, 10).map(t =>
+      `<li class="topic-item strong">✓ ${toLabel(t)}</li>`
+    ).join('') || '<li class="topic-item gray">Keep practising!</li>'
+    const weakRows = weakTopics.slice(0, 10).map(t =>
+      `<li class="topic-item weak">↑ ${toLabel(t)}</li>`
+    ).join('') || '<li class="topic-item gray">No weak topics identified</li>'
+    const flagsHtml = flags.slice(0, 8).map(f =>
+      `<li class="flag-item">${typeof f === 'string' ? f : (f.message || '')}</li>`
+    ).join('')
+    const stepsHtml = nextSteps.slice(0, 5).map((s, i) =>
+      `<li class="step-item"><span class="step-num">${i + 1}</span>${typeof s === 'string' ? s : (s.title || s.description || '')}</li>`
+    ).join('')
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Score Report — ${name} — ${examName}</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',Arial,sans-serif;color:#1a1a2e;font-size:13px;line-height:1.5;background:#fff}
+.lh{background:linear-gradient(135deg,#111 0%,#1a1a2e 100%);color:#fff;padding:26px 36px 22px;display:flex;justify-content:space-between;align-items:flex-start}
+.lh-left{display:flex;align-items:center;gap:14px}
+.lh-badge{width:52px;height:52px;border-radius:14px;background:#FF653F;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;color:#fff;letter-spacing:-1px;flex-shrink:0;line-height:1}
+.lh-name{font-size:20px;font-weight:800;letter-spacing:-0.5px}
+.lh-sub{font-size:11px;color:rgba(255,255,255,.5);margin-top:3px}
+.lh-url{font-size:11px;color:#FF653F;margin-top:5px;font-weight:700}
+.lh-right{text-align:right}
+.lh-doc{font-size:14px;font-weight:700;color:rgba(255,255,255,.85)}
+.lh-meta{font-size:10.5px;color:rgba(255,255,255,.4);margin-top:4px}
+.accent-bar{height:4px;background:linear-gradient(90deg,#FF653F 0%,#ff9c7a 55%,transparent 100%)}
+.cand-bar{background:#FFF3EE;padding:14px 36px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #fde8d8}
+.cand-name{font-size:16px;font-weight:800;color:#1a1a2e}
+.cand-exam{font-size:12px;color:#666;margin-top:2px}
+.cand-right{text-align:right;font-size:11px;color:#888}
+.grade-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-weight:900;font-size:15px;background:#FF653F;color:#fff;margin-bottom:4px}
+.s-wrap{padding:22px 36px;border-bottom:1px solid #f0f0f0}
+.s-head{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.s-head::after{content:'';flex:1;height:1px;background:#e5e5e5}
+.score-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.tile{border-radius:12px;padding:14px 10px;text-align:center;border:1.5px solid #e5e7eb}
+.tile .v{font-size:22px;font-weight:900;letter-spacing:-1px}
+.tile .l{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#888;margin-top:3px}
+.t-pct{border-color:#fed7c2;background:#FFF3EE} .t-pct .v{color:${pctColor}}
+.t-scr .v{color:#1a1a2e}
+.t-ok{border-color:#bbf7d0;background:#f0fdf4} .t-ok .v{color:#16a34a}
+.t-wr{border-color:#fecaca;background:#fef2f2} .t-wr .v{color:#dc2626}
+.t-rd{border-color:#bfdbfe;background:#eff6ff} .t-rd .v{color:#2563eb}
+.t-sk .v{color:#888}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#111;color:#fff;padding:9px 12px;text-align:left;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.05em}
+th.num{text-align:center}
+td{padding:9px 12px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+td.num{text-align:center;font-variant-numeric:tabular-nums}
+td.green{color:#16a34a;font-weight:700} td.red{color:#dc2626;font-weight:700} td.gray{color:#888}
+tr:nth-child(even) td{background:#fafafa}
+.tag-green{background:#dcfce7;color:#16a34a;padding:2px 9px;border-radius:20px;font-weight:700;font-size:11px}
+.tag-red{background:#fee2e2;color:#dc2626;padding:2px 9px;border-radius:20px;font-weight:700;font-size:11px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:20px 36px;border-bottom:1px solid #f0f0f0}
+.topic-list{list-style:none;display:flex;flex-direction:column;gap:5px}
+.topic-item{padding:7px 12px;border-radius:8px;font-size:11.5px;font-weight:500;border:1px solid}
+.topic-item.strong{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
+.topic-item.weak{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
+.topic-item.gray{background:#f9fafb;border-color:#e5e7eb;color:#9ca3af;font-style:italic}
+.flag-list{list-style:none;display:flex;flex-direction:column;gap:6px}
+.flag-item{padding:8px 12px 8px 14px;border-radius:8px;font-size:12px;background:#FFF3EE;border-left:3px solid #FF653F;color:#444;line-height:1.5}
+.step-list{list-style:none;display:flex;flex-direction:column;gap:8px}
+.step-item{display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#444;line-height:1.5}
+.step-num{width:22px;height:22px;border-radius:50%;background:#FF653F;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:10px;flex-shrink:0;margin-top:1px}
+.footer{background:#111;color:rgba(255,255,255,.4);font-size:10px;padding:14px 36px;display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.footer-brand{color:#FF653F;font-weight:700;font-size:11px}
+@media print{
+  body{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  @page{margin:0;size:A4}
+}
+</style>
+</head>
+<body>
+
+<div class="lh">
+  <div class="lh-left">
+    <div class="lh-badge">AS</div>
+    <div>
+      <div class="lh-name">ArkaServe</div>
+      <div class="lh-sub">MockTest Platform · Banking Exam Preparation</div>
+      <div class="lh-url">prep.arkaserve.com</div>
+    </div>
+  </div>
+  <div class="lh-right">
+    <div class="lh-doc">Official Score Report</div>
+    <div class="lh-meta">${dateStr} at ${timeStr}</div>
+    <div class="lh-meta" style="margin-top:4px;font-size:9.5px;color:rgba(255,255,255,.2)">For personal study use only · Not for submission to IBPS / SBI</div>
+  </div>
+</div>
+<div class="accent-bar"></div>
+
+<div class="cand-bar">
+  <div>
+    <div class="cand-name">${name}</div>
+    <div class="cand-exam">${examName}</div>
+  </div>
+  <div class="cand-right">
+    <div class="grade-badge">${grade}</div>
+    <div>${dateStr}</div>
+  </div>
+</div>
+
+<div class="s-wrap">
+  <div class="s-head">Score Summary</div>
+  <div class="score-grid">
+    <div class="tile t-pct"><div class="v">${pct.toFixed(1)}%</div><div class="l">Percentage</div></div>
+    <div class="tile t-scr"><div class="v">${score.toFixed(1)}<span style="font-size:13px;font-weight:500;color:#aaa">/${maxScore}</span></div><div class="l">Marks</div></div>
+    <div class="tile t-ok"><div class="v">${correct}</div><div class="l">Correct</div></div>
+    <div class="tile t-wr"><div class="v">${wrong}</div><div class="l">Wrong</div></div>
+    ${readiness > 0
+      ? `<div class="tile t-rd"><div class="v">${readiness.toFixed(0)}%</div><div class="l">Exam Readiness</div></div>`
+      : `<div class="tile t-sk"><div class="v">${skipped}</div><div class="l">Skipped</div></div>`}
+  </div>
+</div>
+
+${secRows ? `<div class="s-wrap">
+  <div class="s-head">Section-wise Performance</div>
+  <table>
+    <thead><tr>
+      <th>Section</th><th class="num">Total</th><th class="num">Correct</th>
+      <th class="num">Wrong</th><th class="num">Skipped</th>
+      <th class="num">Accuracy</th><th class="num">Time</th>
+    </tr></thead>
+    <tbody>${secRows}</tbody>
+  </table>
+</div>` : ''}
+
+<div class="two-col">
+  <div>
+    <div class="s-head">Strong Topics</div>
+    <ul class="topic-list">${strongRows}</ul>
+  </div>
+  <div>
+    <div class="s-head">Weak Topics — Prioritise</div>
+    <ul class="topic-list">${weakRows}</ul>
+  </div>
+</div>
+
+${flagsHtml ? `<div class="s-wrap">
+  <div class="s-head">AI Performance Insights</div>
+  <ul class="flag-list">${flagsHtml}</ul>
+</div>` : ''}
+
+${stepsHtml ? `<div class="s-wrap">
+  <div class="s-head">Recommended Next Steps</div>
+  <ul class="step-list">${stepsHtml}</ul>
+</div>` : ''}
+
+<div class="footer">
+  <div><span class="footer-brand">ArkaServe MockTest</span> · Results are AI-engine scored and intended for personal study use only.</div>
+  <div>prep.arkaserve.com</div>
+</div>
+
+<script>window.onload=function(){window.print()}<\/script>
+</body></html>`
+
+    const w = window.open('', '_blank')
+    if (!w) {
+      alert('Popup blocked. Please allow popups for prep.arkaserve.com and try again.')
+      return
+    }
+    w.document.open()
+    w.document.write(html)
+    w.document.close()
+  }
+
   // Only show analysis tabs for full mock tests
   const TABS = ALL_TABS.filter(t =>
     (!t.fullOnly || isFullMock) &&
@@ -868,7 +1086,7 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
 
           {/* RIGHT — actions (labels condense on mobile so Dashboard always fits) */}
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-            <button onClick={onRetry}
+            <button onClick={generatePDF}
               className="text-xs font-semibold px-2.5 sm:px-3 py-2 rounded-lg text-white border border-white/25 hover:bg-white/10 transition-colors whitespace-nowrap">
               <span className="sm:hidden">PDF</span><span className="hidden sm:inline">Download PDF</span>
             </button>
@@ -881,7 +1099,7 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
             </button>
             <button onClick={onHome}
               className="text-xs font-semibold px-2.5 sm:px-3 py-2 rounded-lg text-white border border-white/25 hover:bg-white/10 transition-colors whitespace-nowrap">
-              <span className="sm:hidden">🏠</span><span className="hidden sm:inline">← Dashboard</span>
+              <span className="sm:hidden"><RSIcHome s={13} c='#fff'/></span><span className="hidden sm:inline">← Dashboard</span>
             </button>
           </div>
         </div>
@@ -976,7 +1194,7 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
                   {isFullMock && rankNum && rankTotal && (
                     <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-white text-xs font-bold"
                       style={{background:'linear-gradient(135deg,#FF653F,#cc3d00)'}}>
-                      <span>🏆</span>
+                      <RSIcTrophy s={14} c='#fff'/>
                       <span>Rank #{rankNum} of {rankTotal} students</span>
                     </div>
                   )}
@@ -1010,7 +1228,7 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
               {isFullMock && result.ai_feedback ? (
                 <div className="rounded-xl px-4 py-3.5 min-w-0" style={{background:'#FFF3EE', border:'1px solid #fec9b0'}}>
                   <div className="flex items-center gap-2 mb-2 pb-2" style={{borderBottom:'1px solid #fec9b0'}}>
-                    <span className="text-xs">🤖</span>
+                    <RSIcRobot s={12} c='#FF653F'/>
                     <span className="text-sm font-bold" style={{color:'#FF653F'}}>Expert Feedback</span>
                     <span className="text-white px-1.5 py-0.5 rounded-full" style={{background:'#FF653F', fontSize:10}}>Smart Analysis</span>
                   </div>
@@ -1063,7 +1281,7 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
           {!isFullMock && tab === 'feedback' && levelMsg && (
             <div className="mx-4 mt-4 mb-0 rounded-xl px-4 py-3 flex items-start gap-3 text-sm"
               style={{background: levelUp ? '#f0fdf4' : '#fff8e1', border: levelUp ? '1px solid #86efac' : '1px solid #fcd34d'}}>
-              <span className="text-lg mt-0.5">{levelUp ? '🎉' : '💪'}</span>
+              <span className="mt-0.5">{levelUp ? <RSIcStar s={18} c='#16a34a'/> : <RSIcArrow s={18} c='#b45309'/>}</span>
               <div>
                 <p className="font-bold text-gray-800 mb-0.5">{levelUp ? 'Level Up!' : 'Keep Going!'}</p>
                 <p className="text-gray-600 text-xs leading-relaxed">{levelMsg}</p>
@@ -1127,7 +1345,7 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
                 {/* 3-step action plan */}
                 <div className="rounded-xl border overflow-hidden" style={{borderColor:'#93C5FD'}}>
                   <div className="px-4 py-2.5 flex items-center gap-2" style={{background:'#EFF6FF'}}>
-                    <span>🎯</span>
+                    <RSIcTarget s={13} c='#1e40af'/>
                     <span className="text-xs font-bold text-blue-800 uppercase tracking-wide">Your Action Plan</span>
                   </div>
                   <div className="divide-y divide-blue-100">
@@ -1154,7 +1372,7 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
           {!isFullMock && !isDiagnostic && tab === 'feedback' && (
             <div className="mx-4 mt-4 mb-0 rounded-xl px-4 py-3 flex items-start gap-3 text-sm"
               style={{background:'#FFF8F0', border:'1px solid #fec9b0'}}>
-              <span className="text-lg mt-0.5">📝</span>
+              <span className="mt-0.5"><RSIcDoc s={18} c='#FF653F'/></span>
               <div>
                 <p className="font-bold text-gray-800 mb-0.5">Practice Test Result</p>
                 <p className="text-gray-500 text-xs leading-relaxed">
@@ -1181,23 +1399,23 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
                   const topicLabel = (td.topic||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
                   const weakPoints = []
                   if (td.easy_accuracy != null && td.easy_accuracy < 60)
-                    weakPoints.push({ icon:'🔴', head:`Easy questions need work`, body:`${td.easy_accuracy}% accuracy on ${td.easy_count} easy questions. These are scoring opportunities — every easy question dropped is a mark lost in the actual exam.` })
+                    weakPoints.push({ icon:<span style={{color:'#ef4444',fontWeight:700,fontSize:11}}>E</span>, head:`Easy questions need work`, body:`${td.easy_accuracy}% accuracy on ${td.easy_count} easy questions. These are scoring opportunities — every easy question dropped is a mark lost in the actual exam.` })
                   if (td.medium_accuracy != null && td.medium_accuracy < 50)
-                    weakPoints.push({ icon:'🟠', head:`Medium questions below target`, body:`${td.medium_accuracy}% on ${td.medium_count} medium questions. Medium Qs make up ~40% of the test — closing this gap will move your level up significantly.` })
+                    weakPoints.push({ icon:<span style={{color:'#f97316',fontWeight:700,fontSize:11}}>M</span>, head:`Medium questions below target`, body:`${td.medium_accuracy}% on ${td.medium_count} medium questions. Medium Qs make up ~40% of the test — closing this gap will move your level up significantly.` })
                   if (td.hard_accuracy != null && td.hard_accuracy < 40)
-                    weakPoints.push({ icon:'🟡', head:`Hard questions — expected, but fixable`, body:`${td.hard_accuracy}% on ${td.hard_count} hard questions. These don't need mastery yet, but cracking 1–2 extra hard Qs per test can separate you at the cut-off.` })
+                    weakPoints.push({ icon:<span style={{color:'#eab308',fontWeight:700,fontSize:11}}>H</span>, head:`Hard questions — expected, but fixable`, body:`${td.hard_accuracy}% on ${td.hard_count} hard questions. These don't need mastery yet, but cracking 1–2 extra hard Qs per test can separate you at the cut-off.` })
                   if (td.failed_subtypes?.length > 0)
                     td.failed_subtypes.slice(0,3).forEach(s =>
-                      weakPoints.push({ icon:'✗', head:`Gap: ${subLabel(s)}`, body:`You missed questions on "${subLabel(s)}" — learn this model type with 5–8 focused practice questions until it becomes automatic.` })
+                      weakPoints.push({ icon:<span style={{color:'#dc2626',fontWeight:700}}>✗</span>, head:`Gap: ${subLabel(s)}`, body:`You missed questions on "${subLabel(s)}" — learn this model type with 5–8 focused practice questions until it becomes automatic.` })
                     )
                   if (weakPoints.length === 0)
-                    weakPoints.push({ icon:'✅', head:'Strong all-round performance', body:`You handled all difficulty bands well on ${topicLabel}. Keep it warm with occasional mixed practice before the exam.` })
+                    weakPoints.push({ icon:<span style={{color:'#16a34a',fontWeight:700}}>✓</span>, head:'Strong all-round performance', body:`You handled all difficulty bands well on ${topicLabel}. Keep it warm with occasional mixed practice before the exam.` })
                   return (
-                    <Card title={`${topicLabel} — What to fix`} icon="🎯">
+                    <Card title={`${topicLabel} — What to fix`} icon={<RSIcTarget s={13}/>}>
                       <div className="space-y-2">
                         {weakPoints.map((p,i) => (
                           <div key={i} className="flex gap-3 px-3 py-2.5 rounded-xl border border-gray-100 bg-gray-50">
-                            <span className="text-base flex-shrink-0 mt-0.5">{p.icon}</span>
+                            <span className="flex-shrink-0 mt-0.5 w-5 flex items-center justify-center">{p.icon}</span>
                             <div>
                               <div className="text-xs font-bold text-gray-800 mb-0.5">{p.head}</div>
                               <div className="text-xs text-gray-500 leading-snug">{p.body}</div>
@@ -1208,7 +1426,7 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
                     </Card>
                   )
                 })() : (
-                <Card title="How you approached this exam" icon="🧠"
+                <Card title="How you approached this exam" icon={<RSIcBrain s={13}/>}
                   badge={
                     <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                       {flags.length} insights
@@ -1226,12 +1444,12 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
                 {/* Col 2: Topic Breakdown (mini/diagnostic) OR Cut-off comparison (full mock) */}
 
                 {!isFullMock && !isDiagnostic && (
-                  <Card title="Topic Breakdown" icon="📊">
+                  <Card title="Topic Breakdown" icon={<RSIcChart s={13}/>}>
                     <TopicBreakdown questionResults={result.question_results || []} />
                   </Card>
                 )}
                 {isFullMock && peer && (
-                  <Card title="Cut-off comparison" icon="🎯"
+                  <Card title="Cut-off comparison" icon={<RSIcTarget s={13}/>}
                     badge={
                       <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                         peer.badge_color==='green' ?'bg-green-100 text-green-700':
@@ -1297,7 +1515,7 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
                   </Card>
                 )}
                 {isFullMock && !peer && (
-                  <Card title="Cut-off comparison" icon="🎯">
+                  <Card title="Cut-off comparison" icon={<RSIcTarget s={13}/>}>
                     <p className="text-xs text-gray-400 text-center py-6">Category data loading...</p>
                   </Card>
                 )}
@@ -1314,7 +1532,7 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
                 ? 'No critical weak areas — keep revising your strong topics so they stay automatic under exam pressure.'
                 : <>Start with <b>{weakTopics.slice(0,2).map(w=>tName(w.topic)).join(' and ')}</b>. These are exactly the topics most likely to cost you marks on exam day — left unfixed, they can be the difference between clearing the cut-off and missing the whole exam. Fixing them could add about <b className="text-green-700">+{Math.round(weakTopics.reduce((s,w)=>s+(Number(w.exam_impact)||0),0))} marks</b> next attempt. Practise 10–15 questions each in <b>Practice Topics</b> until your accuracy crosses 70%.</>}
             </RecoBanner>
-            <Card title="Weak Areas" icon="⚠"
+            <Card title="Weak Areas" icon={<RSIcWarn s={13}/>}
               badge={<span className="text-xs text-gray-400">{weakTopics.length} topics need attention</span>}>
               {weakTopics.length === 0
                 ? <p className="text-sm text-gray-400 text-center py-8">No critical weak areas — great consistency!</p>
@@ -1447,7 +1665,7 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
                 ? <>These steps are personalised from your attempt and ranked by exam impact — <b>step 1 is your single biggest score leak</b>. Acting on them could lift your readiness to about <b className="text-green-700">{improve.toFixed(1)}%</b>. Clear one weak topic a day, take a full mock every <b>2–3 days</b>, and review every wrong answer in Explanations — consistency beats cramming.</>
                 : <>These steps are personalised from your attempt and ranked by exam impact. Do <b>step 1 first</b>, then re-test with a fresh mock to measure your gain. Aim to clear one weak topic a day and review every wrong answer to lock in the improvement.</>}
             </RecoBanner>
-            <Card title="Recommended Next Steps" icon="🚀"
+            <Card title="Recommended Next Steps" icon={<RSIcArrow s={13}/>}
               badge={<span className="text-xs text-gray-400">ranked by exam impact</span>}>
               {nextSteps.length === 0
                 ? <p className="text-sm text-gray-400 text-center py-8">No steps generated.</p>
@@ -1496,7 +1714,7 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
             <RecoBanner>
               Your full topic-by-topic scorecard across every section. Scan for the <b className="text-red-600">red</b> and <b className="text-amber-600">amber</b> bars — those are the exact chapters to practise next. <b className="text-green-700">Green</b> topics are solid; just keep them warm with occasional revision.
             </RecoBanner>
-            <Card title="All Topics" icon="📋">
+            <Card title="All Topics" icon={<RSIcClip s={13}/>}>
               {Object.keys(topicR).length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-8">
                   No topic-level breakdown available for this attempt.
@@ -1577,9 +1795,9 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
           {/* ══ EXPLANATIONS TAB — UWorld-style two-pane viewer ══ */}
           {tab==='explanations' && (() => {
             if (!qResults.length) return (
-              <Card title="Question Explanations" icon="💡">
+              <Card title="Question Explanations" icon={<RSIcBulb s={13}/>}>
                 <div className="text-center py-10">
-                  <div className="text-3xl mb-3">🗂️</div>
+                  <div className="mb-3 flex justify-center"><RSIcFile s={32} c='#9ca3af'/></div>
                   <div className="text-sm font-bold text-gray-900 mb-1">Detailed review isn't available for this attempt</div>
                   <div className="text-xs text-gray-500 max-w-md mx-auto mb-5">
                     This test was taken before per-question review was enabled, so its questions weren't saved.
@@ -1610,7 +1828,7 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
                   <Card>
                     {passage && (
                       <div className="mb-4">
-                        <div className="text-xs font-bold uppercase tracking-widest mb-2" style={{color:'#FF653F'}}>📖 Passage</div>
+                        <div className="text-xs font-bold uppercase tracking-widest mb-2 flex items-center gap-1" style={{color:'#FF653F'}}><RSIcBook s={11} c='#FF653F'/> Passage</div>
                         <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 lg:max-h-[38vh] lg:overflow-y-auto nice-scroll">
                           {passage}
                         </div>
@@ -1651,7 +1869,7 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
                   </Card>
 
                   {/* RIGHT — the explanation */}
-                  <Card title="Explanation" icon="💡" badge={
+                  <Card title="Explanation" icon={<RSIcBulb s={13}/>} badge={
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => { setExpIdx(Math.max(0, expIdx - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}

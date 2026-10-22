@@ -1,5 +1,15 @@
 import { useState } from "react"
 
+const _sv = (c) => ({fill:'none',stroke:c||'currentColor',strokeWidth:'1.5',strokeLinecap:'round',strokeLinejoin:'round'})
+const PIcChart  = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+const PIcTarget = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+const PIcBrain  = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.07-4.15A3 3 0 0 1 4 11.5a3 3 0 0 1 1.5-2.6 2.5 2.5 0 0 1 4-2.9z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.07-4.15A3 3 0 0 0 20 11.5a3 3 0 0 0-1.5-2.6 2.5 2.5 0 0 0-4-2.9z"/></svg>
+const PIcClock  = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+const PIcArrow  = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+const PIcGear   = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+const PIcBook   = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+const PIcAlarm  = ({s=10,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><circle cx="12" cy="13" r="8"/><polyline points="12 9 12 13 14 15"/><path d="M9 2h6M12 2v3"/></svg>
+
 /* ── Sample data that mirrors a real student result ── */
 const SAMPLE = {
   name: "Anil Kumar",
@@ -52,8 +62,8 @@ const CONF_META = {
   confident:          { color:"#10b981", bg:"#d1fae5", label:"Confident",          icon:"✓",  desc:"Correct + fast. No action needed." },
   knows_but_slow:     { color:"#f59e0b", bg:"#fef3c7", label:"Knows but Slow",     icon:"⏱",  desc:"Correct but too slow. Speed drills needed." },
   knows_but_careless: { color:"#f97316", bg:"#ffedd5", label:"Careless Errors",    icon:"✏",  desc:"Silly mistakes on familiar topic. Slow down on final step." },
-  concept_gap:        { color:"#ef4444", bg:"#fee2e2", label:"Concept Gap",        icon:"📖", desc:"Slow + wrong. Needs concept revision, not speed practice." },
-  guessing:           { color:"#dc2626", bg:"#fee2e2", label:"Guessing",           icon:"🎲", desc:"Fast + wrong. Stop guessing — costs marks with -0.25." },
+  concept_gap:        { color:"#ef4444", bg:"#fee2e2", label:"Concept Gap",        icon:"B", desc:"Slow + wrong. Needs concept revision, not speed practice." },
+  guessing:           { color:"#dc2626", bg:"#fee2e2", label:"Guessing",           icon:"?", desc:"Fast + wrong. Stop guessing — costs marks with -0.25." },
   struggling:         { color:"#b91c1c", bg:"#fee2e2", label:"Struggling",         icon:"⚠",  desc:"Slow + wrong. Worst state. Revisit fundamentals immediately." },
   moderate:           { color:"#6b7280", bg:"#f3f4f6", label:"Moderate",           icon:"~",  desc:"Mixed signals. Needs more data." },
   untested:           { color:"#9ca3af", bg:"#f9fafb", label:"Untested",           icon:"?",  desc:"Not enough questions to classify." },
@@ -110,12 +120,12 @@ export default function PredictionExplainer() {
   const d = SAMPLE
 
   const sections = [
-    { id:"overview",   label:"📊 Overview"      },
-    { id:"cutoff",     label:"🎯 Cut-off"        },
-    { id:"confidence", label:"🧠 Confidence"     },
-    { id:"time",       label:"⏱ Time Analysis"  },
-    { id:"steps",      label:"🚀 Next Steps"     },
-    { id:"howit",      label:"⚙ How It Works"   },
+    { id:"overview",   label:"Overview",      icon:<PIcChart s={12}/> },
+    { id:"cutoff",     label:"Cut-off",       icon:<PIcTarget s={12}/> },
+    { id:"confidence", label:"Confidence",    icon:<PIcBrain s={12}/> },
+    { id:"time",       label:"Time Analysis", icon:<PIcClock s={12}/> },
+    { id:"steps",      label:"Next Steps",    icon:<PIcArrow s={12}/> },
+    { id:"howit",      label:"How It Works",  icon:<PIcGear s={12}/> },
   ]
 
   return (
@@ -136,9 +146,9 @@ export default function PredictionExplainer() {
         <div className="max-w-4xl mx-auto px-4 flex gap-1 overflow-x-auto py-2">
           {sections.map(s => (
             <button key={s.id} onClick={() => setActiveSection(s.id)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all
+              className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1
                 ${activeSection===s.id ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}>
-              {s.label}
+              {s.icon}{s.label}
             </button>
           ))}
         </div>
@@ -262,7 +272,7 @@ export default function PredictionExplainer() {
 
               <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
                 <div className="font-bold text-amber-800 text-sm mb-1">
-                  🟠 {d.cutoff.gap < 0 ? `Need ${Math.abs(d.cutoff.gap)} more marks` : "Above typical cut-off"}
+                  {d.cutoff.gap < 0 ? `Need ${Math.abs(d.cutoff.gap)} more marks` : "Above typical cut-off"}
                 </div>
                 <p className="text-xs text-amber-700">
                   Your score of {d.score} is {Math.abs(d.cutoff.gap)} marks below the typical {d.category} cut-off ({d.cutoff.typical}).
@@ -348,13 +358,13 @@ export default function PredictionExplainer() {
                     <Tooltip text={m.desc}>
                       <Badge label={m.label} color={m.color} bg={m.bg} />
                     </Tooltip>
-                    {t.silly>0 && <span className="text-xs text-orange-600 font-bold" title="Silly mistakes">✏{t.silly}</span>}
-                    {t.gap>0   && <span className="text-xs text-red-600 font-bold" title="Concept gap questions">📖{t.gap}</span>}
+                    {t.silly>0 && <span className="text-xs text-orange-600 font-bold" title="Silly mistakes">E{t.silly}</span>}
+                    {t.gap>0   && <span className="text-xs text-red-600 font-bold" title="Concept gap questions"><PIcBook s={10} c='#dc2626'/>{t.gap}</span>}
                   </div>
                 )
               })}
             </div>
-            <p className="text-xs text-gray-400 mt-3">✏ = silly mistakes detected &nbsp;|&nbsp; 📖 = concept gap detected</p>
+            <p className="text-xs text-gray-400 mt-3">E = silly mistakes detected &nbsp;|&nbsp; <PIcBook s={10} c='#6b7280'/> = concept gap detected</p>
           </Card>
         </>)}
 
@@ -413,7 +423,7 @@ export default function PredictionExplainer() {
               {d.streaks.map((s,i) => (
                 <div key={i} className="p-3 bg-red-50 border border-red-200 rounded-xl">
                   <div className="font-bold text-red-700 text-sm mb-1">
-                    🔴 {s.length} consecutive wrong/skipped — Q{s.start}–Q{s.end}
+                    {s.length} consecutive wrong/skipped — Q{s.start}–Q{s.end}
                   </div>
                   <p className="text-xs text-red-600">{s.message}</p>
                   <p className="text-xs text-gray-500 mt-1">

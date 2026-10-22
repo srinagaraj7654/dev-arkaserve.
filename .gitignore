@@ -1,15 +1,23 @@
 # Dependencies
 node_modules/
+
+# Accidental system files
 Microsoft/
 
 # Build output
 dist/
 build/
 
-# Environment
+# Environment — never commit real secrets
 .env
-.env.*
-!env.example
+.env.local
+.env.development
+.env.staging
+.env.production
+env.example
+# Allow only the template files (no real credentials inside)
+!.env.example
+!.env.*.example
 
 # Logs
 *.log
