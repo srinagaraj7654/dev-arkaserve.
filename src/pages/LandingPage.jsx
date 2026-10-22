@@ -358,6 +358,8 @@ function LandingPage({ onNav, initialTab='home' }) {
           {/* Background video — full bleed, student studying */}
           <video
             autoPlay muted loop playsInline
+            disablePictureInPicture
+            controlsList="nodownload nofullscreen noremoteplayback"
             aria-hidden="true"
             ref={el => { if (el) el.playbackRate = 0.55 }}
             style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:'38% center',zIndex:0,transform:'scaleX(-1)'}}
