@@ -7,4 +7,6 @@ if (!supabaseUrl || !supabaseKey) {
   console.error('Missing Supabase env vars. Check your .env file.')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey)
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: { flowType: 'pkce' },
+})

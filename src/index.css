@@ -9,8 +9,30 @@
     --brand-orange-soft: #FFF3EE;
     --brand-orange-border: #fec9b0;
     --brand-ink: #111111;
+
+    /* Surface tokens — overridden in .dark */
+    --bg:      #ffffff;
+    --bg2:     #f8fafc;
+    --surface: #ffffff;
+    --border:  #e5e7eb;
+    --fg:      #111827;
+    --fg2:     #4b5563;
+    color-scheme: light;
   }
-  body { @apply text-gray-900 font-sans; background: white; }
+
+  .dark {
+    --bg:        #0f1117;
+    --bg2:       #161b27;
+    --surface:   #1e2332;
+    --border:    #2d3347;
+    --fg:        #f1f5f9;
+    --fg2:       #94a3b8;
+    --brand-orange-soft:   #2a1a12;
+    --brand-orange-border: #7a3520;
+    color-scheme: dark;
+  }
+
+  body { @apply font-sans; background: var(--bg); color: var(--fg); }
   * { @apply box-border; }
 }
 

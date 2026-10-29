@@ -93,7 +93,16 @@ export default function App() {
   const [paymentPlan, setPaymentPlan] = useState(null)
   const [dashTab,     setDashTab]     = useState('home')
 
-  const [idleWarning, setIdleWarning] = useState(false)
+  const [darkMode, setDarkMode] = useState(() => {
+    try { return localStorage.getItem('mt-dark') === '1' } catch { return false }
+  })
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode)
+    try { localStorage.setItem('mt-dark', darkMode ? '1' : '0') } catch {}
+  }, [darkMode])
+
+  const [idleWarning,       setIdleWarning]       = useState(false)
+  const [showProfilePopup,  setShowProfilePopup]  = useState(false)
   const idleTimer    = useRef(null)
   const warningTimer = useRef(null)
   const skipPushRef    = useRef(false)
@@ -188,6 +197,16 @@ export default function App() {
     setPage('home')
   }, [clearTimers])
 
+  // Show profile completion popup once per session when the user logs in with an incomplete profile.
+  useEffect(() => {
+    if (!user) return
+    try { if (sessionStorage.getItem('profilePopupDismissed')) return } catch {}
+    const m = user.user_metadata || {}
+    const fields = [m.full_name, m.phone || m.mobile, m.dob, m.gender, m.category, m.target_exam, m.level, m.state]
+    const filled = fields.filter(Boolean).length
+    if (filled < fields.length) setShowProfilePopup(true)
+  }, [user?.id])  // eslint-disable-line react-hooks/exhaustive-deps
+
   // Fetch role from user_roles table whenever the logged-in user changes.
   // Falls back to 'student' on any error so the app never breaks.
   useEffect(() => {
@@ -260,8 +279,11 @@ export default function App() {
         if (!session) { setUser(null); navClaimedRef.current = false; regionSavedRef.current = false }
         return
       }
-      // Skip INITIAL_SESSION — getSession() handles the initial restore
-      if (event === 'INITIAL_SESSION') return
+      // Process INITIAL_SESSION only when it carries a confirmed user (OAuth/magic-link
+      // callback). Normally getSession() handles session restore, but if SIGNED_IN fired
+      // during _initialize() before this listener registered, INITIAL_SESSION is the
+      // only event we receive — skipping it would leave the user logged out.
+      if (event === 'INITIAL_SESSION' && !session?.user?.email_confirmed_at) return
       if (session?.user) {
         // Skip navigation for unconfirmed signups — let OTP flow handle it
         if (!session.user.email_confirmed_at) return
@@ -277,11 +299,7 @@ export default function App() {
     return () => listener.subscription.unsubscribe()
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
-  const resolvePostAuthPage = (u) => {
-    const region = u?.user_metadata?.exam_region
-    if (region === 'us') return 'us-exams'
-    return 'dashboard'
-  }
+  const resolvePostAuthPage = (_u) => 'dashboard'
 
   // Failsafe for Google OAuth redirect: after OAuth the page lands at http://localhost:3000/
   // (page='home'). If the async Supabase handlers haven't fired _navigateOnce yet,
@@ -376,14 +394,22 @@ export default function App() {
       setPage(target || 'home')
     }
     window.addEventListener('popstate', onPop)
-    // seed state on the current entry so the first Back has somewhere to go
-    try { window.history.replaceState({ appPage: page }, '', pageToPath(page)) } catch {}
+    // seed state on the current entry so the first Back has somewhere to go.
+    // Skip during an OAuth callback — replaceState('/')  would strip ?code= (PKCE)
+    // or #access_token= (implicit) from the URL before Supabase's async lock
+    // callback runs parseParametersFromURL, breaking the exchange.
+    const isOAuthCallback = window.location.search.includes('code=') || window.location.hash.includes('access_token')
+    if (!isOAuthCallback) {
+      try { window.history.replaceState({ appPage: page }, '', pageToPath(page)) } catch {}
+    }
     return () => window.removeEventListener('popstate', onPop)
   }, [user, testData, resultData])  // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!historyMounted.current) { historyMounted.current = true; return }
     if (skipPushRef.current) { skipPushRef.current = false; return }  // change came from Back
+    // Don't overwrite ?code= (PKCE) or #access_token (implicit) during OAuth callback
+    if (window.location.search.includes('code=') || window.location.hash.includes('access_token')) return
     try { window.history.pushState({ appPage: page }, '', pageToPath(page)) } catch {}
   }, [page])
 
@@ -405,19 +431,6 @@ export default function App() {
   const nav = (target, examId) => {
     const publicList = [...LANDING_TABS,'courses','contact','privacy','terms','auth','practice','cutoffs','papers','exams','exams-banking','exams-insurance','exams-ssc','exams-railway','exams-engineering','exams-medical','blog','us-exams','us-score-prediction','current-affairs','examhome','syllabus','exam-dates']
 
-    // US-region users: block only pure Indian exam category pages.
-    // Dashboard, Study Planner, Results, Subscriptions, Profile, Settings, Billing are shared.
-    if (user?.user_metadata?.exam_region === 'us') {
-      const indiaOnlyTargets = ['exams','exams-banking','exams-insurance','exams-ssc','exams-railway','exams-engineering','exams-medical','cutoffs','papers']
-      if (indiaOnlyTargets.includes(target)) {
-        setPage('us-exams'); window.scrollTo(0, 0); return
-      }
-      // Launching a mock/topic test without a SAT id → treat as sat_full
-      if (target === 'mocktest' && !examId?.startsWith('sat_')) {
-        setStartMode('mock'); setStartExamId('sat_full'); setPage('examhome'); window.scrollTo(0, 0); return
-      }
-    }
-
     // When user clicks "Sign In" from us-exams, preserve that context so
     // they return to the US Exams page (not the generic dashboard) after login.
     if (target === 'auth' && !user && page === 'us-exams') {
@@ -434,9 +447,10 @@ export default function App() {
     if (target === 'mocktest' && !guardTrial()) return
 
     // Dashboard inner tabs reached from other pages (e.g. Practice sidebar)
-    const DASH_TABS = { results:'results', planner:'studyplan', studyplan:'studyplan',
+    const DASH_TABS = { results:'performance', planner:'studyplan', studyplan:'studyplan',
                         subscriptions:'subscriptions', profile:'profile', settings:'settings',
-                        explore:'explore', billing:'billing' }
+                        explore:'explore', billing:'billing',
+                        performance:'performance', prediction:'prediction' }
     if (DASH_TABS[target]) {
       setDashTab(DASH_TABS[target]); setPage('dashboard'); window.scrollTo(0, 0); return
     }
@@ -541,7 +555,7 @@ export default function App() {
 
   if (!authChecked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3" style={{background:'#FF653F'}}>
             <span className="text-white font-bold text-sm">MT</span>
@@ -555,7 +569,7 @@ export default function App() {
   const appEnv = import.meta.env.VITE_APP_ENV
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col dark:bg-gray-900 dark:text-gray-100">
 
       {/* Staging environment banner — only visible on non-production builds */}
       {appEnv && appEnv !== 'production' && (
@@ -581,7 +595,7 @@ export default function App() {
       )}
 
       {isPublic && page !== 'auth' && page !== 'us-exams' && !page.startsWith('exams') && page !== 'cutoffs' && page !== 'papers' && (
-        <Navbar currentPage={page} onNav={nav} user={user} onLogout={handleLogout} userRole={userRole} />
+        <Navbar currentPage={page} onNav={nav} user={user} onLogout={handleLogout} userRole={userRole} darkMode={darkMode} onToggleDark={() => setDarkMode(d => !d)} />
       )}
 
       <main className="flex-1">
@@ -685,8 +699,11 @@ export default function App() {
             onExit={goHome}
           />
         )}
-        {page === 'result'         && (
-          user?.user_metadata?.exam_region === 'us'
+        {page === 'result'         && (() => {
+          // Route based on the exam type in the result, not the user's region setting.
+          // This ensures any user can see the correct result screen for any exam they take.
+          const isUSExamResult = resultData?.exam?.startsWith('sat') || resultData?.exam?.startsWith('act')
+          return isUSExamResult
             ? <USResultScreen
                 result={resultData}
                 studentName={userName}
@@ -699,16 +716,16 @@ export default function App() {
                 result={resultData}
                 studentName={userName}
                 onRetry={() => setPage('examhome')}
-                onHome={() => setPage('dashboard')}
+                onHome={user?.user_metadata?.exam_region === 'us' ? () => setPage('us-exams') : () => setPage('dashboard')}
                 onStartTest={startTest}
                 user={user}
               />
-        )}
+        })()}
         {page === 'admin'          && (userRole === 'super_admin'
           ? <AdminPage onBack={() => setPage('dashboard')} />
           : (() => { nav('dashboard'); return null })()
         )}
-		{page === 'how-prediction-works' && <PredictionExplainer />}
+		{page === 'how-prediction-works' && <PredictionExplainer user={user} onNav={nav} />}
         {page === 'us-score-prediction' && <USPredictionExplainer />}
         {![
           ...LANDING_TABS,
@@ -726,7 +743,27 @@ export default function App() {
       <ToastHost />
       <InstallPrompt />
 
-      {/* ── Floating WhatsApp button ── */}
+      {/* ── Profile completion popup ── */}
+      {showProfilePopup && user && (
+        <ProfileCompletePopup
+          user={user}
+          onClose={() => {
+            setShowProfilePopup(false)
+            try { sessionStorage.setItem('profilePopupDismissed', '1') } catch {}
+          }}
+          onComplete={() => {
+            setShowProfilePopup(false)
+            try { sessionStorage.setItem('profilePopupDismissed', '1') } catch {}
+            setDashTab('profile')
+            setPage('dashboard')
+            window.scrollTo(0, 0)
+          }}
+        />
+      )}
+
+      {/* ── Floating WhatsApp button — landing/public pages only ── */}
+      {!user && <>
+
       <style>{`
         .wa-float-text{display:inline}
         @media(max-width:640px){
@@ -760,6 +797,97 @@ export default function App() {
         </svg>
         <span className="wa-float-text">WhatsApp</span>
       </a>
+      </>}
+    </div>
+  )
+}
+
+/* ── Profile Completion Popup ── */
+const PROFILE_FIELDS = [
+  { key: 'full_name',    label: 'Full Name' },
+  { key: 'phone',        label: 'Mobile Number', altKey: 'mobile' },
+  { key: 'dob',          label: 'Date of Birth' },
+  { key: 'gender',       label: 'Gender' },
+  { key: 'category',     label: 'Category' },
+  { key: 'target_exam',  label: 'Target Exam' },
+  { key: 'level',        label: 'Prep Level' },
+  { key: 'state',        label: 'State' },
+]
+
+function ProfileCompletePopup({ user, onClose, onComplete }) {
+  const m = user?.user_metadata || {}
+  const missing = PROFILE_FIELDS.filter(f => !(m[f.key] || (f.altKey && m[f.altKey])))
+  const filled  = PROFILE_FIELDS.length - missing.length
+  const pct     = Math.round((filled / PROFILE_FIELDS.length) * 100)
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 10000,
+      background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(3px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
+    }}>
+      <div style={{
+        background: '#fff', borderRadius: 20, padding: '32px 28px', maxWidth: 420, width: '100%',
+        boxShadow: '0 20px 60px rgba(0,0,0,.18)', textAlign: 'center',
+        fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
+      }}>
+        {/* Progress ring */}
+        <div style={{ position: 'relative', width: 88, height: 88, margin: '0 auto 20px' }}>
+          <svg width="88" height="88" viewBox="0 0 88 88" style={{ transform: 'rotate(-90deg)' }}>
+            <circle cx="44" cy="44" r="36" fill="none" stroke="#f3f4f6" strokeWidth="7"/>
+            <circle cx="44" cy="44" r="36" fill="none" stroke="#FF653F" strokeWidth="7"
+              strokeDasharray={`${2 * Math.PI * 36 * pct / 100} ${2 * Math.PI * 36 * (1 - pct / 100)}`}
+              strokeLinecap="round" style={{ transition: 'stroke-dasharray .5s ease' }}/>
+          </svg>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: 18, fontWeight: 800, color: '#111' }}>{pct}%</span>
+          </div>
+        </div>
+
+        <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111', marginBottom: 6 }}>
+          Complete your profile
+        </h2>
+        <p style={{ color: '#6b7280', fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
+          A complete profile helps us personalise your study plan and predict your exam readiness accurately.
+        </p>
+
+        {missing.length > 0 && (
+          <div style={{ background: '#fafafa', border: '1px solid #f3f4f6', borderRadius: 12, padding: '12px 16px', marginBottom: 24, textAlign: 'left' }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>
+              Missing ({missing.length})
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {missing.map(f => (
+                <span key={f.key} style={{
+                  background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6,
+                  padding: '3px 10px', fontSize: 12, color: '#374151', fontWeight: 500,
+                }}>{f.label}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={onClose}
+            style={{
+              flex: 1, padding: '11px 16px', borderRadius: 12, border: '1px solid #e5e7eb',
+              background: '#fff', color: '#6b7280', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            }}
+            onMouseOver={e => e.currentTarget.style.background='#f9fafb'}
+            onMouseOut={e => e.currentTarget.style.background='#fff'}>
+            Skip for now
+          </button>
+          <button onClick={onComplete}
+            style={{
+              flex: 2, padding: '11px 16px', borderRadius: 12, border: 'none',
+              background: '#FF653F', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+            }}
+            onMouseOver={e => e.currentTarget.style.background='#e5512f'}
+            onMouseOut={e => e.currentTarget.style.background='#FF653F'}>
+            Complete Profile
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

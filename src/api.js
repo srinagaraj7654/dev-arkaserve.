@@ -82,8 +82,8 @@ api.interceptors.response.use(
   }
 )
 
-// ── Helper: retry once on network error ──────────────────────────────
-async function withRetry(fn, retries = 1) {
+// ── Helper: retry on network error with exponential backoff ──────────
+async function withRetry(fn, retries = 3, attempt = 0) {
   try {
     return await fn()
   } catch (error) {
@@ -93,8 +93,8 @@ async function withRetry(fn, retries = 1) {
       !navigator.onLine
     )
     if (isNetworkError && retries > 0) {
-      await new Promise(r => setTimeout(r, 2000))
-      return withRetry(fn, retries - 1)
+      await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)))
+      return withRetry(fn, retries - 1, attempt + 1)
     }
     throw error
   }
@@ -180,6 +180,10 @@ export const getTopicConcepts = (topic, student_id = null) =>
 // Formula sheet + shortcut for a topic — back-fills old saved results that pre-date these fields
 export const getTopicFormulas = (topic) =>
   api.get(`/formulas/${topic}`).then(r => r.data)
+
+// ── ML Prediction (reads from student_topic_stats persisted after every test) ──
+export const getPrediction = (userId) =>
+  api.get(`/analytics/predict/${userId}`).then(r => r.data)
 
 export { getFriendlyMessage }
 export default api

@@ -700,10 +700,12 @@ function SectionTestTab({ studentName, onStart, user = null }) {
 // ── Main HomeScreen ───────────────────────────────────────────
 export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogout, startMode = 'mock', startExamId = '', user = null }) {
   const isUSUser = user?.user_metadata?.exam_region === 'us'
-  const isSAT = isUSUser || startExamId?.startsWith('sat_')
-  // US users default to sat_full when no specific SAT exam was requested
-  const effectiveExamId = (isUSUser && !startExamId?.startsWith('sat_')) ? 'sat_full' : startExamId
-  const [tab,          setTab]          = useState(isSAT ? 'sat' : startMode)
+  // An explicit non-SAT/ACT exam ID (e.g. 'bank_clerk_prelims') must override the US region default.
+  const hasExplicitNonSATExam = !!startExamId && !startExamId.startsWith('sat_') && !startExamId.startsWith('act_')
+  const isSAT = (isUSUser && !hasExplicitNonSATExam) || startExamId?.startsWith('sat_') || startExamId?.startsWith('act_')
+  // US users default to sat_full only when no specific exam was requested
+  const effectiveExamId = (isUSUser && !startExamId) ? 'sat_full' : startExamId
+  const [tab,          setTab]          = useState(hasExplicitNonSATExam ? startMode : (isSAT ? 'sat' : startMode))
   const [topicSecId,   setTopicSecId]   = useState('numerical_ability')
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const mainRef = useRef(null)
@@ -741,25 +743,33 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
   const trialActive   = !isPro && trialDaysLeft > 0
 
   const initials = (studentName||'U').slice(0,2).toUpperCase()
-  const tabs = isUSUser
+  // If the user has an explicit non-SAT exam (e.g. admin-assigned Banking exam), show Indian tabs.
+  // Otherwise follow the region preference: US users see SAT only; SAT-start users see both.
+  const tabs = hasExplicitNonSATExam
     ? [
-        { id:'sat', label:'SAT Practice', icon:<HIcGrad s={13}/> },
+        { id:'mock',    label:'Full Mock Test',  icon:<HIcDoc s={13}/> },
+        { id:'topic',   label:'Topic Practice',  icon:<HIcTarget s={13}/> },
+        { id:'section', label:'Section Test',    icon:<HIcTimer s={13}/> },
       ]
-    : isSAT
+    : isUSUser
       ? [
-          { id:'sat',     label:'SAT Practice',    icon:<HIcGrad s={13}/> },
-          { id:'mock',    label:'India Exams',      icon:<HIcDoc s={13}/> },
+          { id:'sat', label:'SAT Practice', icon:<HIcGrad s={13}/> },
         ]
-      : [
-          { id:'mock',    label:'Full Mock Test',  icon:<HIcDoc s={13}/> },
-          { id:'topic',   label:'Topic Practice',  icon:<HIcTarget s={13}/> },
-          { id:'section', label:'Section Test',    icon:<HIcTimer s={13}/> },
-        ]
+      : isSAT
+        ? [
+            { id:'sat',     label:'SAT Practice',    icon:<HIcGrad s={13}/> },
+            { id:'mock',    label:'India Exams',      icon:<HIcDoc s={13}/> },
+          ]
+        : [
+            { id:'mock',    label:'Full Mock Test',  icon:<HIcDoc s={13}/> },
+            { id:'topic',   label:'Topic Practice',  icon:<HIcTarget s={13}/> },
+            { id:'section', label:'Section Test',    icon:<HIcTimer s={13}/> },
+          ]
   const SIDE = [
     { id:'dashboard',     label:'Dashboard',     Icon:SvgHome  },
     { id:'explore',       label:'Explore Exams', Icon:SvgDoc   },
     { id:'studyplan',     label:'Study Planner', Icon:SvgCal   },
-    { id:'results',       label:'My Results',    Icon:SvgChart },
+    { id:'performance',   label:'My Performance', Icon:SvgChart },
     { id:'subscriptions', label:'Subscriptions', Icon:SvgClip  },
     { id:'profile',       label:'Profile',       Icon:SvgUser  },
     { id:'billing',       label:'Billing',       Icon:SvgCard  },

@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { submitTest } from '../api.js'
 import QuestionContent from '../components/QuestionContent'
+// True when running inside a Capacitor native shell (Android/iOS).
+// window.Capacitor is injected by the native runtime before web code runs.
+const isNative = typeof window !== 'undefined' &&
+  typeof window.Capacitor !== 'undefined' &&
+  window.Capacitor.isNativePlatform?.() === true
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
          XAxis, YAxis, CartesianGrid, Tooltip, Legend,
          ResponsiveContainer } from 'recharts'
@@ -165,6 +170,18 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
   const currentQ         = allQuestions[currentIdx] || {}
   const qNum             = currentQ.question_number
 
+  // Timestamp-based timer state — survives setInterval pauses on background/resume.
+  // timerEpochRef: the wall-clock time when this epoch began.
+  // timerBaseRef:  the secs remaining at that epoch start.
+  // When the app resumes from background, the next interval tick automatically
+  // calculates the correct remaining time using Date.now() - timerEpochRef.
+  const timerEpochRef = useRef(Date.now())
+  const timerBaseRef  = useRef(totalSecs)
+
+  // Epoch for the currently-ticking section: { sec, base (secs), epoch (ms) }.
+  // Set when a section becomes active; cleared on section change or unmount.
+  const secEpochRef = useRef(null)
+
   // ── addViolation helper ──────────────────────────────────────
   // Safe to call from any useEffect — no stale closure issues
   const addViolation = useCallback((msg) => {
@@ -179,18 +196,21 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
     }
   }, [])
 
-  // Countdown timer
+  // Countdown timer — timestamp-based so it survives setInterval suspension on background.
+  // Polls every 500ms; each tick re-derives remaining time from Date.now() rather than
+  // accumulating decrements, so a backgrounded app loses the correct time on resume.
   useEffect(() => {
-    // Grace period: 3 seconds before anti-cheat starts (allows fullscreen to settle)
     const grace = setTimeout(() => { examStartedRef.current = true }, 3000)
+    timerEpochRef.current = Date.now()
+    timerBaseRef.current  = totalSecs
     timerRef.current = setInterval(() => {
-      setSecsLeft(s => {
-        if (s <= 1) { clearInterval(timerRef.current); setSecsLeft(0); return 0 }
-        return s - 1
-      })
-    }, 1000)
+      const elapsed    = Math.floor((Date.now() - timerEpochRef.current) / 1000)
+      const remaining  = Math.max(0, timerBaseRef.current - elapsed)
+      setSecsLeft(remaining)
+      if (remaining <= 0) clearInterval(timerRef.current)
+    }, 500)
     return () => { clearInterval(timerRef.current); clearTimeout(grace) }
-  }, [])
+  }, [])  // eslint-disable-line
 
   // ── Per-section countdown ────────────────────────────────────
   // Disabled for mini tests (Topic Practice / Section Test)
@@ -207,18 +227,43 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
     return 'Full Mock Test'
   })()
 
-  // 1) Pure decrement — only ticks down the ACTIVE section's clock. No side effects.
+  // 1) Timestamp-based — derives remaining from wall-clock, not accumulated decrements.
+  //    Background time (OS suspension on Android/iOS, browser tab freeze) is accounted
+  //    for automatically: Date.now() advances in wall time regardless of whether the
+  //    JS event loop was running. No separate appStateChange correction is needed.
+  //    On section switch: cleanup freezes the outgoing section's remaining seconds;
+  //    the new effect captures the incoming section's current value as the new base.
   useEffect(() => {
-    if (!sectionTimingOn || !activeSection) return
+    if (!sectionTimingOn || !activeSection) {
+      secEpochRef.current = null
+      return
+    }
+    secEpochRef.current = {
+      sec:   activeSection,
+      base:  secTimers[activeSection] ?? getSectionSecs(activeSection),
+      epoch: Date.now(),
+    }
     const id = setInterval(() => {
+      const e = secEpochRef.current
+      if (!e) return
+      const remaining = Math.max(0, e.base - Math.floor((Date.now() - e.epoch) / 1000))
       setSecTimers(prev => {
-        const cur = prev[activeSection]
-        if (cur === undefined || cur <= 0) return prev
-        return { ...prev, [activeSection]: cur - 1 }
+        if (prev[e.sec] === remaining) return prev   // skip no-op re-renders
+        return { ...prev, [e.sec]: remaining }
       })
-    }, 1000)
-    return () => clearInterval(id)
-  }, [activeSection, sectionTimingOn])
+    }, 500)
+    return () => {
+      // Freeze remaining time for the outgoing section so the next effect
+      // initialises from the correct base when this section becomes active again.
+      const e = secEpochRef.current
+      if (e) {
+        const frozen = Math.max(0, e.base - Math.floor((Date.now() - e.epoch) / 1000))
+        setSecTimers(prev => ({ ...prev, [e.sec]: frozen }))
+      }
+      secEpochRef.current = null
+      clearInterval(id)
+    }
+  }, [activeSection, sectionTimingOn])  // eslint-disable-line
 
   // 2) When the active section hits 0 → auto-advance to the next un-expired
   //    section (or submit if it was the last). Kept separate so the advance is
@@ -237,8 +282,12 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
     }
   }, [])
 
-  // ── FEATURE 1: Fullscreen on exam start ──────────────────────
+  // ── FEATURE 1: Fullscreen on exam start (desktop browser only) ──
+  // requestFullscreen() is not available in Capacitor's native WebView.
+  // On native the app already occupies the full screen; skip this entirely.
   useEffect(() => {
+    if (isNative) return   // native shell — fullscreen is handled by the OS
+
     const enterFullscreen = async () => {
       try {
         await document.documentElement.requestFullscreen()
@@ -251,18 +300,26 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
 
     const onFSChange = () => {
       if (!document.fullscreenElement && examStartedRef.current) {
-        addViolation('⚠ Fullscreen exited! Return to fullscreen.')
+        setViolationMsg('⚠ Fullscreen exited — please return to fullscreen to continue.')
+        setTimeout(() => setViolationMsg(''), 6000)
       }
     }
     document.addEventListener('fullscreenchange', onFSChange)
     return () => document.removeEventListener('fullscreenchange', onFSChange)
-  }, [])
+  }, [])  // eslint-disable-line
 
   // ── FEATURE 2: Tab switch / window blur detection ─────────────
+  // Strategy by platform:
+  //   Desktop browser: visibilitychange + window.blur (original behavior)
+  //   iOS Safari:      visibilitychange only (blur fires on swipe-up/control-centre)
+  //   Native (Capacitor Android/iOS): skip both — visibilitychange fires on every
+  //     home-button press, incoming call, notification shade open, etc., making it
+  //     indistinguishable from genuine exam abandonment. The App State listener
+  //     above already tracks background/resume for timer correction; we do not
+  //     penalise ordinary OS-level interruptions in the native context.
   useEffect(() => {
-    // On iOS Safari, window.blur fires on normal swipe-up / control-centre gestures,
-    // making it indistinguishable from real tab-switching. Skip blur-based violations
-    // on iOS; document.hidden (visibilitychange) is reliable there instead.
+    if (isNative) return   // native shell — OS interruptions are not violations
+
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
 
     const onVisibilityChange = () => {
@@ -270,7 +327,6 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
         addViolation('⚠ Tab switch detected! Stay on exam tab.')
       }
     }
-    // Note: window blur fires on fullscreen too — only count after grace period
     const onBlur = () => {
       if (examStartedRef.current) {
         addViolation('⚠ Window focus lost! Do not switch applications.')
@@ -282,7 +338,7 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
       document.removeEventListener('visibilitychange', onVisibilityChange)
       if (!isIOS) window.removeEventListener('blur', onBlur)
     }
-  }, [])
+  }, [])  // eslint-disable-line
 
   // ── FEATURE 3: Right-click disable ───────────────────────────
   useEffect(() => {
@@ -314,10 +370,10 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
     }
   }, [])
 
-  // ── Cleanup: exit fullscreen when exam ends ──────────────────
+  // ── Cleanup: exit fullscreen when exam ends (browser only) ──
   useEffect(() => {
     return () => {
-      if (document.fullscreenElement) {
+      if (!isNative && document.fullscreenElement) {
         document.exitFullscreen().catch(() => {})
       }
     }
