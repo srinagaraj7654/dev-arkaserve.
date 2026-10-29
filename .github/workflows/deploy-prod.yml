@@ -42,10 +42,15 @@ jobs:
         run: npm run build
 
       - name: Setup SSH key
+        env:
+          SSH_KEY: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.OCI_SSH_PRIVATE_KEY }}" > ~/.ssh/oci_key
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/oci_key
           chmod 600 ~/.ssh/oci_key
+          ssh-keygen -y -f ~/.ssh/oci_key > /dev/null 2>&1 \
+            && echo "✓ SSH key valid" \
+            || { echo "✗ OCI_SSH_PRIVATE_KEY secret is malformed — re-paste the raw private key"; exit 1; }
           ssh-keyscan -H 129.154.254.119 >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Rsync dist/ to production server
