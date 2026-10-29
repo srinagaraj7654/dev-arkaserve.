@@ -103,7 +103,7 @@ const NAV_ITEMS = [
   { id:'mock',          label:'Full Mock Test',  icon:<PIcEdit s={16}/>,   isPractice:true },
   { id:'topic',         label:'Topic Practice',  icon:<PIcTarget s={16}/>, isPractice:true },
   { id:'section',       label:'Section Test',    icon:<PIcTimer s={16}/>,  isPractice:true },
-  { id:'results',       label:'My Results',      icon:<PIcChart s={16}/> },
+  { id:'performance',   label:'My Performance',  icon:<PIcChart s={16}/> },
   { id:'planner',       label:'Study Planner',   icon:<PIcCal s={16}/> },
   { id:'subscriptions', label:'Subscriptions',   icon:<PIcCard s={16}/> },
   { id:'profile',       label:'Profile',         icon:<PIcUser s={16}/> },
@@ -152,7 +152,7 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
   function handleNav(id) {
     setMobileSide(false)
     if (id === 'dashboard')  { onNav?.('dashboard'); return }
-    if (id === 'results')    { onNav?.('results');   return }
+    if (id === 'performance'){ onNav?.('performance'); return }
     if (id === 'planner')    { onNav?.('planner');   return }
     if (id === 'subscriptions'){ onNav?.('subscriptions'); return }
     if (id === 'profile')    { onNav?.('profile');   return }
@@ -295,7 +295,7 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
               <div className="px-3 pt-4 pb-1 text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Account</div>
 
               {[
-                { id:'results',       icon:<PIcChart s={15}/>, label:'My Results'    },
+                { id:'performance',   icon:<PIcChart s={15}/>, label:'My Performance' },
                 { id:'planner',       icon:<PIcCal s={15}/>,   label:'Study Planner' },
                 { id:'subscriptions', icon:<PIcCard s={15}/>,  label:'Subscriptions' },
                 { id:'profile',       icon:<PIcUser s={15}/>,  label:'Profile'       },

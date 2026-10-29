@@ -41,7 +41,7 @@ export default function AboutPage({ onNav }) {
 
       {/* Story */}
       <section style={S.section}>
-        <div style={{...S.inner,display:'grid',gridTemplateColumns:'1fr 1fr',gap:56,alignItems:'center'}}>
+        <div style={{...S.inner,display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,420px),1fr))',gap:40,alignItems:'center'}}>
           <div>
             <div style={{width:56,height:56,background:'#FF653F',borderRadius:14,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:18,fontWeight:900,marginBottom:20}}>AK</div>
             <h2 style={S.h2}>Founded by Anil Kumar Mikkili</h2>
@@ -69,7 +69,7 @@ export default function AboutPage({ onNav }) {
             <div style={{fontSize:11,fontWeight:700,color:'#FF653F',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>Our Products</div>
             <h2 style={{...S.h2,marginBottom:0}}>What We Offer</h2>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:16}}>
             {offerings.map(o=>(
               <div key={o.title} style={{background:'#fff',border:'1.5px solid #EBEBEB',borderRadius:14,padding:24,transition:'border-color .15s,transform .15s'}}
                 onMouseOver={e=>{e.currentTarget.style.borderColor='#FF653F';e.currentTarget.style.transform='translateY(-3px)'}}

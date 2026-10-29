@@ -7,6 +7,7 @@ Microsoft/
 # Build output
 dist/
 build/
+dev-dist/
 
 # Environment — never commit real secrets
 .env
@@ -19,6 +20,10 @@ env.example
 !.env.example
 !.env.*.example
 
+# CI generates these at build time from GitHub Secrets — never commit
+.env.staging.local
+.env.production.local
+
 # Logs
 *.log
 
@@ -29,3 +34,21 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Capacitor — icon generation source directory (use public/icon-maskable-512.png as source)
+assets/
+# Capacitor — signing keys and local build caches (never commit these)
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+# Android signing passwords — never commit
+android/keystore.properties
+# Android build output
+android/.gradle/
+android/app/build/
+android/build/
+# iOS build output and CocoaPods lock (generated — not committed)
+ios/App/Pods/
+ios/App/App.xcworkspace/xcuserdata/
+ios/DerivedData/

@@ -206,7 +206,8 @@ export default function ExamDatesPage({ onNav }) {
         </div>
 
         {/* Dates table */}
-        <div style={{ background:'#fff', borderRadius:14, border:'1px solid #e2e8f0', overflow:'hidden', boxShadow:'0 2px 8px rgba(15,23,42,.05)' }}>
+        <div style={{ overflowX:'auto', borderRadius:14, boxShadow:'0 2px 8px rgba(15,23,42,.05)' }}>
+        <div style={{ background:'#fff', borderRadius:14, border:'1px solid #e2e8f0', overflow:'hidden', minWidth:500 }}>
           {/* Table header */}
           <div style={{
             display:'grid', gridTemplateColumns:'1fr 1.4fr 120px 110px',
@@ -251,6 +252,7 @@ export default function ExamDatesPage({ onNav }) {
               )
             })
           )}
+        </div>
         </div>
 
         {/* Disclaimer */}

@@ -94,31 +94,6 @@ const NAV_GROUPS = [
     allDest: 'exams',
   },
   {
-    id: 'us-exams', label: 'US Exams', dest: 'us-exams',
-    brands: [
-      {
-        label: 'SAT',
-        exams: [
-          { label: 'SAT (Digital)',         stages: [{ label:'Full Test', examId:'sat_full', dest:'us-exams' }, { label:'Math', examId:null, dest:'us-exams' }, { label:'R&W', examId:null, dest:'us-exams' }] },
-          { label: 'SAT Math',              stages: [{ label:'Practice', examId:null, dest:'us-exams' }] },
-          { label: 'SAT Reading & Writing', stages: [{ label:'Practice', examId:null, dest:'us-exams' }] },
-        ],
-      },
-      {
-        label: 'ACT',
-        exams: [
-          { label: 'ACT',         stages: [{ label:'Full Test', examId:null, dest:'us-exams' }] },
-          { label: 'ACT Science', stages: [{ label:'Practice',  examId:null, dest:'us-exams' }] },
-        ],
-      },
-      {
-        label: 'AP',
-        exams: [{ label: 'AP Exams', soon: true, stages: [] }],
-      },
-    ],
-    allDest: 'us-exams',
-  },
-  {
     id: 'engineering', label: 'Engineering', soon: true, dest: 'exams',
     brands: [
       { label: 'GATE', exams: [{ label:'GATE CS', soon:true, stages:[] }, { label:'GATE ECE', soon:true, stages:[] }, { label:'GATE ME', soon:true, stages:[] }] },
@@ -136,7 +111,7 @@ const NAV_GROUPS = [
   },
 ]
 
-const DIRECT = [{ id: 'current-affairs', label: 'Current Affairs' }]
+const DIRECT = [{ id: 'about', label: 'About Us' }]
 
 /* ─── Icons ── */
 const Chevron = ({ open, size = 10 }) => (
@@ -261,7 +236,7 @@ function DropdownPanel({ group, onNavigate }) {
 }
 
 /* ─── Main Navbar ── */
-export default function Navbar({ currentPage, onNav, user, onLogout, userRole }) {
+export default function Navbar({ currentPage, onNav, user, onLogout, userRole, darkMode = false, onToggleDark }) {
   const [openGroupId,   setOpenGroupId]   = useState(null)
   const [mobileOpen,    setMobileOpen]    = useState(false)
   const [openAccordion, setOpenAccordion] = useState(null)
@@ -314,6 +289,23 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole })
 
           {/* ── Desktop nav ── */}
           <div className="hidden xl:flex items-stretch flex-1 justify-center">
+            {DIRECT.map(item => {
+              const active = currentPage === item.id
+              return (
+                <button key={item.id} onClick={() => navigate(item.id)}
+                  style={{
+                    padding: '0 15px', background: 'none', border: 'none',
+                    borderBottom: `2px solid ${active ? '#FF653F' : 'transparent'}`,
+                    cursor: 'pointer', fontSize: 15, fontWeight: 600,
+                    color: active ? '#fff' : 'rgba(255,255,255,.92)', transition: 'all .15s', whiteSpace: 'nowrap',
+                  }}
+                  onMouseOver={e => e.currentTarget.style.color = '#fff'}
+                  onMouseOut={e => { if (!active) e.currentTarget.style.color = 'rgba(255,255,255,.92)' }}>
+                  {item.label}
+                </button>
+              )
+            })}
+
             {NAV_GROUPS.map(group => {
               const open   = openGroupId === group.id
               const active = currentPage === group.id
@@ -334,28 +326,11 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole })
                   onMouseOver={e => { if (!open && !active) e.currentTarget.style.color = '#fff' }}
                   onMouseOut={e => { if (!open && !active) e.currentTarget.style.color = 'rgba(255,255,255,.92)' }}>
                     {group.label}
-                    {group.soon && <span style={{ fontSize: 9, fontWeight: 800, color: '#f59e0b', background: 'rgba(245,158,11,.15)', borderRadius: 99, padding: '2px 6px', letterSpacing: '.04em' }}>SOON</span>}
+                    {group.soon && <span style={{ fontSize: 7, fontWeight: 800, color: '#f59e0b', background: 'rgba(245,158,11,.12)', borderRadius: 99, padding: '1px 4px', letterSpacing: '.06em', verticalAlign: 'super', lineHeight: 1 }}>SOON</span>}
                   </button>
 
                   {open && !group.soon && <DropdownPanel group={group} onNavigate={navigate} />}
                 </div>
-              )
-            })}
-
-            {DIRECT.map(item => {
-              const active = currentPage === item.id
-              return (
-                <button key={item.id} onClick={() => navigate(item.id)}
-                  style={{
-                    padding: '0 15px', background: 'none', border: 'none',
-                    borderBottom: `2px solid ${active ? '#FF653F' : 'transparent'}`,
-                    cursor: 'pointer', fontSize: 15, fontWeight: 600,
-                    color: active ? '#fff' : 'rgba(255,255,255,.92)', transition: 'all .15s', whiteSpace: 'nowrap',
-                  }}
-                  onMouseOver={e => e.currentTarget.style.color = '#fff'}
-                  onMouseOut={e => { if (!active) e.currentTarget.style.color = 'rgba(255,255,255,.92)' }}>
-                  {item.label}
-                </button>
               )
             })}
 
@@ -371,6 +346,18 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole })
               </button>
             )}
           </div>
+
+          {/* ── Dark mode toggle ── */}
+          {onToggleDark && (
+            <button
+              onClick={onToggleDark}
+              title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              style={{ background:'none', border:'1px solid rgba(255,255,255,.18)', borderRadius:8, padding:'6px 8px', cursor:'pointer', color:'rgba(255,255,255,.75)', flexShrink:0, lineHeight:1 }}
+              onMouseOver={e=>e.currentTarget.style.background='rgba(255,255,255,.08)'}
+              onMouseOut={e=>e.currentTarget.style.background='none'}>
+              {darkMode ? '☀️' : '🌙'}
+            </button>
+          )}
 
           {/* ── Desktop auth ── */}
           <div className="hidden xl:flex items-center gap-2 flex-shrink-0">
@@ -557,7 +544,7 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole })
                   <button onClick={() => navigate('auth')}
                     className="w-full text-white text-sm py-3 rounded-xl font-bold"
                     style={{ background: '#FF653F', border: 'none', cursor: 'pointer' }}>
-                    Start Free Test →
+                    Start Free →
                   </button>
                   <button onClick={() => navigate('auth')}
                     className="w-full text-sm py-3 rounded-xl font-semibold"

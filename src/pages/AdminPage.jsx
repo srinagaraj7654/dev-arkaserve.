@@ -1,12 +1,22 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../api.js'
 
-const ADMIN_KEY = import.meta.env.VITE_ADMIN_KEY || 'mta-9x7k-2026-AST-qbank-prod'
+const ADMIN_KEY = import.meta.env.VITE_ADMIN_KEY || ''
 const headers   = { 'x-admin-key': ADMIN_KEY }
 
 const EXAM_IDS = [
-  'bank_clerk_prelims','coal_india_mt','upsc_prelims',
-  'ssc_cgl','gate_cs','gre_general','ielts_academic','cfa_level1'
+  // Banking — IBPS
+  'bank_clerk_prelims','bank_clerk_mains','bank_po_prelims','bank_po_mains',
+  // Banking — SBI
+  'sbi_clerk_prelims','sbi_clerk_mains','sbi_po_prelims','sbi_po_mains',
+  // Banking — RRB
+  'rrb_office_assistant_prelims','rrb_officer_scale1_prelims',
+  // SSC
+  'ssc_cgl_tier1','ssc_chsl_tier1','ssc_mts_paper1','ssc_cpo_tier1',
+  // Engineering
+  'ap_eamcet_engg','ts_eamcet_engg',
+  // US Exams
+  'sat_full','sat_math','sat_reading_writing','act_full','act_math','act_english','act_reading',
 ]
 
 export default function AdminPage({ onBack }) {

@@ -195,7 +195,7 @@ function ExamsMegaMenu({ onClose, onNav }) {
       <div style={{ position:'fixed', inset:0, zIndex:298 }} onClick={onClose} />
 
       {/* Solid panel — compact dropdown below the navbar (58px) */}
-      <div style={{
+      <div className="mega-panel" style={{
         position:'fixed', top:58, left:0, right:0,
         background:'#0f172a', zIndex:299,
         borderTop:'1px solid rgba(255,255,255,.08)',
@@ -203,7 +203,7 @@ function ExamsMegaMenu({ onClose, onNav }) {
         boxShadow:'0 16px 48px rgba(0,0,0,.6)',
       }}>
         {/* Content wrapper */}
-        <div style={{ maxWidth:1200, margin:'0 auto', width:'100%', padding:'36px 48px 40px', position:'relative' }}>
+        <div className="mega-content" style={{ maxWidth:1200, margin:'0 auto', width:'100%', padding:'36px 48px 40px', position:'relative' }}>
 
           {/* Close button */}
           <button
@@ -226,10 +226,10 @@ function ExamsMegaMenu({ onClose, onNav }) {
             </h2>
           </div>
 
-          {/* Category grid — 6 equal columns, always one row */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:'0 32px' }}>
+          {/* Category grid — 6 cols desktop, 3 tablet, 2 mobile */}
+          <div className="mega-grid" style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:'0 32px' }}>
             {MEGA_CATS.map(cat => (
-              <div key={cat.cat}>
+              <div key={cat.cat} className="mega-cat-col">
                 <div style={{ fontSize:11, fontWeight:800, color:cat.color, letterSpacing:'.12em', marginBottom:16, textTransform:'uppercase' }}>
                   {cat.cat}
                 </div>
@@ -345,6 +345,17 @@ function LandingPage({ onNav, initialTab='home' }) {
           .fu{animation-duration:.2s!important;animation-delay:0s!important}
         }
         @media(prefers-reduced-motion:reduce){.fu{animation:none!important;opacity:1!important}}
+        /* MEGA MENU RESPONSIVE */
+        .mega-panel{overflow-y:auto;max-height:calc(100vh - 58px)}
+        @media(max-width:1023px){
+          .mega-grid{grid-template-columns:repeat(3,1fr)!important;gap:24px 24px!important}
+          .mega-content{padding:24px 28px 28px!important}
+        }
+        @media(max-width:639px){
+          .mega-grid{display:block!important;columns:2!important;column-gap:16px!important}
+          .mega-content{padding:20px 16px 24px!important}
+          .mega-cat-col{break-inside:avoid;margin-bottom:20px;display:inline-block;width:100%}
+        }
       `}</style>
 
       {/* NAV is now the shared <Navbar/> rendered by App.jsx (consistent across all pages) */}
@@ -385,7 +396,7 @@ function LandingPage({ onNav, initialTab='home' }) {
 
               {/* Headline */}
               <h1 style={{fontSize:'clamp(32px,3.8vw,56px)',fontWeight:900,color:'#fff',lineHeight:1.15,marginBottom:20,letterSpacing:'-1.5px'}}>
-                Your Study Coach for
+                <span style={{whiteSpace:'nowrap'}}>Your Study Coach for</span>
                 <br/>
                 <span style={{color:'#FF653F',fontSize:'clamp(22px,2.6vw,38px)',letterSpacing:'-1px'}}>Every Competitive Exam Goal</span>
               </h1>

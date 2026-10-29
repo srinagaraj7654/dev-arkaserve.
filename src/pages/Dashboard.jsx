@@ -4,6 +4,8 @@ import { startCheckout } from '../payments.js'
 import { toast } from '../toast.js'
 import { getExamBlueprint } from '../api.js'
 import { EXAMS as CUTOFF_EXAMS } from './CutoffsPage.jsx'
+import PerformancePage from './PerformancePage.jsx'
+import PredictionPage from './PredictionPage.jsx'
 import {
   LineChart, Line, BarChart, Bar, RadarChart, Radar,
   PolarGrid, PolarAngleAxis, XAxis, YAxis, CartesianGrid,
@@ -58,39 +60,39 @@ export const EXAM_GROUPS = [
     id: 'rbi', label: 'RBI Exams',
     color: 'from-rose-500 to-rose-600', hex: '#e11d48',
     exams: [
-      { id: 'rbi_assistant_pre',   name: 'Assistant Prelims', sub: '100Q · 60 min',  tag: 'New', tagColor: 'bg-rose-100 text-rose-700' },
-      { id: 'rbi_assistant_mains', name: 'Assistant Mains',   sub: '200Q · 135 min', tag: null },
-      { id: 'rbi_gradeb_p1',       name: 'Grade B (Phase 1)', sub: '200Q · 120 min', tag: null },
+      { id: 'rbi_assistant_pre',   name: 'Assistant Prelims', sub: '100Q · 60 min',  tag: 'Coming Soon', tagColor: 'bg-gray-100 text-gray-500', comingSoon: true },
+      { id: 'rbi_assistant_mains', name: 'Assistant Mains',   sub: '200Q · 135 min', tag: 'Coming Soon', tagColor: 'bg-gray-100 text-gray-500', comingSoon: true },
+      { id: 'rbi_gradeb_p1',       name: 'Grade B (Phase 1)', sub: '200Q · 120 min', tag: 'Coming Soon', tagColor: 'bg-gray-100 text-gray-500', comingSoon: true },
     ],
   },
   {
     id: 'nabard', label: 'NABARD Exams',
     color: 'from-green-600 to-green-700', hex: '#16a34a',
     exams: [
-      { id: 'nabard_gradeA_pre', name: 'Grade A Prelims',          sub: '200Q · 120 min', tag: null },
-      { id: 'nabard_da_pre',     name: 'Development Assistant',     sub: '100Q · 60 min',  tag: null },
+      { id: 'nabard_gradeA_pre', name: 'Grade A Prelims',      sub: '200Q · 120 min', tag: 'Coming Soon', tagColor: 'bg-gray-100 text-gray-500', comingSoon: true },
+      { id: 'nabard_da_pre',     name: 'Development Assistant', sub: '100Q · 60 min',  tag: 'Coming Soon', tagColor: 'bg-gray-100 text-gray-500', comingSoon: true },
     ],
   },
   {
     id: 'lic', label: 'LIC Exams',
     color: 'from-blue-600 to-blue-700', hex: '#2563eb',
     exams: [
-      { id: 'lic_aao_pre',       name: 'AAO Prelims',       sub: '100Q · 60 min',  tag: null },
-      { id: 'lic_aao_mains',     name: 'AAO Mains',         sub: '120Q · 120 min', tag: 'New', tagColor: 'bg-blue-100 text-blue-700' },
-      { id: 'lic_assistant_pre', name: 'Assistant Prelims', sub: '100Q · 60 min',  tag: null },
-      { id: 'lic_ado_pre',       name: 'ADO Prelims',       sub: '100Q · 60 min',  tag: null },
-      { id: 'lic_ado_mains',     name: 'ADO Mains',         sub: '120Q · 120 min', tag: 'New', tagColor: 'bg-blue-100 text-blue-700' },
+      { id: 'lic_aao_pre',       name: 'AAO Prelims',       sub: '100Q · 60 min',  tag: 'Coming Soon', tagColor: 'bg-gray-100 text-gray-500', comingSoon: true },
+      { id: 'lic_aao_mains',     name: 'AAO Mains',         sub: '120Q · 120 min', tag: 'Coming Soon', tagColor: 'bg-gray-100 text-gray-500', comingSoon: true },
+      { id: 'lic_assistant_pre', name: 'Assistant Prelims', sub: '100Q · 60 min',  tag: 'Coming Soon', tagColor: 'bg-gray-100 text-gray-500', comingSoon: true },
+      { id: 'lic_ado_pre',       name: 'ADO Prelims',       sub: '100Q · 60 min',  tag: 'Coming Soon', tagColor: 'bg-gray-100 text-gray-500', comingSoon: true },
+      { id: 'lic_ado_mains',     name: 'ADO Mains',         sub: '120Q · 120 min', tag: 'Coming Soon', tagColor: 'bg-gray-100 text-gray-500', comingSoon: true },
     ],
   },
   {
     id: 'insurance', label: 'Insurance Exams',
     color: 'from-cyan-600 to-cyan-700', hex: '#0891b2',
     exams: [
-      { id: 'niacl_ao_pre',       name: 'NIACL AO Prelims',       sub: '100Q · 60 min', tag: null },
-      { id: 'niacl_assistant_pre', name: 'NIACL Assistant Prelims', sub: '100Q · 60 min', tag: null },
-      { id: 'nicl_ao_pre',         name: 'NICL AO Prelims',         sub: '100Q · 60 min', tag: null },
-      { id: 'uiic_ao_pre',         name: 'UIIC AO Prelims',         sub: '100Q · 60 min', tag: null },
-      { id: 'oicl_ao_pre',         name: 'OICL AO Prelims',         sub: '100Q · 60 min', tag: null },
+      { id: 'niacl_ao_pre',        name: 'NIACL AO Prelims',        sub: '100Q · 60 min', tag: 'Coming Soon', tagColor: 'bg-gray-100 text-gray-500', comingSoon: true },
+      { id: 'niacl_assistant_pre', name: 'NIACL Assistant Prelims',  sub: '100Q · 60 min', tag: 'Coming Soon', tagColor: 'bg-gray-100 text-gray-500', comingSoon: true },
+      { id: 'nicl_ao_pre',         name: 'NICL AO Prelims',          sub: '100Q · 60 min', tag: 'Coming Soon', tagColor: 'bg-gray-100 text-gray-500', comingSoon: true },
+      { id: 'uiic_ao_pre',         name: 'UIIC AO Prelims',          sub: '100Q · 60 min', tag: 'Coming Soon', tagColor: 'bg-gray-100 text-gray-500', comingSoon: true },
+      { id: 'oicl_ao_pre',         name: 'OICL AO Prelims',          sub: '100Q · 60 min', tag: 'Coming Soon', tagColor: 'bg-gray-100 text-gray-500', comingSoon: true },
     ],
   },
   {
@@ -222,6 +224,8 @@ const SvgUser   = () => <svg width="16" height="16" viewBox="0 0 20 20" fill="no
 const SvgCard   = () => <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="5" width="16" height="12" rx="2"/><path d="M2 9h16"/></svg>
 const SvgGear   = () => <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="10" cy="10" r="3"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42"/></svg>
 const SvgFlame  = () => <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 18s-7-4-7-9a7 7 0 0114 0c0 5-7 9-7 9z"/><path d="M10 14s-3-2-3-4a3 3 0 016 0c0 2-3 4-3 4z" fill="currentColor" stroke="none"/></svg>
+const SvgTrend  = () => <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="2 14 7 9 11 13 18 4"/><polyline points="14 4 18 4 18 8"/></svg>
+const SvgBolt   = () => <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 2 2 11 9 11 9 18 18 9 11 9 11 2"/></svg>
 
 const MODES = [
   { id:'mock',    label:'Full Mock Test',  desc:'Complete paper · all sections · timed · negative marking · download PDF result', Icon:SvgDoc,    bg:'bg-blue-600',    light:'bg-blue-50',    text:'text-blue-700',    border:'border-blue-200'    },
@@ -239,7 +243,8 @@ const SIDEBAR_NAV = [
   { id:'home',          Icon:SvgHome,  label:'Dashboard'     },
   { id:'explore',       Icon:SvgDoc,   label:'Explore Exams' },
   { id:'studyplan',     Icon:SvgCal,   label:'Study Planner' },
-  { id:'results',       Icon:SvgChart, label:'My Results'    },
+  { id:'performance',   Icon:SvgTrend, label:'My Performance' },
+  { id:'prediction',    Icon:SvgBolt,  label:'AI Prediction'  },
   { id:'weakareas',     Icon:SvgFlame, label:'Weak Areas'    },
   { id:'subscriptions', Icon:SvgClip,  label:'Subscriptions' },
   { id:'profile',       Icon:SvgUser,  label:'Profile'       },
@@ -822,16 +827,19 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
   const [planLoading,    setPlanLoading]   = useState(true)   // true until Supabase responds
 
   /* ── profile state ── */
-  const [profileEdit,   setProfileEdit]   = useState(false)
-  const [profileName,   setProfileName]   = useState(user?.user_metadata?.full_name || '')
-  const [profilePhone,  setProfilePhone]  = useState(user?.user_metadata?.phone || '')
-  const [profileSaving, setProfileSaving] = useState(false)
-  const [profileMsg,    setProfileMsg]    = useState('')
+  const [profileEdit,     setProfileEdit]     = useState(false)
+  const [profileName,     setProfileName]     = useState(user?.user_metadata?.full_name || '')
+  const [profilePhone,    setProfilePhone]    = useState(user?.user_metadata?.phone || '')
+  const [profileDob,      setProfileDob]      = useState(user?.user_metadata?.dob || '')
+  const [profileGender,   setProfileGender]   = useState(user?.user_metadata?.gender || '')
+  const [profileReferral, setProfileReferral] = useState(user?.user_metadata?.referral_source || '')
+  const [profileSaving,   setProfileSaving]   = useState(false)
+  const [profileMsg,      setProfileMsg]      = useState('')
   // educational status
   const [profileCategory, setProfileCategory] = useState(user?.user_metadata?.category || 'UR')
   const [profileState,    setProfileState]    = useState(user?.user_metadata?.state || '')
   const [profileLevel,    setProfileLevel]    = useState(user?.user_metadata?.level || '')
-  const [profileExam,     setProfileExam]     = useState(user?.user_metadata?.target_exam || (examRegion === 'us' ? 'sat_full' : 'bank_clerk_prelims'))
+  const [profileExam,     setProfileExam]     = useState(user?.user_metadata?.target_exam || 'bank_clerk_prelims')
   const [eduEdit,         setEduEdit]         = useState(false)
   const [eduSaving,       setEduSaving]       = useState(false)
   // password change
@@ -843,26 +851,33 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
   const [notifNoSubs,  setNotifNoSubs]  = useState(!!user?.user_metadata?.notif_off_subs)
   const [notifNoPromo, setNotifNoPromo] = useState(!!user?.user_metadata?.notif_off_promo)
   const [notifSaving,  setNotifSaving]  = useState(false)
+  const [avatarUrl,       setAvatarUrl]       = useState(user?.user_metadata?.avatar_url || '')
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const avatarInputRef = useRef(null)
 
   /* ── selected / target exam state ── */
   const [selectedExamId, setSelectedExamId] = useState(
-    user?.user_metadata?.target_exam || (examRegion === 'us' ? 'sat_full' : 'bank_clerk_prelims')
+    user?.user_metadata?.target_exam || 'bank_clerk_prelims'
   )
   // true only once the user has actually picked an exam (not skipped onboarding)
   const [examChosen,     setExamChosen]     = useState(!!user?.user_metadata?.target_exam)
   const [showAllExams,   setShowAllExams]   = useState(false)
   const [changingExam,   setChangingExam]   = useState(false)
   const [examSaving,     setExamSaving]     = useState(false)
+  const [waFilter,       setWaFilter]       = useState('all')   // weak-areas section filter
 
-  /* region-aware exam groups, practice modes, and topic groups */
-  const ACTIVE_GROUPS       = examRegion === 'us' ? SAT_EXAM_GROUPS  : EXAM_GROUPS
-  const ACTIVE_MODES        = examRegion === 'us' ? SAT_MODES        : MODES
+  /* show all exam groups regardless of region so users see their full history */
+  const ACTIVE_GROUPS       = [...EXAM_GROUPS, ...SAT_EXAM_GROUPS]
   const ACTIVE_TOPIC_GROUPS = examRegion === 'us' ? SAT_TOPIC_GROUPS : TOPIC_GROUPS
 
   /* flatten all exams + find the selected one and its group */
   const ALL_EXAMS_FLAT = ACTIVE_GROUPS.flatMap(g => g.exams.map(e => ({ ...e, groupId: g.id, groupLabel: g.label, groupColor: g.color })))
   const selectedExam   = ALL_EXAMS_FLAT.find(e => e.id === selectedExamId) || ALL_EXAMS_FLAT[0]
   const selectedGroup  = ACTIVE_GROUPS.find(g => g.id === selectedExam?.groupId) || ACTIVE_GROUPS[0]
+
+  /* practice modes based on the currently selected exam group, not the user's region */
+  const SAT_GROUP_IDS = new Set(['sat', 'act', 'psat', 'ap_math_science', 'ap_humanities'])
+  const ACTIVE_MODES  = SAT_GROUP_IDS.has(selectedGroup?.id) ? SAT_MODES : MODES
 
   /* persist a new target exam to Supabase user_metadata */
   const handleChangeExam = async (examId) => {
@@ -911,13 +926,13 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
 
   /* Derived live each render (not one-time state) so the "pick an exam" hero
      never flashes for returning users while their data is still loading. */
-  const hasChosenExam = examRegion === 'us'
-    || examChosen
+  const hasChosenExam = examChosen
     || !!user?.user_metadata?.target_exam
     || (Array.isArray(user?.user_metadata?.selected_exams) && user.user_metadata.selected_exams.length > 0)
     || history.length > 0
   const FREE_OPEN_IDS = new Set(['ap_eamcet_engg', 'ts_eamcet_engg'])
-  const visibleGroupExams = (examRegion === 'us' || isPro)
+  const isSATGroup = selectedGroup?.id === 'sat' || selectedGroup?.id === 'act' || selectedGroup?.id === 'psat' || selectedGroup?.id?.startsWith('ap_')
+  const visibleGroupExams = (isSATGroup || isPro)
     ? selectedGroup.exams
     : selectedGroup.exams.filter(e => registeredExamIds.includes(e.id) || e.id === selectedExamId || FREE_OPEN_IDS.has(e.id))
   const examBest    = examResults.length ? Math.max(...examResults.map(r => r.percentage || 0)) : null
@@ -1130,13 +1145,39 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
 
   const handleSaveProfile = async () => {
     setProfileSaving(true); setProfileMsg('')
-    await supabase.auth.updateUser({ data: { full_name: profileName, phone: profilePhone } })
+    await supabase.auth.updateUser({ data: {
+      full_name: profileName, phone: profilePhone,
+      dob: profileDob, gender: profileGender, referral_source: profileReferral,
+    }})
     try {
-      await supabase.from('profiles').upsert({ id: user.id, full_name: profileName, phone: profilePhone }, { onConflict: 'id' })
+      await supabase.from('profiles').upsert({
+        id: user.id, full_name: profileName, phone: profilePhone,
+        dob: profileDob || null, gender: profileGender || null, referral_source: profileReferral || null,
+      }, { onConflict: 'id' })
       await supabase.from('student_onboarding').upsert({ student_id: user.id, phone: profilePhone, updated_at: new Date().toISOString() }, { onConflict: 'student_id' })
     } catch (_) {}
     setProfileSaving(false); setProfileEdit(false)
     setProfileMsg('✓ Saved'); setTimeout(() => setProfileMsg(''), 2500)
+  }
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) { toast('Please select an image file', 'error'); return }
+    if (file.size > 5 * 1024 * 1024) { toast('Image must be under 5 MB', 'error'); return }
+    setAvatarUploading(true)
+    const ext = file.name.split('.').pop()
+    const path = `${user.id}/avatar.${ext}`
+    const { error: upErr } = await supabase.storage
+      .from('avatars')
+      .upload(path, file, { upsert: true, contentType: file.type })
+    if (upErr) { setAvatarUploading(false); toast('Upload failed: ' + upErr.message, 'error'); return }
+    const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
+    await supabase.auth.updateUser({ data: { avatar_url: publicUrl } })
+    setAvatarUrl(publicUrl)
+    setAvatarUploading(false)
+    toast('Photo updated!', 'success')
+    if (avatarInputRef.current) avatarInputRef.current.value = ''
   }
 
   const handleSaveEdu = async () => {
@@ -1228,8 +1269,8 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
             <button onClick={()=>setUserMenuOpen(o=>!o)}
               className="flex items-center gap-2 rounded-full transition-all"
               style={{background:'#f3f4f6',border:'1px solid #e5e7eb',padding:'5px 12px 5px 5px',cursor:'pointer',outline:'none',position:'relative',zIndex:50}}>
-              <div style={{width:30,height:30,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:900,color:'#fff',flexShrink:0}}>
-                {(userName[0]||'U').toUpperCase()}
+              <div style={{width:30,height:30,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:900,color:'#fff',flexShrink:0,overflow:'hidden'}}>
+                {avatarUrl ? <img src={avatarUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/> : (userName[0]||'U').toUpperCase()}
               </div>
               <span style={{fontSize:13,fontWeight:700,color:'#111827',maxWidth:100,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                 {(userName||'').split(' ')[0].replace(/\b\w/g,c=>c.toUpperCase())}
@@ -1252,8 +1293,8 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                 {/* User info header */}
                 <div style={{padding:'14px 16px 12px',borderBottom:'1px solid #f5f5f5'}}>
                   <div style={{display:'flex',alignItems:'center',gap:10}}>
-                    <div style={{width:36,height:36,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:900,color:'#fff',flexShrink:0}}>
-                      {(userName[0]||'U').toUpperCase()}
+                    <div style={{width:36,height:36,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:900,color:'#fff',flexShrink:0,overflow:'hidden'}}>
+                      {avatarUrl ? <img src={avatarUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/> : (userName[0]||'U').toUpperCase()}
                     </div>
                     <div style={{minWidth:0}}>
                       <div style={{fontSize:13,fontWeight:800,color:'#111827',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{userName}</div>
@@ -1340,661 +1381,499 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
           <div className="flex-1 py-6 px-4 sm:px-8 lg:px-12">
 
             {/* ── HOME tab ── */}
-            {activeTab === 'home' && <>
-              <style>{`
-                .dh-btn{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;padding:9px 18px;border-radius:9px;cursor:pointer;transition:all .15s;border:none;white-space:nowrap;letter-spacing:-.01em}
-                .dh-btn-primary{background:#FF653F;color:#fff;box-shadow:0 2px 10px rgba(255,101,63,.30)}
-                .dh-btn-primary:hover{box-shadow:0 4px 16px rgba(255,101,63,.44);transform:translateY(-1px)}
-                .dh-btn-ghost{background:#fff;color:#374151;box-shadow:0 0 0 1.5px #e5e7eb}
-                .dh-btn-ghost:hover{box-shadow:0 0 0 1.5px #d1d5db;background:#f9fafb}
-                .dh-pill{display:inline-flex;align-items:center;padding:6px 13px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;transition:all .12s;background:#fff;box-shadow:0 0 0 1.5px #e5e7eb;color:#374151}
-                .dh-pill:hover{box-shadow:0 0 0 1.5px #FF653F;color:#FF653F}
-                .dh-pill.active{background:#FF653F;color:#fff;box-shadow:0 2px 8px rgba(255,101,63,.28)}
-                .dh-mode-btn{display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid #f0f0f0;background:#fff;cursor:pointer;transition:all .13s;text-align:left}
-                .dh-mode-btn:hover{border-color:#fec9b0;background:#fffaf8;box-shadow:0 2px 10px rgba(255,101,63,.08)}
-                .dh-card{background:#fafafa;border:1px solid #f0f0f0;border-radius:14px;padding:20px}
-                .dh-lbl{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b0b8c4;margin-bottom:10px}
-                .dh-result-row{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid #f5f5f5;background:none;border-left:none;border-right:none;border-top:none;width:100%;cursor:pointer;transition:background .1s;border-radius:0}
-                .dh-result-row:last-child{border-bottom:none}
-                .dh-result-row:hover{background:#fafafa}
-                .dh-sec-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:1px}
-                @media(max-width:860px){
-                  .dh-grid{flex-direction:column!important}
-                  .dh-left{padding-right:0!important}
-                  .dh-right{width:100%!important;flex-shrink:1!important;border-left:none!important;padding-left:0!important;margin-top:28px;border-top:1px solid #f0f0f0;padding-top:28px}
-                  .dh-right-inner{display:grid!important;grid-template-columns:1fr 1fr!important;gap:16px!important}
-                }
-                @media(max-width:600px){
-                  .dh-header-row{flex-direction:column!important;gap:12px!important}
-                  .dh-header-btns{padding-top:0!important}
-                  .dh-right-inner{grid-template-columns:1fr!important}
-                }
-              `}</style>
+            {activeTab === 'home' && (() => {
+              const now = new Date()
+              const todayStr = now.toDateString()
+              const weekAgo = new Date(+now - 7*864e5)
+              const testsToday = history.filter(r => new Date(r.created_at).toDateString() === todayStr).length
+              const testsThisWeek = history.filter(r => new Date(r.created_at) >= weekAgo).length
+              const lastTest = history[0]
+              const _toT2 = s => (s||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
+              const lastTestName = lastTest
+                ? (lastTest.test_type==='topic_diagnostic' ? `Topic · ${_toT2(lastTest.topic||'')}`
+                  : lastTest.test_type==='mini'||lastTest.test_type==='concept_mini' ? `Practice · ${_toT2(lastTest.section||lastTest.topic||'')}`
+                  : `Mock · ${_toT2(lastTest.exam)||''}`)
+                : ''
+              const lastPct = lastTest ? Math.round(Number(lastTest.percentage||0)) : 0
+              const todayDow = now.getDay()
+              const weekActivity = Array.from({length:7}, (_,i) => {
+                const d = new Date(+now - (6-i)*864e5)
+                return history.some(r => new Date(r.created_at).toDateString() === d.toDateString())
+              })
+              const cd = document.documentElement.classList.contains('dark')
+              const _s = cd ? '#161b24' : '#fff'
+              const _b = cd ? '#232c3a' : '#efefef'
+              const _t = cd ? '#f1f5f9' : '#111827'
+              const _m = cd ? '#94a3b8' : '#6b7280'
+              const _a = '#FF653F'
+              const shortLbl2 = l => l.replace(/\s*(exams?|tests?)\s*$/i,'').trim()
 
-              {/* ── Header ── */}
-              <div className="dh-header-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,paddingBottom:16,marginBottom:22}}>
-                <div style={{minWidth:0,flex:1}}>
-                  <h1 style={{fontSize:24,fontWeight:900,color:'#111827',letterSpacing:'-.03em',lineHeight:1.2,margin:0}}>
-                    Welcome back, {(userName||'').split(' ')[0].replace(/\b\w/g,c=>c.toUpperCase())}
-                  </h1>
-                  <p style={{margin:'6px 0 0',fontSize:13.5,color:'#6b7280',fontWeight:500,lineHeight:1.5}}>
-                    {[
-                      'The score you want tomorrow is earned in the quiet hours you put in today.',
-                      'Preparation isn\'t a moment — it\'s a discipline you choose every single day.',
-                      'Champions are made long before the exam hall — they\'re made right here, right now.',
-                      'Every session you show up for is quietly building the version of you that succeeds.',
-                      'Your dedication in these hours is the difference between almost and absolutely.',
-                      'Small, consistent effort compounds into extraordinary results — keep going.',
-                      'The exam doesn\'t test potential; it reveals preparation. Make yours count.',
-                    ][new Date().getDay()]}
-                  </p>
+              return <>
+                <style>{`
+                  .ht-card{background:${_s};border:1px solid ${_b};border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,${cd?.15:.04})}
+                  .ht-title{font-size:13px;font-weight:700;color:${_t};margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+                  .ht-qa-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+                  .ht-qa-btn{background:${_s};border:1px solid ${_b};border-radius:12px;padding:14px 14px 12px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:9px;transition:all .15s;text-align:left;width:100%}
+                  .ht-qa-btn:hover{border-color:${_a};box-shadow:0 4px 16px rgba(255,101,63,.12);transform:translateY(-1px)}
+                  .ht-mid-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
+                  .ht-mid-card{background:${_s};border:1px solid ${_b};border-radius:14px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,${cd?.12:.03})}
+                  .ht-two-col{display:grid;grid-template-columns:1fr 280px;gap:20px}
+                  .ht-greet-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16;flex-wrap:wrap}
+                  .ht-greet-text{min-width:0;flex:1;min-width:180px}
+                  .ht-chips{display:flex;gap:10;flex-shrink:0;flex-wrap:wrap}
+                  .ht-cont-card{display:flex;align-items:center;gap:16;flex-wrap:wrap}
+                  .ht-cont-body{flex:1;min-width:0}
+                  .ht-cont-title{font-size:15px;font-weight:900;color:#fff;margin-bottom:7px;letter-spacing:-.01em;overflow-wrap:break-word;word-break:break-word;hyphens:auto}
+                  .ht-cont-btns{display:flex;gap:9px;flex-shrink:0;flex-wrap:wrap;align-items:center}
+                  @media(max-width:980px){.ht-two-col{grid-template-columns:1fr!important}.ht-qa-grid{grid-template-columns:1fr 1fr!important}}
+                  @media(max-width:640px){.ht-mid-row{grid-template-columns:1fr 1fr!important}.ht-qa-grid{grid-template-columns:1fr 1fr!important}}
+                  @media(max-width:520px){
+                    .ht-greet-row{flex-direction:column;gap:12px}
+                    .ht-chips{flex-direction:row;width:100%}
+                    .ht-cont-card{flex-direction:column;align-items:flex-start}
+                    .ht-cont-btns{width:100%;flex-wrap:nowrap}
+                    .ht-cont-btns button{flex:1;justify-content:center}
+                    .ht-mid-row{grid-template-columns:1fr!important}
+                    .ht-qa-grid{grid-template-columns:1fr 1fr!important}
+                  }
+                `}</style>
+
+                {/* ── 1. Greeting strip ── */}
+                <div style={{position:'relative',borderRadius:18,overflow:'hidden',
+                  background:cd?'linear-gradient(135deg,#12151a 0%,#1a1d2e 100%)':'linear-gradient(135deg,#fff8f5 0%,#fff3ee 100%)',
+                  border:`1px solid ${cd?'#232c3a':'#ffdece'}`,
+                  boxShadow:cd?'0 2px 20px rgba(0,0,0,.35)':'0 4px 24px rgba(255,101,63,.08)',
+                  marginBottom:18,padding:'22px 28px 22px 32px'}}>
+                  <div style={{position:'absolute',left:0,top:0,bottom:0,width:4,background:'linear-gradient(180deg,#FF653F,#ff9c68)'}}/>
+                  <div style={{position:'absolute',top:-40,right:-20,width:160,height:160,borderRadius:'50%',background:'radial-gradient(circle,rgba(255,101,63,.12) 0%,transparent 70%)',pointerEvents:'none'}}/>
+                  <div style={{position:'absolute',bottom:-30,right:120,width:100,height:100,borderRadius:'50%',background:'radial-gradient(circle,rgba(255,160,90,.08) 0%,transparent 70%)',pointerEvents:'none'}}/>
+                  <div className="ht-greet-row" style={{position:'relative'}}>
+                    <div className="ht-greet-text">
+                      <div style={{fontSize:10,fontWeight:800,color:_a,letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}}>Dashboard</div>
+                      <h1 style={{fontSize:24,fontWeight:900,color:cd?'#fff':_t,letterSpacing:'-.03em',lineHeight:1.2,margin:'0 0 8px'}}>
+                        {history.length?`Welcome back, ${(userName||'').split(' ')[0].replace(/\b\w/g,c=>c.toUpperCase())}! 👋`:`Hello, ${(userName||'').split(' ')[0].replace(/\b\w/g,c=>c.toUpperCase())}!`}
+                      </h1>
+                      <p style={{margin:0,fontSize:13,color:_m,fontWeight:500,lineHeight:1.65,maxWidth:460}}>
+                        {['The score you want tomorrow is earned in the quiet hours you put in today.','Preparation isn\'t a moment — it\'s a discipline you choose every single day.','Champions are made long before the exam hall — they\'re made right here, right now.','Every session you show up for is quietly building the version of you that succeeds.','Your dedication in these hours is the difference between almost and absolutely.','Small, consistent effort compounds into extraordinary results — keep going.','The exam doesn\'t test potential; it reveals preparation. Make yours count.'][new Date().getDay()]}
+                      </p>
+                    </div>
+                    {history.length > 0 && (
+                      <div className="ht-chips">
+                        {[
+                          {v:history.length,lbl:'Tests',c:cd?'#fff':_t},
+                          ...(examBest!=null?[{v:`${Math.round(examBest)}%`,lbl:'Best',c:_a}]:[]),
+                          ...(hasChosenExam&&readiness>0?[{v:`${readiness}%`,lbl:'Ready',c:readiness>=70?'#16a34a':readiness>=45?'#d97706':'#dc2626'}]:[]),
+                        ].map(chip=>(
+                          <div key={chip.lbl} style={{background:cd?'rgba(255,255,255,.08)':'rgba(255,255,255,.9)',backdropFilter:'blur(8px)',borderRadius:12,padding:'10px 16px',border:`1px solid ${cd?'rgba(255,255,255,.12)':'rgba(255,101,63,.14)'}`,textAlign:'center',minWidth:62}}>
+                            <div style={{fontSize:22,fontWeight:900,color:chip.c,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{chip.v}</div>
+                            <div style={{fontSize:9,fontWeight:700,color:_m,marginTop:4,letterSpacing:'.06em',textTransform:'uppercase'}}>{chip.lbl}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* ── Two-column body ── */}
-              <div className="dh-grid" style={{display:'flex',gap:0}}>
+                {/* ── 2. Continue / Start card ── */}
+                {history.length > 0 ? (
+                  <div className="ht-cont-card" style={{background:'linear-gradient(135deg,#FF653F 0%,#ff8a5f 100%)',borderRadius:16,padding:'20px 24px',marginBottom:16,boxShadow:'0 4px 24px rgba(255,101,63,.28)',position:'relative',overflow:'hidden'}}>
+                    <div style={{position:'absolute',right:-20,bottom:-20,width:130,height:130,borderRadius:'50%',background:'rgba(255,255,255,.06)',pointerEvents:'none'}}/>
+                    <div style={{position:'absolute',right:60,top:-30,width:80,height:80,borderRadius:'50%',background:'rgba(255,255,255,.06)',pointerEvents:'none'}}/>
+                    <div style={{width:46,height:46,borderRadius:12,background:'rgba(255,255,255,.2)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,position:'relative',zIndex:1}}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    </div>
+                    <div className="ht-cont-body" style={{position:'relative',zIndex:1}}>
+                      <div style={{fontSize:10,fontWeight:700,letterSpacing:'.08em',textTransform:'uppercase',color:'rgba(255,255,255,.7)',marginBottom:4}}>Continue where you left off</div>
+                      <div className="ht-cont-title">{lastTestName||'Last practice test'}</div>
+                      <div style={{display:'flex',gap:14,flexWrap:'wrap'}}>
+                        {[
+                          {icon:<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>, label:`Last score: ${lastPct}%`},
+                          {icon:<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>, label:new Date(lastTest.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})},
+                          {icon:<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/></svg>, label:`${lastTest.correct_count||0}✓  ${lastTest.wrong_count||0}✗`},
+                        ].map((it,ii)=>(
+                          <span key={ii} style={{display:'flex',alignItems:'center',gap:5,fontSize:12,color:'rgba(255,255,255,.75)'}}>
+                            {it.icon}{it.label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="ht-cont-btns" style={{position:'relative',zIndex:1}}>
+                      <button onClick={() => onStartTest?.('mock', selectedExamId)}
+                        style={{background:'#fff',color:_a,border:'none',borderRadius:9,padding:'10px 20px',fontWeight:800,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',gap:7,boxShadow:'0 2px 8px rgba(0,0,0,.12)',whiteSpace:'nowrap'}}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill={_a}><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        New Test
+                      </button>
+                      <button onClick={() => setActiveTab('performance')}
+                        style={{background:'rgba(255,255,255,.18)',color:'#fff',border:'1px solid rgba(255,255,255,.25)',borderRadius:9,padding:'10px 18px',fontWeight:700,fontSize:13,cursor:'pointer',whiteSpace:'nowrap'}}>
+                        View Results
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{background:'linear-gradient(135deg,#FF653F 0%,#ff8a5f 100%)',borderRadius:16,padding:'22px 26px',marginBottom:16,position:'relative',overflow:'hidden',boxShadow:'0 4px 24px rgba(255,101,63,.25)'}}>
+                    <div style={{position:'absolute',right:-20,bottom:-20,width:130,height:130,borderRadius:'50%',background:'rgba(255,255,255,.06)',pointerEvents:'none'}}/>
+                    <div style={{position:'relative'}}>
+                      <div style={{fontSize:11,fontWeight:800,color:'rgba(255,255,255,.75)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>Welcome to MockTest</div>
+                      <div style={{fontSize:20,fontWeight:900,color:'#fff',lineHeight:1.3,marginBottom:10,letterSpacing:'-.02em'}}>Your path to exam success<br/>starts with one decision</div>
+                      <p style={{fontSize:13,color:'rgba(255,255,255,.85)',lineHeight:1.65,marginBottom:18,maxWidth:360}}>
+                        Choose your target exam and unlock full-length mock tests, topic-wise drills, instant analytics, and a personalised study plan — all in one place.
+                      </p>
+                      <button onClick={() => setActiveTab('explore')}
+                        style={{background:'#fff',color:_a,border:'none',borderRadius:10,padding:'11px 24px',fontWeight:800,fontSize:13,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:7,boxShadow:'0 4px 16px rgba(0,0,0,.15)'}}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        Browse Exams
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-                {/* ── LEFT ── */}
-                <div className="dh-left" style={{flex:'1 1 0',minWidth:0,paddingRight:36}}>
+                {/* ── 3. Stats row ── */}
+                <div className="ht-mid-row">
+                  <div className="ht-mid-card">
+                    <div style={{display:'flex',alignItems:'center',gap:6,fontSize:10,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:10}}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      Today
+                    </div>
+                    <div style={{fontSize:28,fontWeight:900,color:_t,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{testsToday}</div>
+                    <div style={{fontSize:11,color:_m,marginBottom:10}}>tests completed</div>
+                    <div style={{height:4,background:cd?'rgba(255,255,255,.07)':'#f0f0f0',borderRadius:99,overflow:'hidden'}}>
+                      <div style={{height:'100%',width:`${Math.min(100,testsToday*50)}%`,background:_a,borderRadius:99,transition:'width .6s'}}/>
+                    </div>
+                    {testsToday===0&&<div style={{fontSize:10,color:'#d97706',fontWeight:600,marginTop:7}}>⚡ Start a test to hit today's goal</div>}
+                  </div>
+                  <div className="ht-mid-card">
+                    <div style={{display:'flex',alignItems:'center',gap:6,fontSize:10,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:10}}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      This Week
+                    </div>
+                    <div style={{fontSize:28,fontWeight:900,color:_t,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{testsThisWeek}</div>
+                    <div style={{fontSize:11,color:_m,marginBottom:10}}>tests completed</div>
+                    <div style={{display:'flex',gap:4}}>
+                      {weekActivity.map((active,i) => (
+                        <div key={i} style={{width:22,height:22,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700,background:active?_a:(cd?'rgba(255,255,255,.07)':'#f0f0f0'),color:active?'#fff':_m}}>
+                          {['S','M','T','W','T','F','S'][(todayDow-6+i+7)%7]}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="ht-mid-card">
+                    <div style={{display:'flex',alignItems:'center',gap:6,fontSize:10,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:10}}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg>
+                      Readiness
+                    </div>
+                    {hasChosenExam&&readiness>0 ? <>
+                      <div style={{fontSize:28,fontWeight:900,lineHeight:1,color:readiness>=70?'#16a34a':readiness>=45?'#d97706':'#dc2626',fontVariantNumeric:'tabular-nums'}}>{readiness}%</div>
+                      <div style={{fontSize:11,color:_m,marginBottom:10}}>{shortLbl2(selectedGroup?.label||'')} readiness</div>
+                      <div style={{height:4,background:cd?'rgba(255,255,255,.07)':'#f0f0f0',borderRadius:99,overflow:'hidden'}}>
+                        <div style={{height:'100%',width:`${readiness}%`,background:readiness>=70?'#16a34a':readiness>=45?'#d97706':'#dc2626',borderRadius:99,transition:'width .8s'}}/>
+                      </div>
+                      <button onClick={()=>setActiveTab('performance')} style={{marginTop:7,fontSize:10,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0}}>
+                        Detailed analysis →
+                      </button>
+                    </> : <>
+                      <div style={{fontSize:28,fontWeight:900,color:cd?'rgba(255,255,255,.2)':'#e5e7eb',lineHeight:1}}>—</div>
+                      <div style={{fontSize:11,color:_m}}>Take tests to see readiness</div>
+                    </>}
+                  </div>
+                </div>
 
-                  {/* ── All Exams Readiness Circles ── */}
-                  {history.length > 0 && (() => {
-                    const shortLbl = l => l.replace(/\s*(exams?|tests?)\s*$/i,'').trim()
-                    const groupStats = ACTIVE_GROUPS.map(g => {
-                      const ids = g.exams.map(e => e.id)
-                      const res = history.filter(r => ids.includes(r.exam || ''))
-                      const best = res.length ? Math.round(Math.max(...res.map(r => Number(r.percentage||0)))) : 0
-                      const avg  = res.length ? Math.round(res.reduce((s,r)=>s+Number(r.percentage||0),0)/res.length) : 0
-                      return { ...g, count: res.length, best, avg }
-                    }).filter(g => g.count > 0)
-                    if (!groupStats.length) return null
+                {/* ── 4. Two-column body ── */}
+                <div className="ht-two-col">
 
-                    const SZ=110, R=42, CX=55, CY=55, CIRC=+(2*Math.PI*R).toFixed(1)
+                  {/* LEFT */}
+                  <div>
+                    {/* Quick Actions */}
+                    <div style={{marginBottom:20}}>
+                      <div className="ht-title">Quick Actions</div>
+                      <div className="ht-qa-grid">
+                        {[
+                          {icon:<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,bg:`${_a}15`,label:'Start New Mock',sub:`Full test · ${hasChosenExam?((selectedGroup?.exams||[])[0]?.questions||100):'100'} Qs`,act:()=>onStartTest?.('mock',selectedExamId)},
+                          {icon:<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4z"/></svg>,bg:'rgba(59,130,246,.12)',label:'Topic Practice',sub:'Focus on a weak area',act:()=>onStartTest?.('topic',selectedExamId)},
+                          {icon:<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>,bg:'rgba(22,163,74,.12)',label:'My Performance',sub:'View detailed analytics',act:()=>setActiveTab('performance')},
+                          {icon:<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,bg:'rgba(217,119,6,.12)',label:'Explore Exams',sub:'Browse all categories',act:()=>setActiveTab('explore')},
+                        ].map((qa,qi)=>(
+                          <button key={qi} className="ht-qa-btn" onClick={qa.act}>
+                            <div style={{width:36,height:36,borderRadius:9,background:qa.bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{qa.icon}</div>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontSize:12,fontWeight:800,color:_t,letterSpacing:'-.01em'}}>{qa.label}</div>
+                              <div style={{fontSize:10.5,color:_m,marginTop:2}}>{qa.sub}</div>
+                            </div>
+                            <svg style={{marginLeft:'auto',color:_m}} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                    return (
-                      <div style={{marginBottom:24}}>
-                        <style>{`
-                          @keyframes rg-pulse{0%,100%{opacity:.45;transform:scale(1)}50%{opacity:.9;transform:scale(1.07)}}
-                          @keyframes rg-card-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-                          .rg-grid{display:grid;gap:10px}
-                          .rg-card{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;cursor:pointer;outline:none;border-radius:16px;padding:14px 10px 14px;position:relative;transition:border-color .08s,background .08s,box-shadow .08s,transform .08s}
-                          .rg-ring-wrap{position:relative;width:110px;height:110px;flex-shrink:0}
-                          .rg-footer{display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap}
-                          @media(max-width:600px){
-                            .rg-grid{grid-template-columns:1fr 1fr!important;gap:10px!important}
-                            .rg-card{padding:12px 8px 12px!important;min-height:0;gap:6px!important}
-                            .rg-ring-wrap{width:95px!important;height:95px!important}
-                            .rg-ring-wrap svg{width:95px!important;height:95px!important}
-                            .rg-footer{flex-direction:column!important;align-items:center!important;gap:3px!important}
-                          }
-                        `}</style>
+                    {/* No exam — onboarding */}
+                    {!hasChosenExam && (
+                      <div style={{marginBottom:20}}>
+                        <div className="ht-title">How it works</div>
+                        <div className="ht-card" style={{padding:'16px 20px'}}>
+                          {[
+                            {n:'01',title:'Choose your exam',desc:'Select from IBPS, SBI, SSC, Railway, RBI, SAT, ACT and more.',col:'#3b82f6'},
+                            {n:'02',title:'Practice intelligently',desc:'Take full mocks, topic-wise drills, or section tests with instant scoring.',col:'#8b5cf6'},
+                            {n:'03',title:'Analyse & improve',desc:'Get detailed PDFs, topic accuracy reports, and an AI study plan after each test.',col:'#16a34a'},
+                          ].map((s,si)=>(
+                            <div key={s.n} style={{display:'flex',gap:14,paddingBottom:si<2?14:0,borderBottom:si<2?`1px dashed ${_b}`:'none',marginBottom:si<2?14:0}}>
+                              <div style={{width:34,height:34,borderRadius:9,background:`${s.col}15`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:2}}>
+                                <span style={{fontSize:10,fontWeight:900,color:s.col}}>{s.n}</span>
+                              </div>
+                              <div>
+                                <div style={{fontSize:13,fontWeight:800,color:_t,marginBottom:3}}>{s.title}</div>
+                                <div style={{fontSize:12,color:_m,lineHeight:1.6}}>{s.desc}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                        {/* Circle cards — equal-width grid */}
-                        <div className="rg-grid" style={{gridTemplateColumns:`repeat(${Math.min(groupStats.length,3)},1fr)`}}>
-                          {groupStats.map((g, gi) => {
-                            const col      = gcol(g.best, g.count)
-                            const dashBest = +((g.best/100)*CIRC).toFixed(1)
-                            const dashAvg  = +((g.avg/100)*CIRC).toFixed(1)
-                            const isActive = g.id === selectedGroup?.id
-                            const gid      = `rg-${g.id}`
-                            const tipAngle = (g.best/100)*2*Math.PI - Math.PI/2
-                            const tipX     = (CX + R*Math.cos(tipAngle)).toFixed(2)
-                            const tipY     = (CY + R*Math.sin(tipAngle)).toFixed(2)
-                            const statusLbl = g.best>=82?'On Track':g.best>=65?'Improving':g.best>=40?'Needs Work':'Needs Focus'
+                    {/* Exam category picks */}
+                    {!hasChosenExam && (
+                      <div style={{marginBottom:20}}>
+                        <div className="ht-title">Popular Exam Categories</div>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                          {[
+                            {label:'Banking Exams',sub:'IBPS · SBI · RBI · NABARD',col:'#3b82f6',id:'explore'},
+                            {label:'SSC Exams',sub:'CGL · CHSL · MTS · CPO',col:'#8b5cf6',id:'explore'},
+                            {label:'Railway',sub:'NTPC · Group D · ALP',col:'#16a34a',id:'explore'},
+                            {label:'US Exams',sub:'SAT · ACT · AP · PSAT',col:'#d97706',id:'us-exams'},
+                          ].map(cat=>(
+                            <button key={cat.label} onClick={()=>setActiveTab(cat.id)}
+                              style={{textAlign:'left',padding:'12px 14px',borderRadius:12,border:`1.5px solid ${cat.col}22`,background:`${cat.col}08`,cursor:'pointer',transition:'all .15s'}}
+                              onMouseOver={e=>{e.currentTarget.style.background=`${cat.col}15`;e.currentTarget.style.borderColor=`${cat.col}55`}}
+                              onMouseOut={e=>{e.currentTarget.style.background=`${cat.col}08`;e.currentTarget.style.borderColor=`${cat.col}22`}}>
+                              <div style={{fontSize:13,fontWeight:800,color:_t,marginBottom:2}}>{cat.label}</div>
+                              <div style={{fontSize:11,color:_m,fontWeight:600}}>{cat.sub}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
+                    {/* Exam readiness rings */}
+                    {history.length > 0 && (() => {
+                      const SZ=68,R=23,CX=34,CY=34,CIRC=+(2*Math.PI*R).toFixed(1)
+                      const groupStats = ACTIVE_GROUPS.map(g => {
+                        const ids = g.exams.map(e=>e.id)
+                        const res = history.filter(r=>ids.includes(r.exam||''))
+                        const best=res.length?Math.round(Math.max(...res.map(r=>Number(r.percentage||0)))):0
+                        const avg=res.length?Math.round(res.reduce((s,r)=>s+Number(r.percentage||0),0)/res.length):0
+                        return {...g,count:res.length,best,avg}
+                      }).filter(g=>g.count>0)
+                      if (!groupStats.length) return null
+                      return (
+                        <div style={{marginBottom:20}}>
+                          <div className="ht-title">Exam Readiness</div>
+                          <div className="ht-card" style={{padding:'14px 16px'}}>
+                            <div style={{display:'grid',gridTemplateColumns:`repeat(${Math.min(groupStats.length,4)},1fr)`,gap:8}}>
+                              {groupStats.map(g=>{
+                                const col=gcol(g.best,g.count)
+                                const dash=+((g.best/100)*CIRC).toFixed(1)
+                                const isAct=g.id===selectedGroup?.id
+                                const stl=g.best>=82?'On Track':g.best>=65?'Improving':g.best>=40?'Needs Work':'Focus'
+                                return (
+                                  <button key={g.id} onClick={()=>setSelectedExamId(g.exams[0].id)}
+                                    style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,padding:'10px 6px',borderRadius:12,border:`2px solid ${isAct?col:_b}`,background:isAct?`${col}0d`:(cd?'rgba(255,255,255,.03)':'#fafafa'),cursor:'pointer',transition:'all .12s',boxShadow:isAct?`0 4px 16px ${col}28`:'none',transform:isAct?'translateY(-2px)':'none'}}>
+                                    <svg width={SZ} height={SZ} viewBox={`0 0 ${SZ} ${SZ}`}>
+                                      <circle cx={CX} cy={CY} r={R} fill="none" stroke={cd?'rgba(255,255,255,.08)':'#ebebeb'} strokeWidth="8"/>
+                                      {g.best>0&&<circle cx={CX} cy={CY} r={R} fill="none" stroke={col} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${dash} ${CIRC}`} transform={`rotate(-90 ${CX} ${CY})`}/>}
+                                      <text x={CX} y={CY} textAnchor="middle" dominantBaseline="central" style={{fontSize:12,fontWeight:900,fill:g.best>0?col:(cd?'rgba(255,255,255,.2)':'#d1d5db')}}>{g.best>0?`${g.best}%`:'0%'}</text>
+                                    </svg>
+                                    <div style={{fontSize:10,fontWeight:800,color:isAct?col:_t,textAlign:'center',lineHeight:1.2}}>{shortLbl2(g.label)}</div>
+                                    <div style={{fontSize:8,fontWeight:700,color:isAct?col:_m,background:isAct?`${col}15`:(cd?'rgba(255,255,255,.06)':'#f5f5f5'),borderRadius:99,padding:'1px 6px'}}>{stl}</div>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })()}
+
+                    {/* First-test hero (exam chosen, no results) */}
+                    {hasChosenExam && examResults.length === 0 && (
+                      <div style={{marginBottom:20}}>
+                        <div className="ht-card" style={{padding:'18px 20px',borderTop:`3px solid ${_a}`}}>
+                          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+                            <div style={{width:34,height:34,borderRadius:9,background:'linear-gradient(135deg,#FF653F,#ff9a5f)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                              <svg width="14" height="14" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            </div>
+                            <div>
+                              <div style={{fontSize:11,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em'}}>Ready to start</div>
+                              <div style={{fontSize:14,fontWeight:900,color:_t}}>{selectedGroup?.label||'Your exam'}</div>
+                            </div>
+                          </div>
+                          <p style={{fontSize:12.5,color:_m,lineHeight:1.65,marginBottom:14}}>
+                            Take your first full-length mock test and get a real picture of where you stand.
+                          </p>
+                          <button onClick={()=>onStartTest('mock',selectedExamId)}
+                            style={{display:'inline-flex',alignItems:'center',gap:7,background:_a,color:'#fff',border:'none',borderRadius:9,padding:'10px 20px',fontWeight:800,fontSize:13,cursor:'pointer'}}>
+                            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            Start first mock test
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Recent Tests */}
+                    {history.length > 0 && (
+                      <div style={{marginBottom:16}}>
+                        <div className="ht-title">
+                          Recent Tests
+                          <button onClick={()=>setActiveTab('performance')} style={{fontSize:11,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0}}>View all →</button>
+                        </div>
+                        <div className="ht-card" style={{overflow:'hidden'}}>
+                          {history.slice(0,5).map((r,i,arr)=>{
+                            const pct=Number(r.percentage||0)
+                            const _tt2=s=>(s||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
+                            const nm=r.test_type==='topic_diagnostic'?`Topic · ${_tt2(r.topic||'')}`:r.test_type==='mini'||r.test_type==='concept_mini'?`Practice · ${_tt2(r.section||r.topic||'')}` : `Mock · ${_tt2(r.exam)||''}`
+                            const dt=new Date(r.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})
+                            const pass=pct>=40
                             return (
-                              <button key={g.id}
-                                className="rg-card"
-                                onClick={() => setSelectedExamId(g.exams[0].id)}
-                                style={{
-                                  background: isActive ? `${col}0d` : '#f8fafc',
-                                  border: `2px solid ${isActive ? col : '#eef0f3'}`,
-                                  boxShadow: isActive
-                                    ? `0 8px 32px ${col}28, 0 2px 10px rgba(0,0,0,.06)`
-                                    : '0 1px 4px rgba(0,0,0,.04)',
-                                  transform: isActive ? 'translateY(-4px)' : 'none',
-                                  animation:`rg-card-in .4s ease-out ${gi*0.07}s both`,
-                                }}>
-
-                                {/* Accent top strip */}
-                                {isActive && (
-                                  <div style={{position:'absolute',top:0,left:16,right:16,height:3,borderRadius:'0 0 4px 4px',background:`linear-gradient(90deg,${col}88,${col})`}}/>
-                                )}
-
-                                <div className="rg-ring-wrap">
-                                  {/* ambient glow */}
-                                  {isActive && (
-                                    <div style={{
-                                      position:'absolute',inset:-10,borderRadius:'50%',
-                                      background:`radial-gradient(circle, ${col}22 0%, transparent 68%)`,
-                                      animation:'rg-pulse 2.8s ease-in-out infinite'
-                                    }}/>
-                                  )}
-
-                                  <svg width={SZ} height={SZ} viewBox={`0 0 ${SZ} ${SZ}`}
-                                    style={{display:'block',overflow:'visible'}}>
-                                    <defs>
-                                      <linearGradient id={gid} x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" stopColor={col} stopOpacity="0.55"/>
-                                        <stop offset="100%" stopColor={col} stopOpacity="1"/>
-                                      </linearGradient>
-                                      <filter id={`${gid}-glow`} x="-30%" y="-30%" width="160%" height="160%">
-                                        <feGaussianBlur stdDeviation="3.5" result="blur"/>
-                                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                                      </filter>
-                                    </defs>
-
-                                    {/* background disc */}
-                                    <circle cx={CX} cy={CY} r={R+7}
-                                      fill={isActive ? `${col}09` : '#f8f9fa'}
-                                      stroke={isActive ? `${col}20` : '#f0f0f0'}
-                                      strokeWidth="1.5"/>
-
-                                    {/* track ring */}
-                                    <circle cx={CX} cy={CY} r={R}
-                                      fill="none" stroke={isActive ? `${col}25` : '#ebebeb'} strokeWidth="10"
-                                      strokeLinecap="round"/>
-
-                                    {/* avg ghost ring */}
-                                    {g.avg > 0 && g.avg !== g.best && (
-                                      <circle cx={CX} cy={CY} r={R}
-                                        fill="none" stroke={`${col}30`} strokeWidth="10"
-                                        strokeLinecap="round"
-                                        strokeDasharray={`${dashAvg} ${CIRC}`}
-                                        transform={`rotate(-90 ${CX} ${CY})`}/>
-                                    )}
-
-                                    {/* main arc */}
-                                    {g.best > 0 && (
-                                      <circle cx={CX} cy={CY} r={R}
-                                        fill="none"
-                                        stroke={`url(#${gid})`}
-                                        strokeWidth="10"
-                                        strokeLinecap="round"
-                                        strokeDasharray={`${dashBest} ${CIRC}`}
-                                        transform={`rotate(-90 ${CX} ${CY})`}
-                                        filter={isActive ? `url(#${gid}-glow)` : 'none'}/>
-                                    )}
-
-                                    {/* tip dot */}
-                                    {g.best > 0 && g.best < 100 && (
-                                      <>
-                                        <circle cx={tipX} cy={tipY} r="8" fill={col} opacity="0.18"/>
-                                        <circle cx={tipX} cy={tipY} r="5" fill={col} opacity={isActive?1:0.7}/>
-                                        <circle cx={tipX} cy={tipY} r="2.5" fill="#fff"/>
-                                      </>
-                                    )}
-                                  </svg>
-
-                                  {/* center content */}
-                                  <div style={{
-                                    position:'absolute',inset:0,
-                                    display:'flex',flexDirection:'column',
-                                    alignItems:'center',justifyContent:'center',gap:2
-                                  }}>
-                                    <span style={{
-                                      fontSize:g.best>=100?14:17,fontWeight:900,
-                                      color:g.best>0?col:'#d1d5db',
-                                      lineHeight:1,letterSpacing:'-.02em',
-                                      fontVariantNumeric:'tabular-nums'
-                                    }}>
-                                      {g.best>0?`${g.best}%`:'0%'}
-                                    </span>
-                                    {g.best > 0 ? (
-                                      <span style={{fontSize:8,fontWeight:800,color:'#b0b8c4',letterSpacing:'.07em',textTransform:'uppercase',marginTop:1}}>BEST</span>
-                                    ) : (
-                                      <span style={{fontSize:9,fontWeight:700,color:'#c4c9d4',marginTop:1}}>Not Started</span>
-                                    )}
-                                    {g.avg > 0 && g.avg !== g.best && (
-                                      <span style={{fontSize:9.5,fontWeight:700,color:`${col}aa`,marginTop:2}}>
-                                        {g.avg}% avg
-                                      </span>
-                                    )}
-                                  </div>
-
+                              <button key={r.id||i} onClick={()=>onOpenResult?.(r)}
+                                style={{display:'flex',alignItems:'center',gap:14,padding:'10px 16px',width:'100%',border:'none',background:'none',cursor:'pointer',borderBottom:i<arr.length-1?`1px solid ${_b}`:'none',transition:'background .12s',textAlign:'left'}}
+                                onMouseOver={e=>{e.currentTarget.style.background=cd?'rgba(255,255,255,.04)':'#fffaf8'}}
+                                onMouseOut={e=>{e.currentTarget.style.background='transparent'}}>
+                                <span style={{fontSize:14,fontWeight:900,width:44,textAlign:'right',flexShrink:0,color:pass?'#16a34a':'#f97316',fontVariantNumeric:'tabular-nums'}}>{pct.toFixed(0)}%</span>
+                                <div style={{flex:1,minWidth:0,marginLeft:2}}>
+                                  <div style={{fontSize:12.5,fontWeight:600,color:_t,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{nm}</div>
+                                  <div style={{fontSize:11,color:_m,marginTop:1}}>{dt} · {r.correct_count||0}✓ {r.wrong_count||0}✗</div>
                                 </div>
-
-                                {/* label + status */}
-                                <div className="rg-footer" style={{textAlign:'center'}}>
-                                  <div style={{fontSize:13,fontWeight:800,lineHeight:1.2,color:isActive?col:'#374151',whiteSpace:'nowrap'}}>
-                                    {shortLbl(g.label)}
-                                  </div>
-                                  <div style={{
-                                    fontSize:10.5,fontWeight:700,
-                                    color: isActive ? col : '#b0b8c4',
-                                    background: isActive ? `${col}15` : '#f5f5f5',
-                                    borderRadius:99,padding:'2px 8px',
-                                    display:'inline-block',
-                                    transition:'color .08s,background .08s',
-                                    whiteSpace:'nowrap',
-                                    flexShrink:0
-                                  }}>
-                                    {statusLbl}
-                                  </div>
-                                </div>
+                                <span style={{fontSize:11,fontWeight:700,color:_a,flexShrink:0}}>Review →</span>
                               </button>
                             )
                           })}
                         </div>
                       </div>
-                    )
-                  })()}
-
-                  {/* No exam chosen — rich onboarding */}
-                  {!hasChosenExam && (
-                    <div style={{marginBottom:28}}>
-
-                      {/* Hero banner */}
-                      <div style={{background:'linear-gradient(135deg,#FF653F 0%,#ff9a5f 100%)',borderRadius:18,padding:'24px 28px',marginBottom:22,position:'relative',overflow:'hidden'}}>
-                        <div style={{position:'absolute',top:-20,right:-20,width:120,height:120,borderRadius:'50%',background:'rgba(255,255,255,.08)'}}/>
-                        <div style={{position:'absolute',bottom:-30,right:40,width:80,height:80,borderRadius:'50%',background:'rgba(255,255,255,.06)'}}/>
-                        <div style={{position:'relative'}}>
-                          <div style={{fontSize:11,fontWeight:800,color:'rgba(255,255,255,.75)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>Welcome to MockTest</div>
-                          <div style={{fontSize:20,fontWeight:900,color:'#fff',lineHeight:1.3,marginBottom:10,letterSpacing:'-.02em'}}>
-                            Your path to exam success<br/>starts with one decision
-                          </div>
-                          <p style={{fontSize:13,color:'rgba(255,255,255,.85)',lineHeight:1.65,marginBottom:18,maxWidth:360}}>
-                            Choose your target exam and unlock full-length mock tests, topic-wise drills, instant analytics, and a personalised study plan — all in one place.
-                          </p>
-                          <button className="dh-btn" onClick={() => setActiveTab('explore')}
-                            style={{background:'#fff',color:'#FF653F',fontWeight:800,boxShadow:'0 4px 16px rgba(0,0,0,.15)'}}>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            Browse Exams
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* 3-step journey */}
-                      <div style={{marginBottom:22}}>
-                        <div className="dh-lbl">How it works</div>
-                        <div style={{display:'flex',flexDirection:'column',gap:0}}>
-                          {[
-                            { n:'01', title:'Choose your exam', desc:'Select from IBPS, SBI, SSC, Railway, RBI, SAT, ACT and more. Your dashboard adapts to your target.', col:'#3b82f6' },
-                            { n:'02', title:'Practice intelligently', desc:'Take full mocks, topic-wise drills, or section tests — each with a timer, negative marking and instant scoring.', col:'#8b5cf6' },
-                            { n:'03', title:'Analyse & improve', desc:'Get a detailed result PDF, topic-wise accuracy breakdown, and an AI study plan every time you attempt a test.', col:'#10b981' },
-                          ].map((s,i) => (
-                            <div key={s.n} style={{display:'flex',gap:16,paddingBottom:i<2?18:0,borderBottom:i<2?'1px dashed #f0f0f0':'none',marginBottom:i<2?18:0}}>
-                              <div style={{width:36,height:36,borderRadius:10,background:`${s.col}15`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:2}}>
-                                <span style={{fontSize:11,fontWeight:900,color:s.col}}>{s.n}</span>
-                              </div>
-                              <div>
-                                <div style={{fontSize:14,fontWeight:800,color:'#111827',marginBottom:3}}>{s.title}</div>
-                                <div style={{fontSize:12.5,color:'#6b7280',lineHeight:1.65}}>{s.desc}</div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Exam category quick-picks */}
-                      <div>
-                        <div className="dh-lbl">Popular exam categories</div>
-                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-                          {[
-                            { label:'Banking Exams', sub:'IBPS · SBI · RBI · NABARD', col:'#3b82f6', id:'explore' },
-                            { label:'SSC Exams',     sub:'CGL · CHSL · MTS · CPO',   col:'#8b5cf6', id:'explore' },
-                            { label:'Railway',       sub:'NTPC · Group D · ALP',       col:'#10b981', id:'explore' },
-                            { label:'US Exams',      sub:'SAT · ACT · AP · PSAT',      col:'#f59e0b', id:'us-exams' },
-                          ].map(cat => (
-                            <button key={cat.label} onClick={() => setActiveTab(cat.id)}
-                              style={{textAlign:'left',padding:'12px 14px',borderRadius:12,border:`1.5px solid ${cat.col}22`,background:`${cat.col}08`,cursor:'pointer',transition:'all .15s'}}
-                              onMouseOver={e=>{e.currentTarget.style.background=`${cat.col}15`;e.currentTarget.style.borderColor=`${cat.col}55`}}
-                              onMouseOut={e=>{e.currentTarget.style.background=`${cat.col}08`;e.currentTarget.style.borderColor=`${cat.col}22`}}>
-                              <div style={{fontSize:13,fontWeight:800,color:'#111827',marginBottom:2}}>{cat.label}</div>
-                              <div style={{fontSize:11,color:'#9ca3af',fontWeight:600}}>{cat.sub}</div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                    </div>
-                  )}
-
-                  {/* Progress panel — detailed exam card */}
-                  {hasChosenExam && examResults.length > 0 && (() => {
-                    const stCol    = gcol(readiness, examResults.length)
-                    const st       = readinessStatus(readiness)
-                    const totalCorrect = examResults.reduce((s,r)=>s+(r.correct_count||0),0)
-                    const totalWrong   = examResults.reduce((s,r)=>s+(r.wrong_count||0),0)
-
-                    /* sparkline for the score trend row */
-                    const sparkData = [...examResults].reverse().slice(-8).map(r=>Number(r.percentage||0))
-                    const trend     = sparkData.length>=2 ? sparkData[sparkData.length-1]-sparkData[0] : 0
-                    const sparkCol  = trend>0?'#16a34a':trend<0?'#f97316':'#9ca3af'
-                    const SW=160,SH=52,PAD={t:6,b:6,l:2,r:2}
-                    const sMinS=Math.min(...sparkData),sMaxS=Math.max(...sparkData,1),sRangeS=sMaxS-sMinS||1
-                    const iW=SW-PAD.l-PAD.r,iH=SH-PAD.t-PAD.b
-                    const spx=i=>PAD.l+((i/Math.max(sparkData.length-1,1))*iW)
-                    const spy=v=>PAD.t+iH-((v-sMinS)/sRangeS)*iH
-                    const linePts=sparkData.map((_,i)=>`${spx(i).toFixed(1)},${spy(sparkData[i]).toFixed(1)}`).join(' ')
-                    const areaPath=`M${spx(0).toFixed(1)},${(SH-PAD.b).toFixed(1)} `+sparkData.map((_,i)=>`L${spx(i).toFixed(1)},${spy(sparkData[i]).toFixed(1)}`).join(' ')+` L${spx(sparkData.length-1).toFixed(1)},${(SH-PAD.b).toFixed(1)} Z`
-                    const gradId=`sgt-${selectedGroup.id}`
-
-                    return (
-                      <div style={{marginBottom:28}}>
-                        <div style={{
-                          background:'#fff',
-                          border:'1.5px solid #f0f0f0',
-                          borderRadius:18,
-                          overflow:'hidden',
-                          boxShadow:'0 2px 16px rgba(0,0,0,.06)',
-                          transition:'all .3s'
-                        }}>
-                          {/* Accent bar */}
-                          <div style={{height:4,background:`linear-gradient(90deg,${stCol},${stCol}66)`}}/>
-
-                          <div style={{padding:'18px 20px 20px'}}>
-                            {/* Header: exam name + status badge */}
-                            <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,marginBottom:18,flexWrap:'wrap'}}>
-                              <div style={{display:'flex',alignItems:'center',gap:12}}>
-                                <div style={{width:44,height:44,borderRadius:12,background:`${stCol}15`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                                  <svg width="20" height="20" fill="none" stroke={stCol} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                                </div>
-                                <div>
-                                  <div style={{fontSize:16,fontWeight:900,color:'#111827',letterSpacing:'-.01em',lineHeight:1.2}}>{shortGroupLbl(selectedGroup.label)}</div>
-                                </div>
-                              </div>
-                              {/* Status badge */}
-                              <div style={{background:st.bg,border:`1.5px solid ${st.bdr}`,borderRadius:12,padding:'8px 14px',flexShrink:0}}>
-                                <div style={{fontSize:12,fontWeight:800,color:st.col,lineHeight:1.2,display:'flex',alignItems:'center',gap:5}}>
-                                  {readiness>=65 && <svg width="12" height="12" fill={st.col} viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293l-4 4a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L9 10.586l3.293-3.293a1 1 0 011.414 1.414z"/></svg>}
-                                  {st.msg}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Stats grid + sparkline */}
-                            <div style={{marginBottom:18}}>
-                              {/* 4-stat grid */}
-                              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-                                {[
-                                  { val:examResults.length,            lbl:'Tests Attempted', col:'#374151', bg:'#f8fafc' },
-                                  { val:(examBest!=null?Math.round(examBest)+'%':'—'), lbl:'Best Score',     col:stCol,    bg:`${stCol}08` },
-                                  { val:(examAvg!=null?Math.round(examAvg)+'%':'—'),  lbl:'Average Score',  col:'#6b7280', bg:'#f8fafc' },
-                                  { val:totalCorrect,                  lbl:'Correct Answers',col:'#16a34a', bg:'#f0fdf4' },
-                                ].map(s=>(
-                                  <div key={s.lbl} style={{background:s.bg,borderRadius:12,padding:'14px 16px',border:'1px solid #f0f0f0'}}>
-                                    <div style={{fontSize:26,fontWeight:900,color:s.col,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{s.val}</div>
-                                    <div style={{fontSize:10.5,color:'#9ca3af',fontWeight:600,marginTop:6,lineHeight:1.3}}>{s.lbl}</div>
-                                  </div>
-                                ))}
-                              </div>
-
-                            </div>
-
-                            {/* Action buttons */}
-                            <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-                              <button className="dh-btn dh-btn-primary"
-                                onClick={() => onStartTest?.('mock', selectedExamId)}
-                                style={{flex:'1 1 140px',justifyContent:'center'}}>
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                                Continue Practicing
-                              </button>
-                              <button className="dh-btn dh-btn-ghost"
-                                onClick={() => setActiveTab('results')}
-                                style={{flex:'1 1 140px',justifyContent:'center'}}>
-                                <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                                View Detailed Analysis
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })()}
-
-
-                  {/* No results yet — rich first-test experience */}
-                  {hasChosenExam && examResults.length === 0 && (
-                    <div style={{marginBottom:28}}>
-
-                      {/* Exam hero */}
-                      <div style={{background:'#f8fafc',border:'1.5px solid #e5e7eb',borderRadius:16,padding:'20px 20px 16px',marginBottom:18,position:'relative',overflow:'hidden'}}>
-                        <div style={{position:'absolute',top:0,left:0,right:0,height:3,background:'linear-gradient(90deg,#FF653F,#ff9a5f)'}}/>
-                        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
-                          <div style={{width:36,height:36,borderRadius:10,background:'linear-gradient(135deg,#FF653F,#ff9a5f)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                            <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                          </div>
-                          <div>
-                            <div style={{fontSize:11,fontWeight:700,color:'#9ca3af',letterSpacing:'.06em',textTransform:'uppercase'}}>Your exam</div>
-                            <div style={{fontSize:15,fontWeight:900,color:'#111827',letterSpacing:'-.01em'}}>{selectedGroup?.label || 'Mock Test'}</div>
-                          </div>
-                        </div>
-                        <p style={{fontSize:13,color:'#6b7280',lineHeight:1.65,marginBottom:16}}>
-                          You've set your target. Now it's time to take your first full-length mock test and get a real picture of where you stand.
-                        </p>
-                        <button className="dh-btn dh-btn-primary" onClick={() => onStartTest('mock', selectedExamId)}
-                          style={{display:'flex',alignItems:'center',gap:8}}>
-                          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                          Start first mock test
-                        </button>
-                      </div>
-
-                      {/* What to expect */}
-                      <div style={{marginBottom:18}}>
-                        <div className="dh-lbl">What happens after you submit</div>
-                        <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                          {[
-                            { icon: '📊', title: 'Instant score & percentile', desc: 'See your marks, accuracy, and where you rank among test-takers.' },
-                            { icon: '📄', title: 'Downloadable result PDF', desc: 'A full paper with correct answers and detailed explanations.' },
-                            { icon: '🎯', title: 'Topic-wise weak-area report', desc: 'Find out exactly which topics need more attention.' },
-                          ].map(item => (
-                            <div key={item.title} style={{display:'flex',gap:12,padding:'12px 14px',background:'#fff',border:'1px solid #f0f0f0',borderRadius:12}}>
-                              <div style={{fontSize:20,flexShrink:0,lineHeight:1}}>{item.icon}</div>
-                              <div>
-                                <div style={{fontSize:13,fontWeight:800,color:'#111827',marginBottom:2}}>{item.title}</div>
-                                <div style={{fontSize:12,color:'#6b7280',lineHeight:1.55}}>{item.desc}</div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Quick tips */}
-                      <div style={{background:'#fffbf5',border:'1px solid #fed7aa',borderRadius:12,padding:'14px 16px'}}>
-                        <div style={{fontSize:11,fontWeight:800,color:'#f97316',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:8}}>Before you start — 3 tips</div>
-                        <ol style={{margin:0,paddingLeft:18,display:'flex',flexDirection:'column',gap:6}}>
-                          {[
-                            'Sit in a quiet place with at least 90 uninterrupted minutes.',
-                            'Don\'t skip negative-marking rules — read them in the "Before you start" panel.',
-                            'Treat it like the real exam: no pausing, no switching tabs.',
-                          ].map((t,i) => (
-                            <li key={i} style={{fontSize:12.5,color:'#374151',lineHeight:1.6}}>{t}</li>
-                          ))}
-                        </ol>
-                      </div>
-
-                    </div>
-                  )}
-
-                  {/* Recent Tests */}
-                  {history.length > 0 && (
-                    <div>
-                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-                        <div className="dh-lbl" style={{margin:0}}>Recent Tests</div>
-                        <button onClick={() => setActiveTab('results')}
-                          style={{fontSize:11,fontWeight:700,color:'#FF653F',background:'none',border:'none',cursor:'pointer',padding:0}}>
-                          View all →
-                        </button>
-                      </div>
-                      <div style={{background:'#fafafa',border:'1px solid #f0f0f0',borderRadius:12,overflow:'hidden'}}>
-                        {history.slice(0,5).map((r,i,arr)=>{
-                          const pct=Number(r.percentage||0)
-                          const toTitle=s=>(s||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
-                          const name=r.test_type==='topic_diagnostic'?`Topicwise${r.topic?` · ${toTitle(r.topic)}`:''}`
-                            :r.test_type==='mini'||r.test_type==='concept_mini'?`Practice${r.topic?` · ${toTitle(r.topic)}`:r.section?` · ${toTitle(r.section)}`:''}`
-                            :`Mock Test · ${toTitle(r.exam)||'Clerk Prelims'}`
-                          const date=new Date(r.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})
-                          const pass=pct>=40
-                          return (
-                            <button key={r.id||i} onClick={()=>onOpenResult?.(r)}
-                              className="dh-result-row"
-                              style={{padding:'10px 16px',borderRadius:0,borderBottom:i<arr.length-1?'1px solid #f0f0f0':'none'}}>
-                              <span style={{
-                                fontSize:13,fontWeight:900,width:40,textAlign:'right',flexShrink:0,
-                                color:pass?'#16a34a':'#f97316',fontVariantNumeric:'tabular-nums'
-                              }}>{pct.toFixed(0)}%</span>
-                              <div style={{flex:1,minWidth:0,marginLeft:4}}>
-                                <div style={{fontSize:12.5,fontWeight:600,color:'#374151',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</div>
-                                <div style={{fontSize:11,color:'#b0b8c4',marginTop:1}}>{date} · {r.correct_count||0} correct · {r.wrong_count||0} wrong</div>
-                              </div>
-                              <span style={{fontSize:11,fontWeight:700,color:'#FF653F',flexShrink:0,opacity:0,transition:'opacity .15s'}}
-                                onMouseEnter={e=>e.currentTarget.style.opacity=1}
-                                onMouseLeave={e=>e.currentTarget.style.opacity=0}>
-                                Review →
-                              </span>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* ── RIGHT ── */}
-                <div className="dh-right" style={{width:270,flexShrink:0,borderLeft:'1px solid #f0f0f0',paddingLeft:28}}>
-
-                  {/* ── Tests Overview breakdown ── */}
-                  {history.length > 0 && (() => {
-                    const groupBreakdown = ACTIVE_GROUPS.map(g => ({
-                      ...g,
-                      count: history.filter(r => g.exams.map(e=>e.id).includes(r.exam||'')).length
-                    })).filter(g => g.count > 0)
-                    const shortLbl = l => l.replace(/\s*(exams?|tests?)\s*$/i,'').trim()
-                    return (
-                      <div style={{marginBottom:22}}>
-                        <div className="dh-lbl">Tests Overview</div>
-                        <div style={{background:'#fff',border:'1.5px solid #f0f0f0',borderRadius:14,padding:'14px 16px',boxShadow:'0 1px 6px rgba(0,0,0,.04)'}}>
-                          {/* Total pill */}
-                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingBottom:10,marginBottom:10,borderBottom:'1px solid #f5f5f5'}}>
-                            <span style={{fontSize:11.5,fontWeight:700,color:'#6b7280'}}>Total Tests Taken</span>
-                            <span style={{fontSize:22,fontWeight:900,color:'#111827',lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{history.length}</span>
-                          </div>
-                          {/* Per-group rows */}
-                          <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                            {groupBreakdown.map(g => {
-                              const pct = Math.round((g.count/history.length)*100)
-                              return (
-                                <div key={g.id}>
-                                  <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:4}}>
-                                    <div style={{width:8,height:8,borderRadius:'50%',background:g.hex,flexShrink:0}}/>
-                                    <span style={{fontSize:12,fontWeight:700,color:'#374151',flex:1}}>{shortLbl(g.label)}</span>
-                                    <span style={{fontSize:13,fontWeight:900,color:g.hex,fontVariantNumeric:'tabular-nums',minWidth:20,textAlign:'right'}}>{g.count}</span>
-                                  </div>
-                                  <div style={{height:4,background:'#f0f0f0',borderRadius:99,overflow:'hidden'}}>
-                                    <div style={{height:'100%',width:`${pct}%`,background:g.hex,borderRadius:99,transition:'width .8s ease'}}/>
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })()}
-
-                  {/* Quick launch */}
-                  <div style={{marginBottom:24}}>
-                    <div className="dh-lbl">Quick Launch</div>
-                    <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                      {ACTIVE_MODES.map(m=>(
-                        <button key={m.id} onClick={()=>onStartTest(m.id)}
-                          style={{display:'flex',gap:13,padding:'13px 14px',borderRadius:13,border:'1.5px solid #f0f0f0',background:'#fff',cursor:'pointer',transition:'all .15s',textAlign:'left',alignItems:'flex-start',width:'100%'}}
-                          onMouseOver={e=>{e.currentTarget.style.borderColor='#fec9b0';e.currentTarget.style.background='#fffaf8';e.currentTarget.style.boxShadow='0 2px 12px rgba(255,101,63,.10)'}}
-                          onMouseOut={e=>{e.currentTarget.style.borderColor='#f0f0f0';e.currentTarget.style.background='#fff';e.currentTarget.style.boxShadow='none'}}>
-                          <span className={`${m.bg} rounded-xl flex items-center justify-center text-white flex-shrink-0`}
-                            style={{width:38,height:38,fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                            <m.Icon/>
-                          </span>
-                          <span style={{display:'flex',flexDirection:'column',gap:3,minWidth:0}}>
-                            <span style={{fontSize:13,fontWeight:800,color:'#111827',lineHeight:1.2}}>{m.label}</span>
-                            <span style={{fontSize:11.5,color:'#9ca3af',lineHeight:1.55,fontWeight:500}}>{m.desc}</span>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
+                    )}
                   </div>
 
-                  {/* Your exam */}
-                  {hasChosenExam && (
-                    <div style={{marginBottom:24}}>
-                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-                        <div className="dh-lbl" style={{margin:0}}>Your Exam</div>
-                        <button onClick={()=>setChangingExam(v=>!v)}
-                          style={{fontSize:11,fontWeight:700,color:'#FF653F',background:'none',border:'none',cursor:'pointer',padding:0}}>
-                          {changingExam?'Done':'Change'}
-                        </button>
-                      </div>
-                      {changingExam ? (
-                        <div>
-                          {(isPro?ACTIVE_GROUPS:ACTIVE_GROUPS.filter(g=>g.id===selectedGroup.id)).map(g=>(
-                            <div key={g.id} style={{marginBottom:12}}>
-                              <div style={{fontSize:10,fontWeight:700,color:'#b0b8c4',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>{g.label}</div>
-                              <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
-                                {g.exams.map(e=>(
-                                  <button key={e.id} onClick={()=>handleChangeExam(e.id)} className={`dh-pill ${e.id===selectedExamId?'active':''}`}>
-                                    {e.name}
-                                  </button>
-                                ))}
-                              </div>
+                  {/* RIGHT sidebar */}
+                  <div>
+                    {/* Tests Overview */}
+                    {history.length > 0 && (() => {
+                      const gb = ACTIVE_GROUPS.map(g=>({...g,count:history.filter(r=>g.exams.map(e=>e.id).includes(r.exam||'')).length})).filter(g=>g.count>0)
+                      return (
+                        <div style={{marginBottom:18}}>
+                          <div className="ht-title" style={{fontSize:12,marginBottom:10}}>Tests Overview</div>
+                          <div className="ht-card" style={{padding:'14px 16px'}}>
+                            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingBottom:10,marginBottom:10,borderBottom:`1px solid ${_b}`}}>
+                              <span style={{fontSize:11.5,fontWeight:700,color:_m}}>Total Tests Taken</span>
+                              <span style={{fontSize:22,fontWeight:900,color:_t,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{history.length}</span>
                             </div>
-                          ))}
-                          {!isPro && (
-                            <button onClick={()=>onNav?.('subscriptions')}
-                              style={{marginTop:4,fontSize:11.5,fontWeight:700,color:'#FF653F',background:'none',border:'none',cursor:'pointer',padding:0}}>
-                              Unlock more exams →
-                            </button>
-                          )}
+                            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                              {gb.map(g=>{
+                                const pct=Math.round((g.count/history.length)*100)
+                                return (
+                                  <div key={g.id}>
+                                    <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:4}}>
+                                      <div style={{width:7,height:7,borderRadius:'50%',background:g.hex,flexShrink:0}}/>
+                                      <span style={{fontSize:12,fontWeight:700,color:_t,flex:1}}>{shortLbl2(g.label)}</span>
+                                      <span style={{fontSize:13,fontWeight:900,color:g.hex,fontVariantNumeric:'tabular-nums'}}>{g.count}</span>
+                                    </div>
+                                    <div style={{height:4,background:cd?'rgba(255,255,255,.07)':'#f0f0f0',borderRadius:99,overflow:'hidden'}}>
+                                      <div style={{height:'100%',width:`${pct}%`,background:g.hex,borderRadius:99,transition:'width .8s'}}/>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
                         </div>
-                      ) : (
-                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5}}>
-                          {visibleGroupExams.map(e=>(
-                            <button key={e.id} onClick={()=>onStartTest('mock',e.id)}
-                              className={`dh-pill ${e.id===selectedExamId?'active':''}`}
-                              style={{width:'100%',justifyContent:'center',textAlign:'center'}}>
-                              {e.name}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                      )
+                    })()}
 
-                  {/* Study plan */}
-                  {savedPlan && (() => {
-                    const days=savedPlan.days||[]
-                    const total=days.length
-                    const completed=Object.values(completedDays).filter(Boolean).length
-                    const pct=total?Math.round((completed/total)*100):0
-                    const next=days.filter(d=>!completedDays[d.day])[0]
-                    return (
-                      <div>
+                    {/* Quick Launch */}
+                    <div style={{marginBottom:18}}>
+                      <div className="ht-title" style={{fontSize:12,marginBottom:10}}>Quick Launch</div>
+                      <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                        {ACTIVE_MODES.map(m=>(
+                          <button key={m.id} onClick={()=>onStartTest(m.id,selectedExamId)}
+                            style={{display:'flex',gap:12,padding:'12px 13px',borderRadius:12,border:`1px solid ${_b}`,background:_s,cursor:'pointer',transition:'all .15s',textAlign:'left',alignItems:'flex-start',width:'100%'}}
+                            onMouseOver={e=>{e.currentTarget.style.borderColor='#ffcbb7';e.currentTarget.style.background=cd?'rgba(255,101,63,.08)':'#fffaf8'}}
+                            onMouseOut={e=>{e.currentTarget.style.borderColor=_b;e.currentTarget.style.background=_s}}>
+                            <span className={`${m.bg} rounded-xl flex-shrink-0`} style={{width:34,height:34,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                              <m.Icon/>
+                            </span>
+                            <span style={{display:'flex',flexDirection:'column',gap:2,minWidth:0}}>
+                              <span style={{fontSize:12.5,fontWeight:800,color:_t,lineHeight:1.2}}>{m.label}</span>
+                              <span style={{fontSize:11,color:_m,lineHeight:1.5}}>{m.desc}</span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Your Exam */}
+                    {hasChosenExam && (
+                      <div style={{marginBottom:18}}>
                         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-                          <div className="dh-lbl" style={{margin:0}}>Study Plan</div>
-                          <button onClick={()=>setActiveTab('studyplan')}
-                            style={{fontSize:11,fontWeight:700,color:'#FF653F',background:'none',border:'none',cursor:'pointer',padding:0}}>
-                            View →
+                          <div className="ht-title" style={{fontSize:12,margin:0}}>Your Exam</div>
+                          <button onClick={()=>setChangingExam(v=>!v)} style={{fontSize:11,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0}}>
+                            {changingExam?'Done':'Change'}
                           </button>
                         </div>
-                        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
-                          <div style={{flex:1,height:3,background:'#ebebeb',borderRadius:99,overflow:'hidden'}}>
-                            <div style={{height:'100%',width:`${pct}%`,background:'#FF653F',borderRadius:99,transition:'width .5s'}}/>
+                        {changingExam ? (
+                          <div>
+                            {(isPro?ACTIVE_GROUPS:ACTIVE_GROUPS.filter(g=>g.id===selectedGroup.id)).map(g=>(
+                              <div key={g.id} style={{marginBottom:10}}>
+                                <div style={{fontSize:9,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:5}}>{g.label}</div>
+                                <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                                  {g.exams.map(e=>(
+                                    <button key={e.id} onClick={()=>{if(!e.comingSoon)handleChangeExam(e.id)}} disabled={!!e.comingSoon}
+                                      style={{padding:'5px 10px',borderRadius:7,border:'1.5px solid',cursor:e.comingSoon?'not-allowed':'pointer',fontSize:11,fontWeight:700,opacity:e.comingSoon?.4:1,background:e.id===selectedExamId?_a:'transparent',borderColor:e.id===selectedExamId?_a:(cd?'rgba(255,255,255,.15)':'#e5e7eb'),color:e.id===selectedExamId?'#fff':(cd?'rgba(255,255,255,.7)':'#374151')}}>
+                                      {e.name}{e.comingSoon?' 🔒':''}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                            {!isPro&&<button onClick={()=>onNav?.('subscriptions')} style={{marginTop:2,fontSize:11.5,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0}}>Unlock more exams →</button>}
                           </div>
-                          <span style={{fontSize:11.5,fontWeight:800,color:'#374151'}}>{pct}%</span>
-                        </div>
-                        <div style={{fontSize:11,color:'#b0b8c4',marginBottom:8}}>{completed}/{total} days · {total-completed} remaining</div>
-                        {next && (
-                          <div style={{fontSize:12,fontWeight:600,color:'#374151',lineHeight:1.5}}>
-                            Up next: {(next.topics||[]).slice(0,2).join(', ')||'Study session'}
-                            <span style={{fontSize:11,color:'#b0b8c4',display:'block'}}>{next.date} · {next.duration}</span>
+                        ) : (
+                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
+                            {visibleGroupExams.map(e=>(
+                              <button key={e.id} onClick={()=>{if(!e.comingSoon)onStartTest('mock',e.id)}} disabled={!!e.comingSoon}
+                                style={{padding:'7px 9px',borderRadius:8,border:'1.5px solid',cursor:e.comingSoon?'not-allowed':'pointer',fontSize:11,fontWeight:700,opacity:e.comingSoon?.4:1,textAlign:'center',background:e.id===selectedExamId?_a:'transparent',borderColor:e.id===selectedExamId?_a:(cd?'rgba(255,255,255,.15)':'#e5e7eb'),color:e.id===selectedExamId?'#fff':(cd?'rgba(255,255,255,.7)':'#374151'),transition:'all .12s'}}
+                                onMouseOver={e2=>{if(e.id!==selectedExamId&&!e.comingSoon){e2.currentTarget.style.borderColor=_a;e2.currentTarget.style.color=_a}}}
+                                onMouseOut={e2=>{if(e.id!==selectedExamId){e2.currentTarget.style.borderColor=cd?'rgba(255,255,255,.15)':'#e5e7eb';e2.currentTarget.style.color=cd?'rgba(255,255,255,.7)':'#374151'}}}>
+                                {e.name}{e.comingSoon?' 🔒':''}
+                              </button>
+                            ))}
                           </div>
                         )}
                       </div>
-                    )
-                  })()}
+                    )}
+
+                    {/* Study Plan */}
+                    {savedPlan && (() => {
+                      const days=savedPlan.days||[]
+                      const total=days.length
+                      const completed=Object.values(completedDays).filter(Boolean).length
+                      const pct=total?Math.round((completed/total)*100):0
+                      const next=days.filter(d=>!completedDays[d.day])[0]
+                      return (
+                        <div>
+                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                            <div className="ht-title" style={{fontSize:12,margin:0}}>Study Plan</div>
+                            <button onClick={()=>setActiveTab('studyplan')} style={{fontSize:11,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0}}>View →</button>
+                          </div>
+                          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:5}}>
+                            <div style={{flex:1,height:3,background:cd?'rgba(255,255,255,.08)':'#ebebeb',borderRadius:99,overflow:'hidden'}}>
+                              <div style={{height:'100%',width:`${pct}%`,background:_a,borderRadius:99,transition:'width .5s'}}/>
+                            </div>
+                            <span style={{fontSize:11.5,fontWeight:800,color:_t}}>{pct}%</span>
+                          </div>
+                          <div style={{fontSize:11,color:_m,marginBottom:6}}>{completed}/{total} days · {total-completed} remaining</div>
+                          {next&&<div style={{fontSize:12,fontWeight:600,color:_t,lineHeight:1.5}}>Up next: {(next.topics||[]).slice(0,2).join(', ')||'Study session'}<span style={{fontSize:11,color:_m,display:'block'}}>{next.date} · {next.duration}</span></div>}
+                        </div>
+                      )
+                    })()}
+                  </div>
                 </div>
-              </div>
-            </>}
+              </>
+            })()}
 
             {/* ── PRACTICE tab ── */}
             {activeTab === 'practice' && <>
@@ -2002,7 +1881,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
               <p className="text-sm text-gray-500 mb-6">Choose a mode and launch your test</p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                 {ACTIVE_MODES.map(m => (
-                  <button key={m.id} onClick={() => onStartTest(m.id)}
+                  <button key={m.id} onClick={() => onStartTest(m.id, selectedExamId)}
                     className="text-left bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-md transition-all group"
                     onMouseOver={e=>e.currentTarget.style.borderColor='#fec9b0'}
                     onMouseOut={e=>e.currentTarget.style.borderColor='#e5e7eb'}>
@@ -2118,13 +1997,19 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                         {exam.tag && <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background:`${grp.hex}18`, color:grp.hex }}>{exam.tag}</span>}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <button onClick={()=>onStartTest('mock', exam.id)}
-                          className="text-xs font-bold text-white rounded-lg px-4 py-1.5 hover:shadow-md transition-all whitespace-nowrap"
-                          style={{ background:'#FF653F' }}
-                          onMouseOver={e=>e.currentTarget.style.background='#e5512f'}
-                          onMouseOut={e=>e.currentTarget.style.background='#FF653F'}>
-                          Start Mock Test →
-                        </button>
+                        {exam.comingSoon ? (
+                          <span className="text-xs font-bold px-4 py-1.5 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed">
+                            🔒 Question Bank Coming Soon
+                          </span>
+                        ) : (
+                          <button onClick={()=>onStartTest('mock', exam.id)}
+                            className="text-xs font-bold text-white rounded-lg px-4 py-1.5 hover:shadow-md transition-all whitespace-nowrap"
+                            style={{ background:'#FF653F' }}
+                            onMouseOver={e=>e.currentTarget.style.background='#e5512f'}
+                            onMouseOut={e=>e.currentTarget.style.background='#FF653F'}>
+                            Start Mock Test →
+                          </button>
+                        )}
                         <button onClick={()=>{ setExploreExam(null); window.scrollTo(0,0) }}
                           className="text-xs font-semibold text-gray-500 hover:text-gray-800 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50">
                           ← Back to exams
@@ -2667,741 +2552,25 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
               </div>
             )}
 
-            {/* ── MY RESULTS tab — performance graphs + every attempt ── */}
-            {activeTab === 'results' && (() => {
-              const fmtTopic = t => String(t||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
-              const SEC_LABEL = {
-                english:'English', numerical_ability:'Numerical', quantitative_aptitude:'Quant',
-                reasoning:'Reasoning', reasoning_computer_aptitude:'Reasoning+Comp',
-                general_financial_awareness:'GA', general_awareness:'GA',
-                data_analysis_interpretation:'DI', general_economy_banking:'GA', general_english:'English',
-              }
-              const chrono = [...history].reverse()
-              const scoreTrend = chrono.map((r,i) => ({
-                name: r.created_at ? new Date(r.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : `T${i+1}`,
-                score: Math.round(Number(r.percentage)||0),
-                readiness: Math.round(Number(r.exam_readiness)||0),
-              }))
-              const secAgg = {}
-              history.forEach(r => Object.entries(r.section_scores||{}).forEach(([sec,v])=>{
-                const acc = v?.accuracy!=null ? v.accuracy : (v?.total ? (v.correct/v.total*100) : 0)
-                if(!secAgg[sec]) secAgg[sec]={sum:0,n:0}; secAgg[sec].sum+=acc; secAgg[sec].n+=1
-              }))
-              const sectionData = Object.entries(secAgg).map(([sec,a])=>({ section: SEC_LABEL[sec]||sec, accuracy: Math.round(a.sum/a.n) }))
-              const topAgg = {}
-              history.forEach(r => (r.weak_topics||[]).forEach(w=>{
-                const name = w?.topic||w?.name; if(!name) return
-                const acc = Number(w?.accuracy)||0
-                if(!topAgg[name]) topAgg[name]={sum:0,n:0}; topAgg[name].sum+=acc; topAgg[name].n+=1
-              }))
-              const weakData = Object.entries(topAgg)
-                .map(([t,a])=>({ topic: fmtTopic(t), accuracy: Math.round(a.sum/a.n) }))
-                .sort((x,y)=>x.accuracy-y.accuracy).slice(0,6)
-
-              return (
-              <div>
-                <h2 className="text-xl font-black text-gray-900 mb-1">My Results</h2>
-                <p className="text-sm text-gray-500 mb-6">Your performance trends and every attempt in one place</p>
-
-                {history.length < 1 ? (
-                  <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center">
-                    <div className="mb-3 flex justify-center"><DIcChart s={40} c='#9ca3af'/></div>
-                    <div className="text-sm font-bold text-gray-900 mb-1">No data yet</div>
-                    <div className="text-xs text-gray-500 mb-4">Take a topicwise test or mock test to unlock your progress graphs.</div>
-                    <button onClick={()=>onStartTest()} className="bg-gradient-to-r from-blue-600 to-violet-600 text-white text-sm font-bold px-6 py-2.5 rounded-xl">
-                      Take a test →
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-                    {/* Score & readiness trend */}
-                    <div className="bg-white border border-gray-200 rounded-2xl p-5 lg:col-span-2">
-                      <div className="text-sm font-bold text-gray-900 mb-3">Score &amp; readiness trend</div>
-                      <ResponsiveContainer width="100%" height={260}>
-                        <LineChart data={scoreTrend} margin={{top:5,right:20,left:-10,bottom:5}}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#eef0f3"/>
-                          <XAxis dataKey="name" tick={{fontSize:11}}/>
-                          <YAxis domain={[0,100]} tick={{fontSize:11}}/>
-                          <Tooltip/>
-                          <Line type="monotone" dataKey="score"     name="Score %"     stroke="#FF653F" strokeWidth={2} dot={{r:3}}/>
-                          <Line type="monotone" dataKey="readiness" name="Readiness %" stroke="#7048E8" strokeWidth={2} dot={{r:3}}/>
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-
-                    {/* Section accuracy radar */}
-                    <div className="bg-white border border-gray-200 rounded-2xl p-5">
-                      <div className="text-sm font-bold text-gray-900 mb-3">Section-wise accuracy (avg)</div>
-                      {sectionData.length ? (
-                        <ResponsiveContainer width="100%" height={260}>
-                          <RadarChart data={sectionData} outerRadius={90}>
-                            <PolarGrid stroke="#eef0f3"/>
-                            <PolarAngleAxis dataKey="section" tick={{fontSize:11}}/>
-                            <Radar dataKey="accuracy" stroke="#FF653F" fill="#FF653F" fillOpacity={0.35}/>
-                            <Tooltip/>
-                          </RadarChart>
-                        </ResponsiveContainer>
-                      ) : <p className="text-xs text-gray-400 text-center py-16">No section data yet.</p>}
-                    </div>
-
-                    {/* Weakest topics */}
-                    <div className="bg-white border border-gray-200 rounded-2xl p-5">
-                      <div className="text-sm font-bold text-gray-900 mb-3">Weakest topics (avg accuracy)</div>
-                      {weakData.length ? (
-                        <ResponsiveContainer width="100%" height={260}>
-                          <BarChart data={weakData} layout="vertical" margin={{top:5,right:20,left:10,bottom:5}}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#eef0f3"/>
-                            <XAxis type="number" domain={[0,100]} tick={{fontSize:11}}/>
-                            <YAxis type="category" dataKey="topic" width={120} tick={{fontSize:11}}/>
-                            <Tooltip/>
-                            <Bar dataKey="accuracy" fill="#f59e0b" radius={[0,4,4,0]}/>
-                          </BarChart>
-                        </ResponsiveContainer>
-                      ) : <p className="text-xs text-gray-400 text-center py-16">No weak-topic data yet — take a test to see this.</p>}
-                    </div>
-                  </div>
-
-                  {/* Every attempt — click to review */}
-                  <div className="text-sm font-bold text-gray-900 mb-3">All attempts</div>
-                  <div className="space-y-3">
-                    {history.map((r,i)=>{
-                      const pct  = Number(r.percentage||0)
-                      const name = (() => {
-                        const toTitle = s => (s||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
-                        if (r.test_type === 'topic_diagnostic') return `Topicwise Test${r.topic ? ` — ${toTitle(r.topic)}` : ''}`
-                        if (r.test_type === 'mini' || r.test_type === 'concept_mini') return `Practice Test${r.topic ? ` — ${toTitle(r.topic)}` : r.section ? ` — ${toTitle(r.section)}` : ''}`
-                        return `Mock Test — ${toTitle(r.exam) || 'Bank Clerk Prelims'}`
-                      })()
-                      const date = new Date(r.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})
-                      const pass = pct >= 40
-                      return (
-                        <button key={r.id||i} onClick={()=>onOpenResult?.(r)}
-                          className="w-full text-left bg-white border border-gray-200 rounded-xl flex items-center gap-4 px-5 py-4 hover:shadow-md hover:border-gray-300 transition-all">
-                          <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center flex-shrink-0 ${pass?'bg-green-50 text-green-700':'bg-orange-50 text-orange-700'}`}>
-                            <span className="text-sm font-black">{pct.toFixed(0)}%</span>
-                            <span className="text-xs opacity-60">{pass?'Pass':'Fail'}</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-bold text-gray-900">{name}</div>
-                            <div className="text-xs text-gray-400 mt-0.5">{date} · {r.correct_count||0} correct · {r.wrong_count||0} wrong · {r.skipped_count||0} skipped</div>
-                          </div>
-                          <span className="text-xs font-bold flex-shrink-0" style={{color:'#FF653F'}}>Review →</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                  </>
-                )}
-              </div>
-              )
-            })()}
-
-            {/* ── SUBSCRIPTIONS tab ── */}
-            {activeTab === 'subscriptions' && (() => {
-              const RANK = { basic:1, pro:2, ultimate:3 }
-              const curPlan  = (user?.user_metadata?.plan || user?.user_metadata?.subscription || '').toLowerCase()
-              const expRaw   = user?.user_metadata?.plan_expires
-              const expDate  = expRaw ? new Date(expRaw) : null
-              const expValid = expDate && !isNaN(expDate) ? expDate : null
-              const fmtD     = (d) => d.toLocaleDateString('en-IN',{ day:'numeric', month:'short', year:'numeric' })
-              const PLANS = [
-                { name:'Basic',    price:'₹199',  per:'/month',    features:['5 mock tests / month','Topic & section practice','Basic analytics'] },
-                { name:'Pro',      price:'₹499',  per:'/month',    features:['Unlimited mock tests','PDF solutions','Personalised study plan','Priority support'], highlight:true },
-                { name:'Ultimate', price:'₹1199', per:'/3 months', features:['Everything in Pro','All exam categories','Performance trends','WhatsApp reminders'] },
-              ]
-              // Feature comparison matrix
-              const CMP = [
-                ['Price',                   '₹199/mo', '₹499/mo', '₹1199/3mo'],
-                ['Mock tests',              '5 / month', 'Unlimited', 'Unlimited'],
-                ['Topic & section practice','✓', '✓', '✓'],
-                ['PDF solutions',           '✗', '✓', '✓'],
-                ['Personalised study plan', '✗', '✓', '✓'],
-                ['Performance trends',      'Basic', '✓', '✓'],
-                ['All exam categories',     '✗', '✗', '✓'],
-                ['Priority support',        '✗', '✓', '✓'],
-                ['WhatsApp reminders',      '✗', '✗', '✓'],
-              ]
-              const cell = (v) => v === '✓' ? <span className="text-green-600 font-bold">✓</span>
-                                : v === '✗' ? <span className="text-gray-300">✗</span>
-                                : <span className="text-gray-700">{v}</span>
-              return (
-              <div>
-                <h2 className="text-xl font-black text-gray-900 mb-1">Subscriptions</h2>
-                <p className="text-sm text-gray-500 mb-6">Manage your MockTest plan</p>
-
-                {/* Current status */}
-                {isPro ? (
-                  <div className="rounded-2xl p-5 mb-6 text-white" style={{ background:'linear-gradient(135deg,#FF653F 0%,#ff8a5f 100%)' }}>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                      <div>
-                        <div className="inline-flex items-center gap-1.5 bg-white/20 rounded-full px-2.5 py-0.5 text-xs font-bold mb-1.5">● Active</div>
-                        <div className="text-lg font-black">You're subscribed to the {curPlan.charAt(0).toUpperCase()+curPlan.slice(1)} plan</div>
-                        <div className="text-sm text-white/90 mt-0.5">{expValid ? `Renews / expires on ${fmtD(expValid)}` : 'Subscription active'}</div>
-                        {RANK[curPlan] > 1 && (
-                          <div className="text-xs text-white/80 mt-2">
-                            You can switch to a lower plan when this one renews{expValid ? ` on ${fmtD(expValid)}` : ''}.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-white border border-gray-200 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 mb-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background:'#FFF3EE' }}><DIcGrad s={20} c='#FF653F'/></div>
-                      <div>
-                        <div className="text-sm font-bold text-gray-900">{trialActive ? `You're on the free trial — ${trialDaysLeft} day${trialDaysLeft>1?'s':''} left` : "You're on the Free tier"}</div>
-                        <div className="text-xs text-gray-500 mt-0.5">Upgrade for unlimited mock tests, PDF solutions & study plans.</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* On the top plan (Ultimate) there's nothing to upgrade to — hide the options */}
-                {curPlan === 'ultimate' ? (
-                  <div className="rounded-2xl border-2 border-green-200 bg-green-50 p-6 text-center">
-                    <div className="mb-1 flex justify-center"><DIcParty s={22} c='#16a34a'/></div>
-                    <div className="text-base font-black text-gray-900">You're on the Ultimate plan — our highest tier</div>
-                    <div className="text-sm text-gray-600 mt-1">You already have every feature. There's nothing more to upgrade.</div>
-                  </div>
-                ) : (<>
-                {/* Unified plan comparison — headers (price + buy) sit on top of the feature rows */}
-                <h3 className="text-sm font-bold text-gray-900 mb-3">Choose your plan</h3>
-                <div className="overflow-x-auto -mx-1 sm:mx-0 border border-gray-200 rounded-2xl">
-                  <table className="w-full text-sm min-w-[520px]">
-                    <thead>
-                      <tr>
-                        <th className="p-3 sm:p-4"></th>
-                        {PLANS.map(plan=>{
-                          const planId  = plan.name.toLowerCase()
-                          const current = isPro && curPlan === planId
-                          const busy    = payingPlan === planId
-                          const lower   = isPro && RANK[planId] < RANK[curPlan]
-                          const hl      = plan.highlight
-                          const label   = current ? '✓ Current Plan'
-                                        : busy    ? 'Opening…'
-                                        : lower   ? 'Included'
-                                        : isPro   ? 'Upgrade →'
-                                        : hl ? 'Get Started' : 'Choose Plan'
-                          return (
-                            <th key={plan.name} className="p-3 sm:p-4 text-center align-top border-l border-gray-100"
-                              style={current?{background:'#f0fdf4'}:hl?{background:'#FFF3EE'}:{}}>
-                              {/* Always reserve the tag line so every column aligns (no zigzag) */}
-                              <div className="text-[10px] font-black uppercase tracking-wide mb-1 h-3.5 leading-none"
-                                style={{color:current?'#16a34a':hl?'#FF653F':'transparent'}}>
-                                {current ? 'Your plan' : hl ? 'Most popular' : ' '}
-                              </div>
-                              <div className="text-sm sm:text-base font-black text-gray-900">{plan.name}</div>
-                              <div className="flex items-baseline justify-center gap-1 mt-0.5 h-8">
-                                <span className="text-xl sm:text-2xl font-black" style={{color:hl?'#FF653F':'#111827'}}>{plan.price}</span>
-                                <span className="text-[11px] text-gray-400 font-medium whitespace-nowrap">{plan.per}</span>
-                              </div>
-                              <button onClick={() => (!current && !lower) && handleSubscribe(plan.name)} disabled={busy || current || lower}
-                                className={`mt-2 w-full py-2 rounded-xl text-xs font-bold transition-all ${
-                                  current ? 'bg-green-600 text-white cursor-default'
-                                  : lower  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                  : 'text-white hover:shadow-md'} ${busy?'opacity-60 cursor-wait':''}`}
-                                style={(!current && !lower) ? {background:'#FF653F'} : {}}>
-                                {label}
-                              </button>
-                            </th>
-                          )
-                        })}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {CMP.filter(r=>r[0]!=='Price').map(row=>(
-                        <tr key={row[0]} className="border-t border-gray-100">
-                          <td className="px-2.5 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">{row[0]}</td>
-                          {[1,2,3].map(ci=>{
-                            const planId  = ['','basic','pro','ultimate'][ci]
-                            const current = isPro && curPlan === planId
-                            const hl      = planId === 'pro'
-                            return (
-                              <td key={ci} className="px-2.5 sm:px-4 py-2.5 text-xs sm:text-sm text-center border-l border-gray-100"
-                                style={current?{background:'#f0fdf4'}:hl?{background:'#FFF8F4'}:{}}>
-                                {cell(row[ci])}
-                              </td>
-                            )
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                </>)}
-              </div>
-              )
-            })()}
-
-            {/* ── PROFILE tab ── */}
-            {activeTab === 'profile' && (() => {
-              const fieldCls = (on) => `w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${on ? 'bg-white text-gray-900 focus:ring-2' : 'border-gray-200 bg-gray-50 text-gray-500'}`
-              const fieldStyle = (on) => on ? { borderColor:'#FF653F' } : {}
-              const examName = (id) => ALL_EXAMS_FLAT.find(e=>e.id===id)?.name
-              const examLabel = (id) => { const e=ALL_EXAMS_FLAT.find(x=>x.id===id); const g=ACTIVE_GROUPS.find(gr=>gr.exams.some(x=>x.id===id)); return e? `${g?.label?.replace(' Exams','')||''} ${e.name}`.trim() : id }
-              return (
-              <div className="max-w-2xl">
-                <h2 className="text-xl font-black text-gray-900 mb-1">Profile</h2>
-                <p className="text-sm text-gray-500 mb-6">Manage your account, exam preferences and password</p>
-
-                {/* User Information */}
-                <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-5">
-                  <div className="flex items-center gap-4 mb-5 pb-5 border-b border-gray-100">
-                    <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold" style={{background:'#FF653F'}}>
-                      {(userName[0]||'U').toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="text-base font-bold text-gray-900">{userName}</div>
-                      <div className="text-xs text-gray-400">{user?.email}</div>
-                      <div className="text-xs text-green-600 font-semibold mt-1">✓ Account active</div>
-                    </div>
-                    <button onClick={()=>setProfileEdit(v=>!v)} className="ml-auto text-sm font-semibold" style={{color:'#FF653F'}}>
-                      {profileEdit ? 'Cancel' : 'Edit'}
-                    </button>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Full Name</label>
-                      <input value={profileName} onChange={e=>setProfileName(e.target.value)} disabled={!profileEdit}
-                        className={fieldCls(profileEdit)} style={fieldStyle(profileEdit)}/>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Email</label>
-                      <input value={user?.email||''} disabled className={fieldCls(false)}/>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Mobile (+91)</label>
-                      <input value={profilePhone} maxLength={10} onChange={e=>setProfilePhone(e.target.value.replace(/[^0-9]/g,''))} disabled={!profileEdit}
-                        className={fieldCls(profileEdit)} style={fieldStyle(profileEdit)} placeholder="10-digit mobile"/>
-                    </div>
-                  </div>
-                  {profileEdit && (
-                    <button onClick={handleSaveProfile} disabled={profileSaving}
-                      className="mt-5 text-white text-sm font-bold px-6 py-2.5 rounded-xl disabled:opacity-60" style={{background:'#FF653F'}}>
-                      {profileSaving?'Saving…':'Save Changes'}
-                    </button>
-                  )}
-                  {profileMsg && <span className="ml-3 text-sm text-green-600 font-semibold">{profileMsg}</span>}
-                </div>
-
-                {/* Educational Status */}
-                <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-5">
-                  <div className="flex items-center justify-between mb-5">
-                    <h3 className="text-base font-bold text-gray-900">Educational Status</h3>
-                    <button onClick={()=>setEduEdit(v=>!v)} className="text-sm font-semibold" style={{color:'#FF653F'}}>
-                      {eduEdit ? 'Cancel' : 'Edit'}
-                    </button>
-                  </div>
-                  {!eduEdit ? (
-                    <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
-                      <div><div className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Target Exam</div><div className="font-semibold text-gray-900">{examLabel(profileExam)}</div></div>
-                      <div><div className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Category</div><div className="font-semibold text-gray-900">{CATEGORIES.find(c=>c.value===profileCategory)?.label||profileCategory}</div></div>
-                      <div><div className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Prep Level</div><div className="font-semibold text-gray-900 capitalize">{profileLevel||'—'}</div></div>
-                      <div><div className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">State</div><div className="font-semibold text-gray-900">{profileState||'—'}</div></div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Target Exam</label>
-                        <select value={profileExam} onChange={e=>setProfileExam(e.target.value)} className={fieldCls(true)+' cursor-pointer'} style={fieldStyle(true)}>
-                          {ACTIVE_GROUPS.flatMap(g=>g.exams.map(e=>(
-                            <option key={e.id} value={e.id}>{g.label.replace(' Exams','')} — {e.name}</option>
-                          )))}
-                        </select>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Category</label>
-                          <select value={profileCategory} onChange={e=>setProfileCategory(e.target.value)} className={fieldCls(true)+' cursor-pointer'} style={fieldStyle(true)}>
-                            {CATEGORIES.map(c=><option key={c.value} value={c.value}>{c.label}</option>)}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Prep Level</label>
-                          <select value={profileLevel} onChange={e=>setProfileLevel(e.target.value)} className={fieldCls(true)+' cursor-pointer'} style={fieldStyle(true)}>
-                            <option value="">-- Select --</option>
-                            {LEVELS.map(l=><option key={l.value} value={l.value}>{l.label}</option>)}
-                          </select>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">State</label>
-                        <input value={profileState} onChange={e=>setProfileState(e.target.value)} className={fieldCls(true)} style={fieldStyle(true)} placeholder="e.g. Telangana"/>
-                      </div>
-                      <button onClick={handleSaveEdu} disabled={eduSaving}
-                        className="text-white text-sm font-bold px-6 py-2.5 rounded-xl disabled:opacity-60" style={{background:'#FF653F'}}>
-                        {eduSaving?'Saving…':'Save Changes'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Password */}
-                <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-5">
-                  <h3 className="text-base font-bold text-gray-900 mb-4">Change Password</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">New Password</label>
-                      <input type="password" value={newPwd} onChange={e=>setNewPwd(e.target.value)} placeholder="Min 6 chars"
-                        className={fieldCls(true)} style={fieldStyle(true)}/>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Confirm Password</label>
-                      <input type="password" value={confirmPwd} onChange={e=>setConfirmPwd(e.target.value)} placeholder="Repeat password"
-                        className={fieldCls(true)} style={fieldStyle(true)}/>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 mt-4">
-                    <button onClick={handleChangePassword} disabled={pwdSaving || !newPwd}
-                      className="text-white text-sm font-bold px-6 py-2.5 rounded-xl disabled:opacity-50" style={{background:'#FF653F'}}>
-                      {pwdSaving?'Updating…':'Update Password'}
-                    </button>
-                    {pwdMsg && <span className={`text-sm font-semibold ${pwdMsg.startsWith('✓')?'text-green-600':'text-red-600'}`}>{pwdMsg}</span>}
-                  </div>
-                </div>
-
-                {/* Notification preferences */}
-                <div className="bg-white border border-gray-200 rounded-2xl p-6">
-                  <h3 className="text-base font-bold text-gray-900 mb-4">Email / Notification Preferences {notifSaving && <span className="text-xs text-gray-400 font-normal">saving…</span>}</h3>
-                  {[
-                    { key:'subs',  val:notifNoSubs,  label:"I don't want notifications about my subscription (renewals, service updates)." },
-                    { key:'promo', val:notifNoPromo, label:"I don't want promotions about future products and special offers." },
-                  ].map(n=>(
-                    <label key={n.key} className="flex items-start gap-3 py-2 cursor-pointer">
-                      <input type="checkbox" checked={n.val}
-                        onChange={e=>handleSaveNotif(n.key==='subs'?e.target.checked:notifNoSubs, n.key==='promo'?e.target.checked:notifNoPromo)}
-                        className="mt-0.5 w-4 h-4 accent-orange-500"/>
-                      <span className="text-sm text-gray-600">{n.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              )
-            })()}
-
-            {/* ── BILLING tab — account & payment management (distinct from Subscriptions = plan shopping) ── */}
-            {activeTab === 'billing' && (() => {
-              const planLabel = isPro ? plan.charAt(0).toUpperCase() + plan.slice(1) : 'Free'
-              const expRaw    = user?.user_metadata?.plan_expires
-              const expDate   = expRaw ? new Date(expRaw) : null
-              const expValid  = expDate && !isNaN(expDate) ? expDate : null
-              const fmtDate   = (d) => d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
-              const tier      = PLAN_TIERS.find(t => t.id === plan)
-              const lastAmt   = tier?.price
-              return (
-              <div className="max-w-lg">
-                <h2 className="text-xl font-black text-gray-900 mb-1">Billing</h2>
-                <p className="text-sm text-gray-500 mb-6">Your current plan, validity and payment history</p>
-
-                {/* Current plan status */}
-                <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="text-sm font-bold text-gray-900">Current Plan</div>
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isPro?'bg-green-50 text-green-600':'bg-gray-100 text-gray-500'}`}>
-                      {isPro ? '● Active' : 'Free tier'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className={`text-2xl font-black ${isPro?'text-orange-600':'text-gray-900'}`}>{planLabel}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {isPro
-                          ? (expValid ? `Renews / expires on ${fmtDate(expValid)}` : 'Active subscription')
-                          : 'Limited to 5 mock tests / month · No PDF downloads'}
-                      </div>
-                    </div>
-                    <button onClick={()=>setActiveTab('subscriptions')}
-                      className="text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:shadow-lg transition-all whitespace-nowrap"
-                      style={{ background:'#FF653F' }}>
-                      {isPro ? 'Change plan' : 'Upgrade →'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Payment history */}
-                <div className="bg-white border border-gray-200 rounded-2xl p-6">
-                  <div className="text-sm font-bold text-gray-900 mb-4">Payment History</div>
-                  {isPro ? (
-                    <div className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
-                      <div>
-                        <div className="text-sm font-semibold text-gray-900">{planLabel} plan</div>
-                        <div className="text-xs text-gray-400 mt-0.5">{expValid ? `Valid until ${fmtDate(expValid)}` : 'Active'}</div>
-                      </div>
-                      <div className="text-right">
-                        {lastAmt && <div className="text-sm font-bold text-gray-900">{lastAmt}</div>}
-                        <span className="text-xs font-semibold text-green-600">Paid</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-6">
-                      <div className="mb-2 flex justify-center"><DIcReceipt s={28} c='#9ca3af'/></div>
-                      <div className="text-sm font-semibold text-gray-600">No payments yet</div>
-                      <div className="text-xs text-gray-400 mt-1">Your invoices will appear here after you subscribe.</div>
-                    </div>
-                  )}
-                  <div className="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400 flex items-center gap-1.5">
-                    <DIcLock s={13} c='#9ca3af'/> Payments are processed securely via Stripe.
-                  </div>
-                </div>
-              </div>
-              )
-            })()}
-
-
-            {/* ── WEAK AREAS tab ── */}
-            {activeTab === 'weakareas' && (() => {
-              const WA_SEC = {
-                english:            {label:'English',            dot:'#3b82f6', emoji:'📖', tip:'Focus on reading comprehension and grammar rules.'},
-                numerical_ability:  {label:'Numerical Ability',  dot:'#f59e0b', emoji:'🔢', tip:'Practise speed-math shortcuts and number series patterns.'},
-                reasoning:          {label:'Reasoning',          dot:'#8b5cf6', emoji:'🧠', tip:'Solve 10 puzzles daily — syllogisms, blood relations, coding.'},
-                general_awareness:  {label:'General Awareness',  dot:'#10b981', emoji:'🌐', tip:'Read one news digest per day + monthly current affairs PDFs.'},
-                computer_knowledge: {label:'Computer Knowledge', dot:'#6366f1', emoji:'💻', tip:'Revise hardware basics, MS Office shortcuts and networking concepts.'},
-                quantitative:       {label:'Quantitative',       dot:'#f97316', emoji:'📊', tip:'Prioritise DI sets, percentage, and profit & loss chapters.'},
-                verbal:             {label:'Verbal',             dot:'#ec4899', emoji:'💬', tip:'Build vocabulary with 5 new words/day + sentence correction drills.'},
-                reading:            {label:'Reading',            dot:'#0ea5e9', emoji:'📚', tip:'Do timed passage reads — aim for 250 wpm with 80%+ comprehension.'},
-                math:               {label:'Math',               dot:'#84cc16', emoji:'📐', tip:'Revise formulas first, then solve 20 varied problems per topic.'},
-                science:            {label:'Science',            dot:'#14b8a6', emoji:'🔬', tip:'Use concept maps and diagrams — visualise before memorising facts.'},
-                other:              {label:'Other',              dot:'#9ca3af', emoji:'📋', tip:'Identify the specific subtopic and find targeted practice material.'},
-              }
-
-              const allWeakSrc = history  // all exams, all time
-              const topicAgg = {}
-              allWeakSrc.forEach(r => {
-                ;(r.weak_topics || []).forEach(w => {
-                  const topic   = typeof w==='string' ? w : (w?.topic||w?.name||'')
-                  const section = (typeof w==='string' ? 'other' : w?.section) || 'other'
-                  const acc     = w?.accuracy != null ? Number(w.accuracy) : null
-                  if (!topic) return
-                  if (!topicAgg[topic]) topicAgg[topic] = { section, count:0, accSum:0, accN:0 }
-                  topicAgg[topic].count++
-                  if (acc != null) { topicAgg[topic].accSum += acc; topicAgg[topic].accN++ }
-                })
-              })
-
-              const sorted = Object.entries(topicAgg).sort((a,b) => {
-                const aAvg = a[1].accN ? a[1].accSum/a[1].accN : 999
-                const bAvg = b[1].accN ? b[1].accSum/b[1].accN : 999
-                return aAvg - bAvg
-              })
-
-              if (!sorted.length) return (
-                <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'80px 0',gap:16,textAlign:'center'}}>
-                  <div style={{fontSize:56,lineHeight:1}}>🎯</div>
-                  <div style={{fontSize:20,fontWeight:900,color:'#111827'}}>No Weak Areas Detected</div>
-                  <div style={{fontSize:14,color:'#9ca3af',maxWidth:320,lineHeight:1.65}}>
-                    Take more mock tests to build a picture of your weak areas and get AI-powered suggestions.
-                  </div>
-                  <button onClick={() => onStartTest?.('mock', selectedExamId)} className="dh-btn dh-btn-primary" style={{marginTop:8}}>
-                    Take a Mock Test
-                  </button>
-                </div>
-              )
-
-              const bySection = {}
-              sorted.forEach(([topic, info]) => {
-                if (!bySection[info.section]) bySection[info.section] = []
-                bySection[info.section].push({ topic, count:info.count, avgAcc:info.accN?Math.round(info.accSum/info.accN):null })
-              })
-
-              const sectionSummary = Object.entries(bySection).map(([sec, topics]) => {
-                const accVals = topics.filter(t=>t.avgAcc!=null).map(t=>t.avgAcc)
-                const secAvg  = accVals.length ? Math.round(accVals.reduce((a,b)=>a+b,0)/accVals.length) : null
-                return { sec, topics, secAvg, meta: WA_SEC[sec]||WA_SEC.other }
-              }).sort((a,b)=>(a.secAvg??100)-(b.secAvg??100))
-
-              const totalTopics    = sorted.length
-              const criticalCount  = sorted.filter(([,v])=>v.accN&&(v.accSum/v.accN)<40).length
-              const needsWorkCount = sorted.filter(([,v])=>v.accN&&(v.accSum/v.accN)>=40&&(v.accSum/v.accN)<65).length
-              const worstSec       = sectionSummary[0]
-
-              const suggestions = [
-                worstSec && {
-                  icon:'🎯', color:'#ef4444',
-                  title:`Start with ${worstSec.meta.label} — your lowest-scoring section`,
-                  desc:`Accuracy: ${worstSec.secAvg??'low'}%. Spend 40% of each study session here until you cross 65%.`,
-                },
-                criticalCount > 0 && {
-                  icon:'⚡', color:'#f97316',
-                  title:`${criticalCount} critical topic${criticalCount>1?'s':''} below 40% — high priority`,
-                  desc:`Negative marking hits hardest in topics you barely know. Master these with concept notes before attempting more questions.`,
-                },
-                {
-                  icon:'🔄', color:'#3b82f6',
-                  title:'Use Topic Practice for targeted drilling',
-                  desc:`Short 20-question sessions on a single topic build recall faster than full mocks. Use "Topic Practice" mode after each weak topic study session.`,
-                },
-                {
-                  icon:'📈', color:'#8b5cf6',
-                  title:'Retake benchmark mock after 1 week of focused study',
-                  desc:`Track your improvement cycle: study weak topic → take section test → verify accuracy gain. Aim for 15-20% improvement per week.`,
-                },
-              ].filter(Boolean)
-
-              const sevLabel = acc => acc==null?'Unscored':acc<40?'Critical':acc<65?'Needs Work':acc<82?'Improving':'Good'
-              const sevColor = acc => acc==null?'#9ca3af':acc<40?'#ef4444':acc<65?'#f97316':acc<82?'#3b82f6':'#16a34a'
-
-              return (
-                <div>
-                  {/* Header */}
-                  <div style={{marginBottom:24}}>
-                    <h1 style={{fontSize:24,fontWeight:900,color:'#111827',letterSpacing:'-.03em',margin:0}}>
-                      Weak Area Analysis
-                    </h1>
-                    <p style={{fontSize:13,color:'#9ca3af',marginTop:5,fontWeight:500}}>
-                      AI-powered insights from {allWeakSrc.length} test{allWeakSrc.length!==1?'s':''} · focus on these to maximise your score
-                    </p>
-                  </div>
-
-                  {/* Summary tiles */}
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:28}}>
-                    {[
-                      {val:totalTopics,    lbl:'Total Weak Topics',   col:'#FF653F', bg:'linear-gradient(135deg,#fff8f5 0%,#fff 100%)', border:'#FF653F22'},
-                      {val:criticalCount,  lbl:'Critical (< 40%)',    col:'#ef4444', bg:'linear-gradient(135deg,#fff5f5 0%,#fff 100%)', border:'#ef444422'},
-                      {val:needsWorkCount, lbl:'Needs Work (40–65%)', col:'#f97316', bg:'linear-gradient(135deg,#fff8f0 0%,#fff 100%)', border:'#f9731622'},
-                    ].map(s => (
-                      <div key={s.lbl} style={{background:s.bg,borderRadius:16,padding:'16px 18px',border:`1.5px solid ${s.border}`}}>
-                        <div style={{fontSize:32,fontWeight:900,color:s.col,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{s.val}</div>
-                        <div style={{fontSize:11,fontWeight:700,color:'#6b7280',marginTop:5,lineHeight:1.3}}>{s.lbl}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Section breakdown */}
-                  <div style={{marginBottom:28}}>
-                    <div className="dh-lbl">Section Breakdown</div>
-                    <div style={{display:'flex',flexDirection:'column',gap:12}}>
-                      {sectionSummary.map(({sec,topics,secAvg,meta}) => {
-                        const sc = sevColor(secAvg), sl = sevLabel(secAvg)
-                        return (
-                          <div key={sec} style={{background:'#fff',border:'1.5px solid #f0f0f0',borderRadius:16,padding:'16px 18px',transition:'box-shadow .15s'}}
-                            onMouseOver={e=>e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,.06)'}
-                            onMouseOut={e=>e.currentTarget.style.boxShadow='none'}>
-                            <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:10}}>
-                              <div style={{
-                                width:40,height:40,borderRadius:12,flexShrink:0,
-                                background:`${meta.dot}15`,
-                                display:'flex',alignItems:'center',justifyContent:'center',fontSize:18
-                              }}>{meta.emoji}</div>
-                              <div style={{flex:1,minWidth:0}}>
-                                <div style={{fontSize:14,fontWeight:800,color:'#111827'}}>{meta.label}</div>
-                                <div style={{fontSize:11,color:'#9ca3af',fontWeight:500,marginTop:1}}>{topics.length} topic{topics.length!==1?'s':''} · {meta.tip}</div>
-                              </div>
-                              <div style={{textAlign:'right',flexShrink:0}}>
-                                {secAvg!=null && <div style={{fontSize:20,fontWeight:900,color:sc,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{secAvg}%</div>}
-                                <span style={{fontSize:10,fontWeight:700,color:sc,background:`${sc}15`,borderRadius:99,padding:'2px 8px',marginTop:3,display:'inline-block'}}>{sl}</span>
-                              </div>
-                            </div>
-                            {/* accuracy bar */}
-                            <div style={{height:6,background:'#f0f0f0',borderRadius:99,overflow:'hidden',marginBottom:10}}>
-                              <div style={{height:'100%',width:`${secAvg||2}%`,background:`linear-gradient(90deg,${sc}77,${sc})`,borderRadius:99,transition:'width .9s ease'}}/>
-                            </div>
-                            {/* topic chips */}
-                            <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
-                              {topics.slice(0,10).map(({topic,avgAcc},i) => {
-                                const tc = sevColor(avgAcc)
-                                return (
-                                  <span key={i} style={{
-                                    display:'inline-flex',alignItems:'center',gap:4,
-                                    fontSize:11,fontWeight:600,padding:'3px 9px',borderRadius:7,
-                                    background:`${tc}10`,color:tc,border:`1px solid ${tc}28`
-                                  }}>
-                                    {String(topic).replace(/_/g,' ')}
-                                    {avgAcc!=null && <span style={{fontWeight:900}}>{avgAcc}%</span>}
-                                  </span>
-                                )
-                              })}
-                              {topics.length>10 && <span style={{fontSize:11,color:'#9ca3af',alignSelf:'center',fontWeight:600}}>+{topics.length-10} more</span>}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  {/* AI suggestions */}
-                  <div style={{marginBottom:28}}>
-                    <div className="dh-lbl" style={{display:'flex',alignItems:'center',gap:7}}>
-                      <span style={{fontSize:15}}>🤖</span>
-                      AI-Powered Suggestions
-                    </div>
-                    <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                      {suggestions.map((s,i) => (
-                        <div key={i} style={{
-                          display:'flex',gap:14,padding:'14px 18px',
-                          background:'#fff',borderRadius:14,
-                          border:'1.5px solid #f0f0f0',
-                          borderLeft:`4px solid ${s.color}`,
-                          transition:'box-shadow .15s'
-                        }}
-                          onMouseOver={e=>e.currentTarget.style.boxShadow='0 4px 16px rgba(0,0,0,.06)'}
-                          onMouseOut={e=>e.currentTarget.style.boxShadow='none'}>
-                          <div style={{fontSize:22,lineHeight:1,flexShrink:0,marginTop:1}}>{s.icon}</div>
-                          <div>
-                            <div style={{fontSize:13,fontWeight:800,color:'#111827',marginBottom:4}}>{s.title}</div>
-                            <div style={{fontSize:12.5,color:'#6b7280',lineHeight:1.65}}>{s.desc}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Study priority queue */}
-                  <div style={{marginBottom:28}}>
-                    <div className="dh-lbl">Top 5 Topics to Study Now</div>
-                    <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                      {sorted.slice(0,5).map(([topic,info],i) => {
-                        const avg = info.accN ? Math.round(info.accSum/info.accN) : null
-                        const sc  = sevColor(avg), sl = sevLabel(avg)
-                        const meta = WA_SEC[info.section]||WA_SEC.other
-                        return (
-                          <div key={topic} style={{
-                            display:'flex',alignItems:'center',gap:14,
-                            padding:'12px 16px',background:'#fff',
-                            border:'1.5px solid #f0f0f0',borderRadius:14
-                          }}>
-                            <div style={{
-                              width:32,height:32,borderRadius:99,
-                              background:`linear-gradient(135deg,${sc}22,${sc}44)`,
-                              color:sc,fontWeight:900,fontSize:14,
-                              display:'flex',alignItems:'center',justifyContent:'center',
-                              flexShrink:0
-                            }}>{i+1}</div>
-                            <div style={{flex:1,minWidth:0}}>
-                              <div style={{fontSize:13,fontWeight:800,color:'#111827',textTransform:'capitalize'}}>
-                                {String(topic).replace(/_/g,' ')}
-                              </div>
-                              <div style={{fontSize:11,color:'#9ca3af',fontWeight:500,marginTop:1}}>
-                                {meta.label} · appeared {info.count}×
-                              </div>
-                            </div>
-                            {avg!=null && (
-                              <div style={{textAlign:'right',flexShrink:0}}>
-                                <div style={{fontSize:16,fontWeight:900,color:sc,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{avg}%</div>
-                                <div style={{fontSize:10,fontWeight:700,color:sc,marginTop:2}}>{sl}</div>
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  {/* CTA buttons */}
-                  <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-                    <button onClick={() => onStartTest?.('topic', selectedExamId)} className="dh-btn dh-btn-primary">
-                      Start Topic Practice
-                    </button>
-                    <button onClick={() => setActiveTab('results')} className="dh-btn dh-btn-ghost">
-                      View Full Results
-                    </button>
-                  </div>
-                </div>
-              )
-            })()}
-
             {/* ── SETTINGS tab ── */}
+            {activeTab === 'performance' && (
+              <PerformancePage
+                history={history}
+                user={user}
+                darkMode={document.documentElement.classList.contains('dark')}
+                onNav={setActiveTab}
+              />
+            )}
+
+            {activeTab === 'prediction' && (
+              <PredictionPage
+                history={history}
+                user={user}
+                darkMode={document.documentElement.classList.contains('dark')}
+                onNav={setActiveTab}
+              />
+            )}
+
             {activeTab === 'settings' && (
               <div className="max-w-lg">
                 <h2 className="text-xl font-black text-gray-900 mb-6">Settings</h2>
@@ -3467,7 +2636,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
               </div>
               <div className="px-5 pt-1 md:pt-1 pb-2 text-xs font-bold uppercase tracking-widest" style={{ color:'#FF653F' }}>Practice Modes</div>
               {ACTIVE_MODES.map(m => (
-                <button key={m.id} onClick={()=>{setPanelOpen(false);onStartTest(m.id)}}
+                <button key={m.id} onClick={()=>{setPanelOpen(false);onStartTest(m.id, selectedExamId)}}
                   className="w-full flex items-center gap-3 px-5 py-3 transition-colors"
                   style={{ borderRadius:0, color:'#374151' }}
                   onMouseOver={e=>e.currentTarget.style.background='#fef3f2'}
