@@ -45,7 +45,7 @@ jobs:
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
-          printf '%s' "${{ secrets.OCI_SSH_PRIVATE_KEY }}" > ~/.ssh/oci_key
+          echo "${{ secrets.OCI_SSH_PRIVATE_KEY }}" > ~/.ssh/oci_key
           chmod 600 ~/.ssh/oci_key
           ssh-keyscan -H 137.23.53.225 >> ~/.ssh/known_hosts 2>/dev/null
 
