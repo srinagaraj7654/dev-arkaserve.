@@ -1,12 +1,10 @@
-[
-  {
-    "relation": ["delegate_permission/common.handle_all_urls"],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "com.arkaserve.prep",
-      "sha256_cert_fingerprints": [
-        "D6:46:73:52:77:3C:C4:04:7A:17:C5:69:CC:4F:54:29:2B:DE:B8:1C:CF:68:E6:F0:C9:D7:5B:BB:DA:BE:0D:20"
-      ]
-    }
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.arkaserve.prep",
+    "sha256_cert_fingerprints": [
+      "5A:F4:56:6F:B4:3E:8D:B6:C1:7C:A3:DF:34:59:50:86:C9:00:4E:19:2D:A4:D3:AC:82:2B:B4:DA:03:F9:1B:1E"
+    ]
   }
-]
+}]

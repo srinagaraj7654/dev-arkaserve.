@@ -42,19 +42,28 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
   const onAuthRef = useRef(onAuth)
   useEffect(() => { onAuthRef.current = onAuth }, [onAuth])
 
+  // Tracks whether a browser-based OAuth is in flight and whether any handler already
+  // processed the callback. Prevents the three native listeners from racing each other.
+  const oauthRef = useRef({ inProgress: false, handled: false })
+
   useEffect(() => {
     if (!isNative) return
-    let urlHandle, resumeHandle
+    let urlHandle, resumeHandle, browserHandle
 
-    // Deep link fires when the website's /login-callback relay page forwards
-    // the custom scheme to Android: com.arkaserve.prep://login-callback#access_token=...
+    // PRIMARY: fires when Android delivers the App Link or custom-scheme deep link.
+    // Claims oauthRef.handled immediately so the other two handlers skip.
     CapApp.addListener('appUrlOpen', async ({ url }) => {
-      if (!url.startsWith('com.arkaserve.prep://login-callback')) return
+      const isAppLink = url.startsWith('https://prep.arkaserve.com/login-callback')
+      const isCustom  = url.startsWith('com.arkaserve.prep://login-callback')
+      if (!isAppLink && !isCustom) return
+      if (oauthRef.current.handled) return          // another handler already finished
+      oauthRef.current.handled    = true
+      oauthRef.current.inProgress = false
       Browser.close()
       setGoogleLoad(false)
       setAppleLoad(false)
       const urlObj = new URL(url)
-      // PKCE: code in query string (fallback path)
+      // PKCE: code in query string
       const code = urlObj.searchParams.get('code')
       if (code) {
         const { data, error } = await supabase.auth.exchangeCodeForSession(code)
@@ -68,37 +77,50 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
         const { data, error } = await supabase.auth.setSession({ access_token, refresh_token })
         if (!error && data?.user) { onAuthRef.current(data.user); return }
       }
-      // Last resort: session may already be active
-      const { data: s } = await supabase.auth.getSession()
-      if (s?.session?.user) onAuthRef.current(s.session.user)
+      // Callback arrived but contained no valid credentials — release the lock so retry works
+      oauthRef.current.handled = false
     }).then(h => { urlHandle = h })
 
-    // When app resumes from Chrome Custom Tab — retry session poll in case
-    // appUrlOpen fires slightly after the app comes to foreground
+    // FALLBACK A: fires when app comes to foreground. Only acts when OAuth was started
+    // by this screen (inProgress=true) and the primary handler hasn't finished yet.
+    // Waits 2 s to give appUrlOpen priority — it fires on the same foreground transition.
     CapApp.addListener('appStateChange', async ({ isActive }) => {
-      if (!isActive) return
-      setGoogleLoad(false)
-      setAppleLoad(false)
-      for (let i = 1; i <= 4; i++) {
-        await new Promise(r => setTimeout(r, 500 * i))
-        const { data } = await supabase.auth.getSession()
-        if (data?.session?.user) { onAuthRef.current(data.session.user); return }
+      if (!isActive || !oauthRef.current.inProgress || oauthRef.current.handled) return
+      await new Promise(r => setTimeout(r, 2000))
+      if (oauthRef.current.handled) return
+      const { data } = await supabase.auth.getSession()
+      if (data?.session?.user) {
+        oauthRef.current.handled    = true
+        oauthRef.current.inProgress = false
+        setGoogleLoad(false)
+        setAppleLoad(false)
+        onAuthRef.current(data.session.user)
       }
     }).then(h => { resumeHandle = h })
 
-    let browserHandle
+    // FALLBACK B: fires when the browser tab closes for any reason (cancel or success).
+    // Only polls when OAuth was in progress and the primary handler hasn't claimed it.
     Browser.addListener('browserFinished', async () => {
+      const wasOAuthPending = oauthRef.current.inProgress && !oauthRef.current.handled
+      oauthRef.current.inProgress = false
       setGoogleLoad(false)
       setAppleLoad(false)
-      await new Promise(r => setTimeout(r, 1000))
+      if (!wasOAuthPending) return
+      // Short delay — appUrlOpen fires before browserFinished in the App Link flow
+      await new Promise(r => setTimeout(r, 800))
+      if (oauthRef.current.handled) return
       const { data } = await supabase.auth.getSession()
-      if (data?.session?.user) onAuthRef.current(data.session.user)
+      if (data?.session?.user) {
+        oauthRef.current.handled = true
+        onAuthRef.current(data.session.user)
+      }
     }).then(h => { browserHandle = h })
 
     return () => { urlHandle?.remove(); resumeHandle?.remove(); browserHandle?.remove() }
-  }, [])  // stable — uses onAuthRef
+  }, [])  // stable — uses refs, never needs to re-register
 
   const handleGoogle = async () => {
+    oauthRef.current = { inProgress: false, handled: false }  // reset for fresh attempt
     setGoogleLoad(true)
     if (isNative) {
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -106,6 +128,7 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
         options: { redirectTo: NATIVE_REDIRECT, skipBrowserRedirect: true },
       })
       if (error || !data?.url) { setGoogleLoad(false); return }
+      oauthRef.current.inProgress = true   // browser is open — handlers may now act
       await Browser.open({ url: data.url, toolbarColor: '#FF653F' })
     } else {
       supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
@@ -115,6 +138,7 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
   const [appleErr, setAppleErr] = useState('')
 
   const handleApple = async () => {
+    oauthRef.current = { inProgress: false, handled: false }  // reset for fresh attempt
     setAppleLoad(true)
     setAppleErr('')
     if (isNative) {
@@ -127,6 +151,7 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
         setAppleErr(error?.message || 'Apple Sign In unavailable. Please try Google.')
         return
       }
+      oauthRef.current.inProgress = true   // browser is open — handlers may now act
       await Browser.open({ url: data.url, toolbarColor: '#000000' })
     } else {
       const { error } = await supabase.auth.signInWithOAuth({

@@ -86,6 +86,7 @@ const IDLE_WARNING  = 60 * 1000
 export default function App() {
   // In native APK: always start at auth (supabase.auth.getSession redirects to dashboard if already logged in)
   const [page,        setPage]        = useState(() => isNative ? 'auth' : (pathToPage(window.location.pathname) || 'home'))
+  useEffect(() => { pageRef.current = page }, [page])
   useSEO(page)
   const [user,        setUser]        = useState(null)
   const [userRole,    setUserRole]    = useState('student')
@@ -115,6 +116,8 @@ export default function App() {
   const pendingNavRef    = useRef(null)
   const navClaimedRef   = useRef(false)  // first handler to navigate after login claims this
   const regionSavedRef  = useRef(false)  // prevent duplicate updateUser calls per session
+  // Mirrors the `page` state for use inside stable callbacks (onAuthStateChange registered once).
+  const pageRef = useRef(page)
 
   // Save the destination before redirecting to auth.
   // sessionStorage persists across OAuth page redirects; the ref covers same-session logins.
@@ -282,7 +285,10 @@ export default function App() {
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       // On the auth page: auth events from background refreshes / stale sessions must never
       // auto-navigate. The auth page handles navigation explicitly via onAuth() callback.
-      const onAuthPage = window.location.pathname === '/auth'
+      // In native the WebView URL is always "/" — use pageRef to detect the auth screen.
+      const onAuthPage = isNative
+        ? pageRef.current === 'auth'
+        : window.location.pathname === '/auth'
       if (onAuthPage) {
         if (!session) { setUser(null); navClaimedRef.current = false; regionSavedRef.current = false }
         return
