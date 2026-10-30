@@ -46,10 +46,13 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
     if (!isNative) return
     let urlHandle, resumeHandle
 
-    // Deep link fires when the website's /login-callback relay page forwards
-    // the custom scheme to Android: com.arkaserve.prep://login-callback#access_token=...
+    // Fires via HTTPS App Link (primary) or custom scheme relay (fallback).
+    // App Link: Chrome Custom Tab intercepts https://prep.arkaserve.com/login-callback directly.
+    // Custom scheme: website relay forwards com.arkaserve.prep://login-callback (older Android).
     CapApp.addListener('appUrlOpen', async ({ url }) => {
-      if (!url.startsWith('com.arkaserve.prep://login-callback')) return
+      const isAppLink = url.startsWith('https://prep.arkaserve.com/login-callback')
+      const isCustom  = url.startsWith('com.arkaserve.prep://login-callback')
+      if (!isAppLink && !isCustom) return
       Browser.close()
       setGoogleLoad(false)
       setAppleLoad(false)
