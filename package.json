@@ -9,6 +9,7 @@
     "build:staging": "vite build --mode staging",
     "preview": "vite preview",
     "preview:staging": "vite build --mode staging && vite preview",
+    "build:native": "vite build --config vite.config.native.js",
     "cap:sync": "npm run build && npx cap sync",
     "cap:android": "npm run build && npx cap sync android && npx cap open android",
     "cap:ios": "npm run build && npx cap sync ios && npx cap open ios"

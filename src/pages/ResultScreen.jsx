@@ -1052,17 +1052,20 @@ ${stepsHtml ? `<div class="s-wrap">
   <div>prep.arkaserve.com</div>
 </div>
 
-<script>window.onload=function(){window.print()}<\/script>
 </body></html>`
 
-    const w = window.open('', '_blank')
-    if (!w) {
-      alert('Popup blocked. Please allow popups for prep.arkaserve.com and try again.')
-      return
-    }
-    w.document.open()
-    w.document.write(html)
-    w.document.close()
+    const iframe = document.createElement('iframe')
+    iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:0;height:0;border:0'
+    document.body.appendChild(iframe)
+    const doc = iframe.contentDocument || iframe.contentWindow.document
+    doc.open()
+    doc.write(html)
+    doc.close()
+    iframe.contentWindow.onafterprint = () => { document.body.removeChild(iframe) }
+    setTimeout(() => {
+      iframe.contentWindow.focus()
+      iframe.contentWindow.print()
+    }, 500)
   }
 
   // Only show analysis tabs for full mock tests
