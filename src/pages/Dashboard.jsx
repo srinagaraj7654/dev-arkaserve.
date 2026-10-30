@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef, lazy, Suspense } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { supabase } from '../supabase.js'
 import { startCheckout } from '../payments.js'
 import { toast } from '../toast.js'
@@ -251,6 +252,9 @@ const SIDEBAR_NAV = [
   { id:'billing',       Icon:SvgCard,  label:'Billing'       },
   { id:'settings',      Icon:SvgGear,  label:'Settings'      },
 ]
+
+// Build-time flag set when building for APK (VITE_IS_NATIVE=true npm run build)
+const isNative = import.meta.env.VITE_IS_NATIVE === 'true'
 
 const TOPIC_GROUPS = [
   { section:'Quantitative Aptitude', color:'#1d4ed8', topics:['Simplification','Number Series','Quadratic Equations','Data Interpretation','Percentage','Profit & Loss','Time & Work','Time & Distance','Mensuration'] },
@@ -865,6 +869,14 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
   const [changingExam,   setChangingExam]   = useState(false)
   const [examSaving,     setExamSaving]     = useState(false)
   const [waFilter,       setWaFilter]       = useState('all')   // weak-areas section filter
+  const [topicTab,       setTopicTab]       = useState('weak')  // dashboard topic tab: 'weak' | 'strong'
+  const [clockNow,       setClockNow]       = useState(Date.now)
+
+  // Live countdown ticker — 1-second interval, cleaned up on unmount
+  useEffect(() => {
+    const t = setInterval(() => setClockNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
 
   /* show all exam groups regardless of region so users see their full history */
   const ACTIVE_GROUPS       = [...EXAM_GROUPS, ...SAT_EXAM_GROUPS]
@@ -1227,10 +1239,85 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
      RENDER
   ══════════════════════════════════════════ */
   return (
-    <div className="min-h-screen flex flex-col" style={{background:'#fff'}}>
+    <div className={`min-h-screen flex flex-col${isNative?` na${cd?' na-dark':''}`:''}` }
+      style={{background: isNative?(cd?'#000':'#f2f2f7'):'#fff'}}>
 
-      {/* ══ TOP HEADER — identical to existing ══ */}
-      <header className="h-16 flex items-center px-5 gap-4 sticky top-0 z-30" style={{ background:'#fff', borderBottom:'1px solid #e5e7eb', boxShadow:'0 1px 4px rgba(0,0,0,.06)' }}>
+      {/* ══ NATIVE APP CSS — only injected in Capacitor APK ══ */}
+      {isNative && <style>{`
+        .na main{background:${cd?'#000':'#f2f2f7'}!important}
+        .na .db-card{background:${cd?'#1c1c1e':'#fff'}!important;border:none!important;border-radius:20px!important;box-shadow:${cd?'0 2px 20px rgba(0,0,0,.45),0 0 0 .5px rgba(255,255,255,.05)':'0 2px 14px rgba(0,0,0,.07),0 0 0 .5px rgba(0,0,0,.04)'}!important}
+        .na .db-ctitle{font-size:15px!important;font-weight:800!important;letter-spacing:-.01em!important;margin-bottom:16px!important}
+        .na .db-ctitle button,.na .db-ctitle a{font-size:11px!important;padding:5px 10px!important;border-radius:20px!important}
+        .na .db-stat-grid{grid-template-columns:repeat(2,1fr)!important;gap:10px!important}
+        .na .db-hero-row{grid-template-columns:1fr!important;margin-bottom:14px!important}
+        .na .db-three{grid-template-columns:1fr!important}
+        .na .db-sec-row{grid-template-columns:1fr!important}
+        .na .db-perf-table td{font-size:13px!important;padding:12px 6px 12px 0!important}
+        .na button{-webkit-tap-highlight-color:transparent!important}
+        .na main{-webkit-overflow-scrolling:touch}
+        .na .hero-illus{display:none!important}
+        .na .ht-hero-illus{display:none!important}
+      `}</style>}
+
+      {/* ══ NATIVE APP TOP BAR — per-tab header, Capacitor only ══ */}
+      {isNative && (() => {
+        const isPrimary = ['home','explore','performance','studyplan','profile'].includes(activeTab)
+        const TITLES = {home:'Home',explore:'Explore Exams',performance:'My Progress',studyplan:'Study Planner',profile:'Profile',weakareas:'Weak Areas',prediction:'AI Prediction',subscriptions:'Subscriptions',billing:'Billing',settings:'Settings'}
+        return (
+          <div style={{background:_s,paddingTop:'env(safe-area-inset-top,0px)',position:'sticky',top:0,zIndex:100,borderBottom:`1px solid ${_b}`,boxShadow:cd?'none':'0 1px 0 rgba(0,0,0,.05)'}}>
+            <div style={{height:54,display:'flex',alignItems:'center',padding:'0 14px',gap:10}}>
+              {/* Left: back arrow for secondary tabs, MT logo for primary */}
+              {!isPrimary ? (
+                <button onClick={()=>setActiveTab('home')} style={{width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',border:'none',background:cd?'rgba(255,255,255,.09)':'rgba(0,0,0,.06)',borderRadius:11,cursor:'pointer',flexShrink:0}}>
+                  <svg width="18" height="18" fill="none" stroke={_t} strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                </button>
+              ) : (
+                <div style={{width:34,height:34,background:'#FF653F',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  <span style={{color:'#fff',fontWeight:900,fontSize:11}}>MT</span>
+                </div>
+              )}
+              {/* Title */}
+              <div style={{flex:1,minWidth:0}}>
+                {activeTab==='home' ? (
+                  <div style={{fontSize:16,fontWeight:800,color:_t,letterSpacing:'-.02em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                    Hi, {(userName||'Student').split(' ')[0]} 👋
+                  </div>
+                ) : (
+                  <div style={{fontSize:17,fontWeight:800,color:_t,letterSpacing:'-.02em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                    {TITLES[activeTab]||activeTab}
+                  </div>
+                )}
+              </div>
+              {/* Context action */}
+              {(activeTab==='home'||activeTab==='explore') && (
+                <button style={{width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',border:'none',background:cd?'rgba(255,255,255,.07)':'rgba(0,0,0,.05)',borderRadius:11,cursor:'pointer',flexShrink:0}}>
+                  {activeTab==='home'
+                    ? <svg width="17" height="17" fill="none" stroke={_m} strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    : <svg width="17" height="17" fill="none" stroke={_m} strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>}
+                </button>
+              )}
+              {/* Three-dot More */}
+              <button onClick={()=>setPanelOpen(true)} style={{width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',border:'none',background:'transparent',cursor:'pointer',flexShrink:0}}>
+                <svg width="18" height="18" fill={_m} viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+              </button>
+            </div>
+            {/* Trial notice strip */}
+            {activeTab==='home' && (trialActive||trialExpired) && (
+              <div style={{padding:'7px 14px 9px',background:'rgba(255,101,63,.09)',borderTop:`1px solid rgba(255,101,63,.18)`,display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+                <span style={{fontSize:12,color:cd?'#ff9a7a':'#c94a1f',fontWeight:600}}>
+                  {trialExpired?'Free trial ended — upgrade to continue':`${trialDaysLeft===1?'Last day':trialDaysLeft+' days'} left in free trial`}
+                </span>
+                <button onClick={()=>setActiveTab('subscriptions')} style={{fontSize:11,fontWeight:800,color:'#fff',background:'#FF653F',border:'none',borderRadius:8,padding:'5px 10px',cursor:'pointer',flexShrink:0,whiteSpace:'nowrap'}}>
+                  Upgrade
+                </button>
+              </div>
+            )}
+          </div>
+        )
+      })()}
+
+      {/* ══ TOP HEADER — web only ══ */}
+      {!isNative && <header className="h-16 flex items-center px-5 gap-4 sticky top-0 z-30" style={{ background:'#fff', borderBottom:'1px solid #e5e7eb', boxShadow:'0 1px 4px rgba(0,0,0,.06)' }}>
         {/* Logo */}
         <div className="flex items-center gap-3 flex-shrink-0">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background:'#FF653F' }}>
@@ -1355,12 +1442,12 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
             <span className="w-4 h-0.5 rounded-full" style={{background:'#374151'}}/>
           </button>
         </div>
-      </header>
+      </header>}
 
       <div className="flex flex-1 min-h-0">
 
-        {/* ══ LEFT SIDEBAR — light ══ */}
-        <aside className="w-60 flex-shrink-0 hidden md:flex flex-col overflow-y-auto"
+        {/* ══ LEFT SIDEBAR — web only ══ */}
+        {!isNative && <aside className="w-60 flex-shrink-0 hidden md:flex flex-col overflow-y-auto"
           style={{position:'sticky',top:64,height:'calc(100vh - 64px)',background:'#f8fafc',borderRight:'1px solid #e5e7eb'}}>
 
           {/* Nav items */}
@@ -1382,11 +1469,13 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
             ))}
           </nav>
 
-        </aside>
+        </aside>}
 
-        {/* ══ MAIN CONTENT — swaps per sidebar tab ══ */}
-        <main className="flex-1 overflow-auto flex flex-col" style={{background:'#fff'}}>
-          <div className="flex-1 py-6 px-4 sm:px-8 lg:px-12">
+        {/* ══ MAIN CONTENT ══ */}
+        <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto flex flex-col" style={{background: isNative?(cd?'#000':'#f2f2f7'):'#fff'}}>
+          <div className="flex-1 py-6 px-4 sm:px-8 lg:px-12" style={{maxWidth:'100%',boxSizing:'border-box',
+            ...(isNative ? {paddingBottom:'calc(76px + env(safe-area-inset-bottom,0px))',paddingLeft:14,paddingRight:14,paddingTop:14} : {})
+          }}>
 
             {/* ── HOME tab ── */}
             {activeTab === 'home' && (() => {
@@ -1416,6 +1505,76 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
               const _a = '#FF653F'
               const shortLbl2 = l => l.replace(/\s*(exams?|tests?)\s*$/i,'').trim()
 
+              /* ── returning-user derived stats ── */
+              const hr = now.getHours()
+              const greeting = hr<12?'Good morning':hr<17?'Good afternoon':'Good evening'
+              const firstName = (userName||'User').split(' ')[0].replace(/\b\w/g,c=>c.toUpperCase())
+
+              const streak = (() => {
+                const dates = new Set(history.map(r=>new Date(r.created_at).toDateString()))
+                let c=0, d=new Date()
+                while(dates.has(d.toDateString())){c++;d.setDate(d.getDate()-1)}
+                return c
+              })()
+
+              const totalCorrect = history.reduce((s,r)=>s+(r.correct_count||0),0)
+              const totalQ = history.reduce((s,r)=>s+(r.correct_count||0)+(r.wrong_count||0),0)
+              const accuracyPct = totalQ>0?Math.round((totalCorrect/totalQ)*100):0
+
+              const thisMonthStart = new Date(now.getFullYear(),now.getMonth(),1)
+              const lastMonthStart = new Date(now.getFullYear(),now.getMonth()-1,1)
+              const thisMonthHist = history.filter(r=>new Date(r.created_at)>=thisMonthStart)
+              const lastMonthHist = history.filter(r=>new Date(r.created_at)>=lastMonthStart&&new Date(r.created_at)<thisMonthStart)
+              const testsTrend = lastMonthHist.length>0?Math.round(((thisMonthHist.length-lastMonthHist.length)/lastMonthHist.length)*100):null
+              const avgTrend = (() => {
+                const lm = lastMonthHist.length?lastMonthHist.reduce((s,r)=>s+(r.percentage||0),0)/lastMonthHist.length:null
+                const tm = thisMonthHist.length?thisMonthHist.reduce((s,r)=>s+(r.percentage||0),0)/thisMonthHist.length:null
+                return lm&&tm?Math.round(tm-lm):null
+              })()
+
+              const chartResults = (examResults.length>0?examResults:history).slice(0,7).reverse()
+
+              // Section-wise aggregation from section_scores (actual DB field)
+              const sectionAgg = {}
+              history.slice(0,15).forEach(r=>{
+                Object.entries(r.section_scores||{}).forEach(([sec,v])=>{
+                  if(!sectionAgg[sec]) sectionAgg[sec]={correct:0,total:0,accSum:0,n:0}
+                  const c=Number(v?.correct||0)
+                  const t=Number(v?.total||(v?.correct||0)+(v?.wrong||0))||0
+                  const acc=v?.accuracy!=null?Number(v.accuracy):(t>0?c/t*100:0)
+                  sectionAgg[sec].correct+=c
+                  sectionAgg[sec].total+=t
+                  sectionAgg[sec].accSum+=acc
+                  sectionAgg[sec].n+=1
+                })
+              })
+              const topicPerfArr = Object.entries(sectionAgg)
+                .filter(([,d])=>d.n>0)
+                .map(([sec,d])=>({
+                  topic:sec.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),
+                  accuracy:d.total>0?Math.round(d.correct/d.total*100):Math.round(d.accSum/d.n),
+                  correct:d.correct,total:d.total
+                }))
+                .sort((a,b)=>b.total-a.total).slice(0,6)
+
+              // Topic-wise from aggregated weak/strong arrays across history
+              const weakFreq={}, strongFreq={}
+              history.slice(0,20).forEach(r=>{
+                ;(r.weak_topics||[]).forEach(t=>{weakFreq[t]=(weakFreq[t]||0)+1})
+                ;(r.strong_topics||[]).forEach(t=>{strongFreq[t]=(strongFreq[t]||0)+1})
+              })
+              const fmt=s=>s.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
+              // Use section accuracy for topics that appear in topicPerfArr; else fall back to frequency
+              const topicPerfMap=Object.fromEntries(topicPerfArr.map(t=>[t.topic.toLowerCase(),t]))
+              const weakTopicArr = topicPerfArr.filter(t=>t.accuracy<65).sort((a,b)=>a.accuracy-b.accuracy).length>0
+                ? topicPerfArr.filter(t=>t.accuracy<65).sort((a,b)=>a.accuracy-b.accuracy)
+                : Object.entries(weakFreq).sort((a,b)=>b[1]-a[1]).slice(0,5)
+                    .map(([t,cnt])=>({topic:fmt(t),accuracy:topicPerfMap[fmt(t).toLowerCase()]?.accuracy??30,correct:0,total:cnt}))
+              const strongTopicArr = topicPerfArr.filter(t=>t.accuracy>=65).sort((a,b)=>b.accuracy-a.accuracy).length>0
+                ? topicPerfArr.filter(t=>t.accuracy>=65).sort((a,b)=>b.accuracy-a.accuracy)
+                : Object.entries(strongFreq).sort((a,b)=>b[1]-a[1]).slice(0,5)
+                    .map(([t,cnt])=>({topic:fmt(t),accuracy:topicPerfMap[fmt(t).toLowerCase()]?.accuracy??80,correct:0,total:cnt}))
+
               const isNewUser = !hasChosenExam
               if (isNewUser) return (
                 <>
@@ -1424,8 +1583,8 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     .ht-new-right{position:sticky;top:0;display:flex;flex-direction:column;gap:20px}
                     .ht-cat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
                     .ht-cat-card{background:${_s};border:1px solid ${_b};border-radius:14px;padding:20px 14px 16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;width:100%;transition:all .18s}
-                    .ht-explore-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-                    .ht-explore-card{background:${_s};border:1px solid ${_b};border-radius:14px;padding:18px 16px;display:flex;flex-direction:row;align-items:flex-start;gap:14px}
+                    .ht-explore-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+                    .ht-explore-card{background:${_s};border:1px solid ${_b};border-radius:14px;padding:18px 16px;display:flex;flex-direction:column;align-items:flex-start;gap:12px}
                     .ht-why-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
                     .ht-feat-grid{display:flex;flex-wrap:wrap;gap:8px}
                     .ht-feat-item{display:flex;align-items:center;gap:7px;padding:6px 12px;background:${cd?'rgba(255,255,255,.06)':'rgba(255,255,255,.82)'};border-radius:99px;border:1px solid ${cd?'rgba(255,255,255,.1)':'rgba(255,101,63,.14)'};flex-shrink:0}
@@ -1434,8 +1593,8 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     @media(max-width:1100px){.ht-hero-illus{display:none!important}}
                     @media(max-width:980px){.ht-new-outer{grid-template-columns:1fr!important}.ht-new-col-right{align-self:auto!important}.ht-new-right{position:static!important}}
                     @media(max-width:1100px){.ht-cat-grid{grid-template-columns:repeat(3,1fr)!important}}
-                    @media(max-width:700px){.ht-cat-grid{grid-template-columns:repeat(2,1fr)!important}.ht-why-grid{grid-template-columns:1fr 1fr!important}}
-                    @media(max-width:480px){.ht-explore-grid{grid-template-columns:1fr!important}.ht-why-grid{grid-template-columns:1fr!important}.ht-cat-grid{grid-template-columns:repeat(2,1fr)!important}.ht-feat-grid{gap:6px!important}}
+                    @media(max-width:700px){.ht-cat-grid{grid-template-columns:repeat(2,1fr)!important}.ht-why-grid{grid-template-columns:1fr 1fr!important}.ht-explore-grid{grid-template-columns:1fr 1fr!important}.ht-explore-card{flex-direction:row!important;align-items:flex-start!important;gap:12px!important}}
+                    @media(max-width:480px){.ht-why-grid{grid-template-columns:1fr!important}.ht-cat-grid{grid-template-columns:repeat(2,1fr)!important}.ht-feat-grid{gap:6px!important}}
                     @media(max-width:360px){.ht-cat-grid{grid-template-columns:1fr!important}}
                   `}</style>
 
@@ -1484,70 +1643,19 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                               ))}
                             </div>
                           </div>
-                          <div className="ht-hero-illus">
-                            <svg viewBox="0 0 400 270" fill="none" xmlns="http://www.w3.org/2000/svg"
-                              style={{width:'100%',height:'auto',display:'block',maxHeight:260}}>
-                              <circle cx="280" cy="140" r="130" fill={cd?'rgba(255,101,63,.06)':'rgba(255,101,63,.08)'}/>
-                              <circle cx="80" cy="215" r="90" fill={cd?'rgba(255,200,100,.04)':'rgba(255,190,80,.05)'}/>
-                              <circle cx="360" cy="55" r="65" fill={cd?'rgba(255,140,80,.04)':'rgba(255,140,80,.06)'}/>
-                              <path d="M195 88 L268 60 L341 88 L268 116 Z" fill={cd?'#1e1208':'#1e293b'}/>
-                              <path d="M195 88 L268 116 L341 88" fill={cd?'rgba(0,0,0,.25)':'rgba(0,0,0,.12)'}/>
-                              <ellipse cx="268" cy="116" rx="34" ry="20" fill={cd?'#2d1e0a':'#334155'}/>
-                              <path d="M234 116 Q268 148 302 116" fill={cd?'#3d2b14':'#475569'}/>
-                              <line x1="341" y1="88" x2="341" y2="120" stroke={_a} strokeWidth="2.5" strokeLinecap="round"/>
-                              <circle cx="341" cy="127" r="8" fill={_a}/>
-                              <circle cx="341" cy="127" r="4" fill={cd?'rgba(0,0,0,.3)':'rgba(255,255,255,.25)'}/>
-                              <line x1="336" y1="135" x2="334" y2="155" stroke={_a} strokeWidth="1.8" strokeLinecap="round"/>
-                              <line x1="339" y1="135" x2="338" y2="157" stroke={_a} strokeWidth="1.8" strokeLinecap="round"/>
-                              <line x1="342" y1="135" x2="343" y2="157" stroke={_a} strokeWidth="1.8" strokeLinecap="round"/>
-                              <line x1="345" y1="135" x2="347" y2="155" stroke={_a} strokeWidth="1.8" strokeLinecap="round"/>
-                              <path d="M220 88 L268 72 L316 88" stroke="rgba(255,255,255,.09)" strokeWidth="1" fill="none"/>
-                              <rect x="48" y="208" width="120" height="22" rx="5" fill={cd?'#312e81':'#4338ca'}/>
-                              <rect x="48" y="208" width="9" height="22" rx="3" fill="rgba(0,0,0,.22)"/>
-                              <rect x="54" y="212" width="36" height="5" rx="1.5" fill="rgba(255,255,255,.18)"/>
-                              <rect x="54" y="221" width="52" height="3.5" rx="1" fill="rgba(255,255,255,.1)"/>
-                              <rect x="53" y="187" width="114" height="22" rx="5" fill={cd?'#065f46':'#0d9488'}/>
-                              <rect x="53" y="187" width="9" height="22" rx="3" fill="rgba(0,0,0,.22)"/>
-                              <rect x="59" y="191" width="44" height="5" rx="1.5" fill="rgba(255,255,255,.18)"/>
-                              <rect x="59" y="200" width="30" height="3.5" rx="1" fill="rgba(255,255,255,.1)"/>
-                              <rect x="58" y="166" width="108" height="22" rx="5" fill={cd?'#78350f':'#d97706'}/>
-                              <rect x="58" y="166" width="9" height="22" rx="3" fill="rgba(0,0,0,.22)"/>
-                              <rect x="64" y="170" width="50" height="5" rx="1.5" fill="rgba(255,255,255,.2)"/>
-                              <rect x="64" y="179" width="34" height="3.5" rx="1" fill="rgba(255,255,255,.12)"/>
-                              <rect x="56" y="145" width="102" height="22" rx="5" fill={cd?'#7f1d1d':'#ef4444'}/>
-                              <rect x="56" y="145" width="9" height="22" rx="3" fill="rgba(0,0,0,.22)"/>
-                              <rect x="62" y="149" width="40" height="5" rx="1.5" fill="rgba(255,255,255,.2)"/>
-                              <rect x="62" y="158" width="24" height="3.5" rx="1" fill="rgba(255,255,255,.12)"/>
-                              <circle cx="332" cy="202" r="56" fill={cd?'rgba(255,101,63,.05)':'rgba(255,101,63,.07)'} stroke={cd?'rgba(255,101,63,.14)':'rgba(255,101,63,.18)'} strokeWidth="1.5"/>
-                              <circle cx="332" cy="202" r="38" fill={cd?'rgba(255,101,63,.07)':'rgba(255,101,63,.11)'} stroke={cd?'rgba(255,101,63,.18)':'rgba(255,101,63,.24)'} strokeWidth="1.5"/>
-                              <circle cx="332" cy="202" r="20" fill={cd?'rgba(255,101,63,.12)':'rgba(255,101,63,.16)'} stroke={cd?'rgba(255,101,63,.28)':'rgba(255,101,63,.32)'} strokeWidth="1.5"/>
-                              <circle cx="332" cy="202" r="7" fill={_a}/>
-                              <line x1="332" y1="176" x2="332" y2="228" stroke={cd?'rgba(255,101,63,.18)':'rgba(255,101,63,.2)'} strokeWidth="1"/>
-                              <line x1="306" y1="202" x2="358" y2="202" stroke={cd?'rgba(255,101,63,.18)':'rgba(255,101,63,.2)'} strokeWidth="1"/>
-                              <rect x="115" y="42" width="106" height="108" rx="10" fill={cd?'rgba(20,12,5,.93)':'rgba(255,255,255,.95)'} stroke={cd?'rgba(255,150,80,.18)':'rgba(255,101,63,.2)'} strokeWidth="1.2"/>
-                              <rect x="143" y="35" width="50" height="16" rx="6" fill={cd?'#3d2510':'#d1d5db'}/>
-                              <rect x="155" y="38" width="26" height="10" rx="4" fill={cd?'#1e1208':'rgba(255,255,255,.55)'}/>
-                              <rect x="125" y="58" width="86" height="9" rx="3" fill={_a} opacity="0.85"/>
-                              <rect x="125" y="78" width="11" height="11" rx="2.5" fill={_a}/>
-                              <path d="M127.5 83.5 L130 87 L135 80.5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                              <rect x="141" y="81" width="68" height="5" rx="1.5" fill={cd?'rgba(255,220,190,.5)':'rgba(30,41,59,.25)'}/>
-                              <rect x="125" y="98" width="11" height="11" rx="2.5" fill={_a}/>
-                              <path d="M127.5 103.5 L130 107 L135 100.5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                              <rect x="141" y="101" width="58" height="5" rx="1.5" fill={cd?'rgba(255,220,190,.5)':'rgba(30,41,59,.25)'}/>
-                              <rect x="125" y="118" width="11" height="11" rx="2.5" fill="none" stroke={cd?'rgba(255,150,80,.4)':'rgba(255,101,63,.3)'} strokeWidth="1.5"/>
-                              <rect x="141" y="121" width="74" height="5" rx="1.5" fill={cd?'rgba(255,220,190,.3)':'rgba(30,41,59,.15)'}/>
-                              <rect x="125" y="137" width="11" height="11" rx="2.5" fill="none" stroke={cd?'rgba(255,150,80,.28)':'rgba(255,101,63,.22)'} strokeWidth="1.5"/>
-                              <rect x="141" y="140" width="62" height="5" rx="1.5" fill={cd?'rgba(255,220,190,.2)':'rgba(30,41,59,.12)'}/>
-                              <circle cx="356" cy="110" r="19" fill={cd?'rgba(255,160,50,.12)':'rgba(255,180,50,.16)'} stroke={cd?'rgba(255,160,50,.28)':'rgba(255,180,50,.42)'} strokeWidth="1.5"/>
-                              <path d="M348 107 L350.5 103 L353 107 L357.5 107.5 L354.5 110.5 L355.5 115 L351.5 112.8 L347.5 115 L348.5 110.5 L345.5 107.5 Z" fill={cd?'rgba(255,180,80,.6)':'rgba(255,180,50,.75)'}/>
-                              <line x1="356" y1="91" x2="352" y2="80" stroke={cd?'rgba(255,160,50,.4)':'rgba(255,180,50,.48)'} strokeWidth="2" strokeLinecap="round"/>
-                              <line x1="356" y1="91" x2="360" y2="80" stroke={cd?'rgba(255,160,50,.4)':'rgba(255,180,50,.48)'} strokeWidth="2" strokeLinecap="round"/>
-                              <path d="M32 74 L33.5 68 L35 74 L41 75.5 L35 77 L33.5 83 L32 77 L26 75.5 Z" fill={cd?'rgba(255,180,80,.4)':'rgba(255,180,80,.5)'}/>
-                              <path d="M370 36 L371 32 L372 36 L376 37 L372 38 L371 42 L370 38 L366 37 Z" fill={cd?'rgba(255,101,63,.3)':'rgba(255,101,63,.42)'}/>
-                              <circle cx="24" cy="100" r="3.5" fill={cd?'rgba(255,101,63,.28)':'rgba(255,101,63,.38)'}/>
-                              <circle cx="378" cy="160" r="2.5" fill={cd?'rgba(255,200,100,.32)':'rgba(255,200,100,.42)'}/>
-                              <circle cx="148" cy="28" r="3" fill={cd?'rgba(255,101,63,.22)':'rgba(255,101,63,.32)'}/>
-                            </svg>
+                          <div className="ht-hero-illus" style={{display:'flex',alignItems:'flex-end',justifyContent:'center'}}>
+                            <img
+                              src="/hero-student.webp"
+                              alt="Study illustration"
+                              style={{
+                                height:200,
+                                width:'auto',
+                                display:'block',
+                                objectFit:'contain',
+                                objectPosition:'bottom',
+                                filter:cd?'brightness(.85) saturate(.9)':'none',
+                              }}
+                            />
                           </div>
                         </div>
                       </div>
@@ -1619,10 +1727,10 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                               icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>},
                           ].map((ex,ei)=>(
                             <div key={ei} className="ht-explore-card">
-                              <div style={{width:40,height:40,borderRadius:11,background:ex.bg,display:'flex',alignItems:'center',justifyContent:'center',color:ex.col,flexShrink:0}}>
+                              <div style={{width:46,height:46,borderRadius:13,background:ex.bg,display:'flex',alignItems:'center',justifyContent:'center',color:ex.col,flexShrink:0}}>
                                 {ex.icon}
                               </div>
-                              <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',gap:4}}>
+                              <div style={{minWidth:0,display:'flex',flexDirection:'column',gap:4}}>
                                 <div style={{fontSize:13,fontWeight:800,color:_t,lineHeight:1.3}}>{ex.label}</div>
                                 <div style={{fontSize:11.5,color:_m,lineHeight:1.5}}>{ex.desc}</div>
                                 <button onClick={ex.act}
@@ -1825,468 +1933,557 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
 
               return <>
                 <style>{`
-                  .ht-card{background:${_s};border:1px solid ${_b};border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,${cd?.15:.04})}
-                  .ht-title{font-size:13px;font-weight:700;color:${_t};margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
-                  .ht-qa-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-                  .ht-qa-btn{background:${_s};border:1px solid ${_b};border-radius:12px;padding:14px 14px 12px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:9px;transition:all .15s;text-align:left;width:100%}
-                  .ht-qa-btn:hover{border-color:${_a};box-shadow:0 4px 16px rgba(255,101,63,.12);transform:translateY(-1px)}
-                  .ht-mid-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
-                  .ht-mid-card{background:${_s};border:1px solid ${_b};border-radius:14px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,${cd?.12:.03})}
-                  .ht-two-col{display:grid;grid-template-columns:1fr 280px;gap:20px}
-                  .ht-greet-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16;flex-wrap:wrap}
-                  .ht-greet-text{min-width:0;flex:1;min-width:180px}
-                  .ht-chips{display:flex;gap:10;flex-shrink:0;flex-wrap:wrap}
-                  .ht-cont-card{display:flex;align-items:center;gap:16;flex-wrap:wrap}
-                  .ht-cont-body{flex:1;min-width:0}
-                  .ht-cont-title{font-size:15px;font-weight:900;color:#fff;margin-bottom:7px;letter-spacing:-.01em;overflow-wrap:break-word;word-break:break-word;hyphens:auto}
-                  .ht-cont-btns{display:flex;gap:9px;flex-shrink:0;flex-wrap:wrap;align-items:center}
-                  @media(max-width:980px){.ht-two-col{grid-template-columns:1fr!important}.ht-qa-grid{grid-template-columns:1fr 1fr!important}}
-                  @media(max-width:640px){.ht-mid-row{grid-template-columns:1fr 1fr!important}.ht-qa-grid{grid-template-columns:1fr 1fr!important}}
-                  @media(max-width:520px){
-                    .ht-greet-row{flex-direction:column;gap:12px}
-                    .ht-chips{flex-direction:row;width:100%}
-                    .ht-cont-card{flex-direction:column;align-items:flex-start}
-                    .ht-cont-btns{width:100%;flex-wrap:nowrap}
-                    .ht-cont-btns button{flex:1;justify-content:center}
-                    .ht-mid-row{grid-template-columns:1fr!important}
-                    .ht-qa-grid{grid-template-columns:1fr 1fr!important}
-                  }
+                  .db-card{background:${_s};border:1px solid ${_b};border-radius:14px}
+                  .db-ctitle{font-size:13px;font-weight:700;color:${_t};margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+                  .db-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+                  .db-hero-row{display:grid;grid-template-columns:1fr 260px;gap:14px;margin-bottom:18px;align-items:stretch}
+                  .db-three{display:grid;grid-template-columns:1fr 250px;gap:16px;align-items:start}
+                  .db-sec-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+                  .db-perf-table{width:100%;border-collapse:collapse}
+                  .db-perf-table tr:not(:last-child) td{border-bottom:1px solid ${_b}}
+                  .db-perf-table td{padding:9px 6px 9px 0;font-size:12px;vertical-align:middle}
+                  .db-sec-avgscore{display:table-cell}
+                  .db-rt-rank{display:table-cell}.db-rt-date{display:table-cell}.db-rt-score{display:table-cell}
+                  @media(max-width:1200px){.db-three{grid-template-columns:1fr 220px!important}.db-hero-row{grid-template-columns:1fr 200px!important}}
+                  @media(max-width:980px){.db-three{grid-template-columns:1fr!important}.db-hero-row{grid-template-columns:1fr!important}}
+                  @media(max-width:700px){.db-sec-row{grid-template-columns:1fr!important}}
+                  @media(max-width:640px){.db-stat-grid{grid-template-columns:1fr 1fr!important}}
+                  @media(max-width:600px){.hero-illus{display:none!important}.db-hero-row{margin-bottom:12px!important}.db-card{border-radius:10px}.db-ctitle{font-size:12px}.db-ctitle button,.db-ctitle a{font-size:10px!important}.db-rt-rank{display:none!important}}
+                  @media(max-width:480px){.db-sec-avgscore{display:none!important}.db-rt-date{display:none!important}}
+                  @media(max-width:380px){.db-stat-grid{grid-template-columns:1fr!important}.db-rt-score{display:none!important}}
                 `}</style>
 
-                {/* ── 1. Greeting strip ── */}
-                <div style={{position:'relative',borderRadius:18,overflow:'hidden',
-                  background:cd?'linear-gradient(135deg,#12151a 0%,#1a1d2e 100%)':'linear-gradient(135deg,#fff8f5 0%,#fff3ee 100%)',
-                  border:`1px solid ${cd?'#232c3a':'#ffdece'}`,
-                  boxShadow:cd?'0 2px 20px rgba(0,0,0,.35)':'0 4px 24px rgba(255,101,63,.08)',
-                  marginBottom:18,padding:'22px 28px 22px 32px'}}>
-                  <div style={{position:'absolute',left:0,top:0,bottom:0,width:4,background:'linear-gradient(180deg,#FF653F,#ff9c68)'}}/>
-                  <div style={{position:'absolute',top:-40,right:-20,width:160,height:160,borderRadius:'50%',background:'radial-gradient(circle,rgba(255,101,63,.12) 0%,transparent 70%)',pointerEvents:'none'}}/>
-                  <div style={{position:'absolute',bottom:-30,right:120,width:100,height:100,borderRadius:'50%',background:'radial-gradient(circle,rgba(255,160,90,.08) 0%,transparent 70%)',pointerEvents:'none'}}/>
-                  <div className="ht-greet-row" style={{position:'relative'}}>
-                    <div className="ht-greet-text">
-                      <div style={{fontSize:10,fontWeight:800,color:_a,letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}}>Dashboard</div>
-                      <h1 style={{fontSize:24,fontWeight:900,color:cd?'#fff':_t,letterSpacing:'-.03em',lineHeight:1.2,margin:'0 0 8px'}}>
-                        {history.length?`Welcome back, ${(userName||'').split(' ')[0].replace(/\b\w/g,c=>c.toUpperCase())}! 👋`:`Hello, ${(userName||'').split(' ')[0].replace(/\b\w/g,c=>c.toUpperCase())}!`}
-                      </h1>
-                      <p style={{margin:0,fontSize:13,color:_m,fontWeight:500,lineHeight:1.65,maxWidth:460}}>
-                        {['The score you want tomorrow is earned in the quiet hours you put in today.','Preparation isn\'t a moment — it\'s a discipline you choose every single day.','Champions are made long before the exam hall — they\'re made right here, right now.','Every session you show up for is quietly building the version of you that succeeds.','Your dedication in these hours is the difference between almost and absolutely.','Small, consistent effort compounds into extraordinary results — keep going.','The exam doesn\'t test potential; it reveals preparation. Make yours count.'][new Date().getDay()]}
-                      </p>
-                    </div>
-                    {history.length > 0 && (
-                      <div className="ht-chips">
-                        {[
-                          {v:history.length,lbl:'Tests',c:cd?'#fff':_t},
-                          ...(examBest!=null?[{v:`${Math.round(examBest)}%`,lbl:'Best',c:_a}]:[]),
-                          ...(hasChosenExam&&readiness>0?[{v:`${readiness}%`,lbl:'Ready',c:readiness>=70?'#16a34a':readiness>=45?'#d97706':'#dc2626'}]:[]),
-                        ].map(chip=>(
-                          <div key={chip.lbl} style={{background:cd?'rgba(255,255,255,.08)':'rgba(255,255,255,.9)',backdropFilter:'blur(8px)',borderRadius:12,padding:'10px 16px',border:`1px solid ${cd?'rgba(255,255,255,.12)':'rgba(255,101,63,.14)'}`,textAlign:'center',minWidth:62}}>
-                            <div style={{fontSize:22,fontWeight:900,color:chip.c,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{chip.v}</div>
-                            <div style={{fontSize:9,fontWeight:700,color:_m,marginTop:4,letterSpacing:'.06em',textTransform:'uppercase'}}>{chip.lbl}</div>
+                {/* ── TOP ROW: Hero + Next Exam Date ── */}
+                <div className="db-hero-row">
+                  {/* Hero Banner */}
+                  <div style={{position:'relative',borderRadius:18,overflow:'hidden',
+                    background:cd?'linear-gradient(135deg,#1a0e08 0%,#2a1510 100%)':'linear-gradient(135deg,#fff8f5 0%,#fff0e8 100%)',
+                    border:`1px solid ${cd?'rgba(255,101,63,.15)':'#ffdece'}`,
+                    boxShadow:cd?'0 2px 20px rgba(0,0,0,.35)':'0 4px 24px rgba(255,101,63,.08)',
+                    padding:'24px 24px 24px 30px',minHeight:160}}>
+                    <div style={{position:'absolute',left:0,top:0,bottom:0,width:4,background:'linear-gradient(180deg,#FF653F,#ff9c68)'}}/>
+                    <div style={{position:'absolute',top:-50,right:-30,width:200,height:200,borderRadius:'50%',background:'radial-gradient(circle,rgba(255,101,63,.1) 0%,transparent 70%)',pointerEvents:'none'}}/>
+                    <div style={{display:'flex',alignItems:'center',gap:12,position:'relative'}}>
+                      <div style={{flex:'1 1 auto',minWidth:0,maxWidth:'62%'}}>
+                        <h1 style={{fontSize:21,fontWeight:900,color:cd?'#fff':_t,letterSpacing:'-.03em',lineHeight:1.25,margin:'0 0 6px'}}>
+                          {greeting}, {firstName}! 👋
+                        </h1>
+                        <p style={{margin:'0 0 14px',fontSize:12.5,color:_m,lineHeight:1.65,maxWidth:400}}>
+                          {history.length>0
+                            ?`Keep going! You've completed ${history.length} mock test${history.length===1?'':'s'}. Your consistency is paying off.`
+                            :'Welcome! Start your first mock test and begin tracking your progress.'}
+                        </p>
+                        <button onClick={()=>setActiveTab('explore')}
+                          style={{display:'inline-flex',alignItems:'center',gap:8,background:cd?'rgba(255,101,63,.15)':'#fff',border:`1px solid ${cd?'rgba(255,101,63,.3)':'rgba(255,101,63,.22)'}`,borderRadius:10,padding:'7px 13px',cursor:'pointer',transition:'all .15s'}}
+                          onMouseOver={e=>{e.currentTarget.style.borderColor=_a;e.currentTarget.style.background=cd?'rgba(255,101,63,.25)':'rgba(255,101,63,.06)'}}
+                          onMouseOut={e=>{e.currentTarget.style.borderColor=cd?'rgba(255,101,63,.3)':'rgba(255,101,63,.22)';e.currentTarget.style.background=cd?'rgba(255,101,63,.15)':'#fff'}}>
+                          <div style={{width:24,height:24,borderRadius:6,background:_a,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                           </div>
-                        ))}
+                          <div style={{textAlign:'left'}}>
+                            <div style={{fontSize:9,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.07em'}}>Your Target Exam</div>
+                            <div style={{fontSize:12.5,fontWeight:800,color:cd?'rgba(255,210,180,.9)':_t}}>{selectedGroup?.exams?.find(e=>e.id===selectedExamId)?.name||selectedGroup?.label||'Select an exam'} →</div>
+                          </div>
+                        </button>
+                      </div>
+                      {/* Hero illustration — hidden below 600px to keep banner compact */}
+                      <div className="hero-illus" style={{flexShrink:0,position:'relative',alignSelf:'flex-end'}}>
+                        <div style={{position:'absolute',top:'-10px',right:'10px',textAlign:'right',lineHeight:1.45,pointerEvents:'none'}}>
+                          <div style={{fontSize:11,fontWeight:800,fontStyle:'italic',color:cd?'rgba(255,200,100,.8)':'#FF653F',textShadow:cd?'none':'0 1px 4px rgba(255,101,63,.2)'}}>Practice Today</div>
+                          <div style={{fontSize:10.5,fontWeight:700,fontStyle:'italic',color:cd?'rgba(255,200,100,.65)':'rgba(255,101,63,.75)'}}>Get Closer</div>
+                          <div style={{fontSize:10.5,fontWeight:700,fontStyle:'italic',color:cd?'rgba(255,200,100,.65)':'rgba(255,101,63,.75)'}}>To Your Goal! →</div>
+                        </div>
+                        <img
+                          src="/hero-student.webp"
+                          alt="Study illustration"
+                          style={{
+                            height:148,
+                            width:'auto',
+                            display:'block',
+                            objectFit:'contain',
+                            objectPosition:'bottom',
+                            filter:cd?'brightness(.85) saturate(.9)':'none',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Next Exam Date */}
+                  <div className="db-card" style={{padding:'18px 20px',display:'flex',flexDirection:'column'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:14}}>
+                      <div style={{width:30,height:30,borderRadius:8,background:cd?'rgba(255,101,63,.12)':'rgba(255,101,63,.09)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+                      </div>
+                      <div>
+                        <div style={{fontSize:9,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.08em'}}>Next Exam Date</div>
+                        <div style={{fontSize:12.5,fontWeight:800,color:_t,lineHeight:1.2}}>{selectedGroup?.exams?.find(e=>e.id===selectedExamId)?.name||selectedGroup?.label||'—'}</div>
+                      </div>
+                    </div>
+                    {savedPlan?.exam_date ? (() => {
+                      const ed=new Date(savedPlan.exam_date), msLeft=Math.max(0,ed-clockNow)
+                      const dL=Math.floor(msLeft/86400000)
+                      const hL=Math.floor((msLeft%86400000)/3600000)
+                      const mL=Math.floor((msLeft%3600000)/60000)
+                      const sL=Math.floor((msLeft%60000)/1000)
+                      return <>
+                        <div style={{fontSize:11,color:_m,marginBottom:10}}>{ed.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>
+                        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:5}}>
+                          {[{v:dL,l:'Days'},{v:hL,l:'Hours'},{v:mL,l:'Mins'},{v:sL,l:'Secs'}].map(({v,l})=>(
+                            <div key={l} style={{textAlign:'center',background:cd?'rgba(255,255,255,.05)':'#f9fafb',borderRadius:8,padding:'8px 3px'}}>
+                              <div style={{fontSize:20,fontWeight:900,color:_a,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{String(v).padStart(2,'0')}</div>
+                              <div style={{fontSize:9,color:_m,marginTop:3,fontWeight:600}}>{l}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    })() : (
+                      <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,paddingBottom:8}}>
+                        <div style={{fontSize:11.5,color:_m,textAlign:'center',lineHeight:1.55}}>Set your exam date in the Study Planner to see the countdown</div>
+                        <button onClick={()=>setActiveTab('studyplan')} style={{background:_a,color:'#fff',border:'none',borderRadius:8,padding:'7px 16px',fontSize:12,fontWeight:700,cursor:'pointer'}}>Set Date →</button>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* ── 2. Continue / Start card ── */}
-                {history.length > 0 ? (
-                  <div className="ht-cont-card" style={{background:'linear-gradient(135deg,#FF653F 0%,#ff8a5f 100%)',borderRadius:16,padding:'20px 24px',marginBottom:16,boxShadow:'0 4px 24px rgba(255,101,63,.28)',position:'relative',overflow:'hidden'}}>
-                    <div style={{position:'absolute',right:-20,bottom:-20,width:130,height:130,borderRadius:'50%',background:'rgba(255,255,255,.06)',pointerEvents:'none'}}/>
-                    <div style={{position:'absolute',right:60,top:-30,width:80,height:80,borderRadius:'50%',background:'rgba(255,255,255,.06)',pointerEvents:'none'}}/>
-                    <div style={{width:46,height:46,borderRadius:12,background:'rgba(255,255,255,.2)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,position:'relative',zIndex:1}}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                    </div>
-                    <div className="ht-cont-body" style={{position:'relative',zIndex:1}}>
-                      <div style={{fontSize:10,fontWeight:700,letterSpacing:'.08em',textTransform:'uppercase',color:'rgba(255,255,255,.7)',marginBottom:4}}>Continue where you left off</div>
-                      <div className="ht-cont-title">{lastTestName||'Last practice test'}</div>
-                      <div style={{display:'flex',gap:14,flexWrap:'wrap'}}>
-                        {[
-                          {icon:<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>, label:`Last score: ${lastPct}%`},
-                          {icon:<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>, label:new Date(lastTest.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})},
-                          {icon:<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/></svg>, label:`${lastTest.correct_count||0}✓  ${lastTest.wrong_count||0}✗`},
-                        ].map((it,ii)=>(
-                          <span key={ii} style={{display:'flex',alignItems:'center',gap:5,fontSize:12,color:'rgba(255,255,255,.75)'}}>
-                            {it.icon}{it.label}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="ht-cont-btns" style={{position:'relative',zIndex:1}}>
-                      <button onClick={() => onStartTest?.('mock', selectedExamId)}
-                        style={{background:'#fff',color:_a,border:'none',borderRadius:9,padding:'10px 20px',fontWeight:800,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',gap:7,boxShadow:'0 2px 8px rgba(0,0,0,.12)',whiteSpace:'nowrap'}}>
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill={_a}><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                        New Test
-                      </button>
-                      <button onClick={() => setActiveTab('performance')}
-                        style={{background:'rgba(255,255,255,.18)',color:'#fff',border:'1px solid rgba(255,255,255,.25)',borderRadius:9,padding:'10px 18px',fontWeight:700,fontSize:13,cursor:'pointer',whiteSpace:'nowrap'}}>
-                        View Results
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{background:'linear-gradient(135deg,#FF653F 0%,#ff8a5f 100%)',borderRadius:16,padding:'22px 26px',marginBottom:16,position:'relative',overflow:'hidden',boxShadow:'0 4px 24px rgba(255,101,63,.25)'}}>
-                    <div style={{position:'absolute',right:-20,bottom:-20,width:130,height:130,borderRadius:'50%',background:'rgba(255,255,255,.06)',pointerEvents:'none'}}/>
-                    <div style={{position:'relative'}}>
-                      <div style={{fontSize:11,fontWeight:800,color:'rgba(255,255,255,.75)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>Welcome to MockTest</div>
-                      <div style={{fontSize:20,fontWeight:900,color:'#fff',lineHeight:1.3,marginBottom:10,letterSpacing:'-.02em'}}>Your path to exam success<br/>starts with one decision</div>
-                      <p style={{fontSize:13,color:'rgba(255,255,255,.85)',lineHeight:1.65,marginBottom:18,maxWidth:360}}>
-                        Choose your target exam and unlock full-length mock tests, topic-wise drills, instant analytics, and a personalised study plan — all in one place.
-                      </p>
-                      <button onClick={() => setActiveTab('explore')}
-                        style={{background:'#fff',color:_a,border:'none',borderRadius:10,padding:'11px 24px',fontWeight:800,fontSize:13,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:7,boxShadow:'0 4px 16px rgba(0,0,0,.15)'}}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        Browse Exams
-                      </button>
-                    </div>
-                  </div>
-                )}
+                {/* ── MAIN LAYOUT (main-area + right sidebar) ── */}
+                <div className="db-three">
 
-                {/* ── 3. Stats row ── */}
-                <div className="ht-mid-row">
-                  <div className="ht-mid-card">
-                    <div style={{display:'flex',alignItems:'center',gap:6,fontSize:10,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:10}}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                      Today
-                    </div>
-                    <div style={{fontSize:28,fontWeight:900,color:_t,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{testsToday}</div>
-                    <div style={{fontSize:11,color:_m,marginBottom:10}}>tests completed</div>
-                    <div style={{height:4,background:cd?'rgba(255,255,255,.07)':'#f0f0f0',borderRadius:99,overflow:'hidden'}}>
-                      <div style={{height:'100%',width:`${Math.min(100,testsToday*50)}%`,background:_a,borderRadius:99,transition:'width .6s'}}/>
-                    </div>
-                    {testsToday===0&&<div style={{fontSize:10,color:'#d97706',fontWeight:600,marginTop:7}}>⚡ Start a test to hit today's goal</div>}
-                  </div>
-                  <div className="ht-mid-card">
-                    <div style={{display:'flex',alignItems:'center',gap:6,fontSize:10,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:10}}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                      This Week
-                    </div>
-                    <div style={{fontSize:28,fontWeight:900,color:_t,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{testsThisWeek}</div>
-                    <div style={{fontSize:11,color:_m,marginBottom:10}}>tests completed</div>
-                    <div style={{display:'flex',gap:4}}>
-                      {weekActivity.map((active,i) => (
-                        <div key={i} style={{width:22,height:22,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700,background:active?_a:(cd?'rgba(255,255,255,.07)':'#f0f0f0'),color:active?'#fff':_m}}>
-                          {['S','M','T','W','T','F','S'][(todayDow-6+i+7)%7]}
+                  {/* MAIN AREA */}
+                  <div style={{display:'flex',flexDirection:'column',gap:16}}>
+
+                    {/* ── STATS ROW (inside main area so right col aligns with hero right) ── */}
+                    <div className="db-stat-grid">
+                      {[
+                        {label:'Tests Completed',value:history.length,icon:<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>,
+                          trend:testsTrend!=null?`${testsTrend>=0?'↑':'↓'} ${Math.abs(testsTrend)}%`:null,trendUp:testsTrend==null||testsTrend>=0,sub:'vs last month',col:_a},
+                        {label:'Average Score',value:`${avg||0}%`,icon:<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+                          trend:avgTrend!=null?`${avgTrend>=0?'↑':'↓'} ${Math.abs(avgTrend)}%`:null,trendUp:avgTrend==null||avgTrend>=0,sub:'vs last month',col:'#16a34a'},
+                        {label:'Accuracy',value:`${accuracyPct}%`,icon:<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="#3b82f6"/></svg>,
+                          trend:null,sub:`${totalCorrect}/${totalQ} correct`,col:'#3b82f6'},
+                        {label:'Day Streak',value:streak,icon:<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>,
+                          trend:streak>0?`↑ ${streak}d`:null,trendUp:true,sub:'Keep it up!',col:'#d97706'},
+                      ].map((s,si)=>(
+                        <div key={si} className="db-card" style={{padding:'10px 14px'}}>
+                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:7}}>
+                            <div style={{width:28,height:28,borderRadius:8,background:`${s.col}14`,display:'flex',alignItems:'center',justifyContent:'center'}}>{s.icon}</div>
+                            {s.trend&&<span style={{fontSize:9.5,fontWeight:700,color:s.trendUp?'#16a34a':'#dc2626',background:s.trendUp?'rgba(22,163,74,.08)':'rgba(220,38,38,.08)',borderRadius:99,padding:'1px 6px'}}>{s.trend}</span>}
+                          </div>
+                          <div style={{fontSize:22,fontWeight:900,color:_t,lineHeight:1,fontVariantNumeric:'tabular-nums',marginBottom:2}}>{s.value}</div>
+                          <div style={{fontSize:10.5,fontWeight:700,color:_t,marginBottom:1}}>{s.label}</div>
+                          <div style={{fontSize:9.5,color:_m}}>{s.sub}</div>
                         </div>
                       ))}
                     </div>
-                  </div>
-                  <div className="ht-mid-card">
-                    <div style={{display:'flex',alignItems:'center',gap:6,fontSize:10,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:10}}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg>
-                      Readiness
-                    </div>
-                    {hasChosenExam&&readiness>0 ? <>
-                      <div style={{fontSize:28,fontWeight:900,lineHeight:1,color:readiness>=70?'#16a34a':readiness>=45?'#d97706':'#dc2626',fontVariantNumeric:'tabular-nums'}}>{readiness}%</div>
-                      <div style={{fontSize:11,color:_m,marginBottom:10}}>{shortLbl2(selectedGroup?.label||'')} readiness</div>
-                      <div style={{height:4,background:cd?'rgba(255,255,255,.07)':'#f0f0f0',borderRadius:99,overflow:'hidden'}}>
-                        <div style={{height:'100%',width:`${readiness}%`,background:readiness>=70?'#16a34a':readiness>=45?'#d97706':'#dc2626',borderRadius:99,transition:'width .8s'}}/>
-                      </div>
-                      <button onClick={()=>setActiveTab('performance')} style={{marginTop:7,fontSize:10,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0}}>
-                        Detailed analysis →
-                      </button>
-                    </> : <>
-                      <div style={{fontSize:28,fontWeight:900,color:cd?'rgba(255,255,255,.2)':'#e5e7eb',lineHeight:1}}>—</div>
-                      <div style={{fontSize:11,color:_m}}>Take tests to see readiness</div>
-                    </>}
-                  </div>
-                </div>
 
-                {/* ── 4. Two-column body ── */}
-                <div className="ht-two-col">
+                    {/* Top row: Continue Prep + Performance Chart side by side */}
+                    <div className="db-sec-row">
 
-                  {/* LEFT */}
-                  <div>
-                    {/* Quick Actions */}
-                    <div style={{marginBottom:20}}>
-                      <div className="ht-title">Quick Actions</div>
-                      <div className="ht-qa-grid">
-                        {[
-                          {icon:<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,bg:`${_a}15`,label:'Start New Mock',sub:`Full test · ${hasChosenExam?((selectedGroup?.exams||[])[0]?.questions||100):'100'} Qs`,act:()=>onStartTest?.('mock',selectedExamId)},
-                          {icon:<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4z"/></svg>,bg:'rgba(59,130,246,.12)',label:'Topic Practice',sub:'Focus on a weak area',act:()=>onStartTest?.('topic',selectedExamId)},
-                          {icon:<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>,bg:'rgba(22,163,74,.12)',label:'My Performance',sub:'View detailed analytics',act:()=>setActiveTab('performance')},
-                          {icon:<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,bg:'rgba(217,119,6,.12)',label:'Explore Exams',sub:'Browse all categories',act:()=>setActiveTab('explore')},
-                        ].map((qa,qi)=>(
-                          <button key={qi} className="ht-qa-btn" onClick={qa.act}>
-                            <div style={{width:36,height:36,borderRadius:9,background:qa.bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{qa.icon}</div>
-                            <div style={{flex:1,minWidth:0}}>
-                              <div style={{fontSize:12,fontWeight:800,color:_t,letterSpacing:'-.01em'}}>{qa.label}</div>
-                              <div style={{fontSize:10.5,color:_m,marginTop:2}}>{qa.sub}</div>
-                            </div>
-                            <svg style={{marginLeft:'auto',color:_m}} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* No exam — onboarding */}
-                    {!hasChosenExam && (
-                      <div style={{marginBottom:20}}>
-                        <div className="ht-title">How it works</div>
-                        <div className="ht-card" style={{padding:'16px 20px'}}>
-                          {[
-                            {n:'01',title:'Choose your exam',desc:'Select from IBPS, SBI, SSC, Railway, RBI, SAT, ACT and more.',col:'#3b82f6'},
-                            {n:'02',title:'Practice intelligently',desc:'Take full mocks, topic-wise drills, or section tests with instant scoring.',col:'#8b5cf6'},
-                            {n:'03',title:'Analyse & improve',desc:'Get detailed PDFs, topic accuracy reports, and an AI study plan after each test.',col:'#16a34a'},
-                          ].map((s,si)=>(
-                            <div key={s.n} style={{display:'flex',gap:14,paddingBottom:si<2?14:0,borderBottom:si<2?`1px dashed ${_b}`:'none',marginBottom:si<2?14:0}}>
-                              <div style={{width:34,height:34,borderRadius:9,background:`${s.col}15`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:2}}>
-                                <span style={{fontSize:10,fontWeight:900,color:s.col}}>{s.n}</span>
-                              </div>
-                              <div>
-                                <div style={{fontSize:13,fontWeight:800,color:_t,marginBottom:3}}>{s.title}</div>
-                                <div style={{fontSize:12,color:_m,lineHeight:1.6}}>{s.desc}</div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Exam category picks */}
-                    {!hasChosenExam && (
-                      <div style={{marginBottom:20}}>
-                        <div className="ht-title">Popular Exam Categories</div>
-                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-                          {[
-                            {label:'Banking Exams',sub:'IBPS · SBI · RBI · NABARD',col:'#3b82f6',id:'explore'},
-                            {label:'SSC Exams',sub:'CGL · CHSL · MTS · CPO',col:'#8b5cf6',id:'explore'},
-                            {label:'Railway',sub:'NTPC · Group D · ALP',col:'#16a34a',id:'explore'},
-                            {label:'US Exams',sub:'SAT · ACT · AP · PSAT',col:'#d97706',id:'us-exams'},
-                          ].map(cat=>(
-                            <button key={cat.label} onClick={()=>setActiveTab(cat.id)}
-                              style={{textAlign:'left',padding:'12px 14px',borderRadius:12,border:`1.5px solid ${cat.col}22`,background:`${cat.col}08`,cursor:'pointer',transition:'all .15s'}}
-                              onMouseOver={e=>{e.currentTarget.style.background=`${cat.col}15`;e.currentTarget.style.borderColor=`${cat.col}55`}}
-                              onMouseOut={e=>{e.currentTarget.style.background=`${cat.col}08`;e.currentTarget.style.borderColor=`${cat.col}22`}}>
-                              <div style={{fontSize:13,fontWeight:800,color:_t,marginBottom:2}}>{cat.label}</div>
-                              <div style={{fontSize:11,color:_m,fontWeight:600}}>{cat.sub}</div>
+                    {/* Continue Your Preparation */}
+                    <div className="db-card" style={{padding:'18px 20px'}}>
+                      <div className="db-ctitle">Continue Your Preparation</div>
+                      {history.length>0 ? (()=>{
+                        const nr=(examResults.length||history.length)+1
+                        const examName2=selectedGroup?.exams?.find(e=>e.id===selectedExamId)?.name||'Mock Test'
+                        const totalQs=(selectedGroup?.exams?.find(e=>e.id===selectedExamId)?.questions)||100
+                        return <>
+                          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12,flexWrap:'wrap'}}>
+                            <span style={{fontSize:10,fontWeight:800,color:'#16a34a',background:'rgba(22,163,74,.1)',borderRadius:5,padding:'3px 8px',letterSpacing:'.04em',flexShrink:0}}>IN PROGRESS</span>
+                            <span style={{fontSize:13,fontWeight:800,color:_t,lineHeight:1.3}}>{examName2} – Full Length Mock {nr}</span>
+                          </div>
+                          <div style={{display:'flex',gap:14,flexWrap:'wrap',marginBottom:12}}>
+                            {[
+                              {icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>,txt:`${totalQs} Questions`},
+                              {icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,txt:'60 Minutes'},
+                              {icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,txt:'Full Pattern'},
+                            ].map((it,ii)=>(
+                              <span key={ii} style={{display:'flex',alignItems:'center',gap:5,fontSize:11.5,color:_m}}>{it.icon}{it.txt}</span>
+                            ))}
+                          </div>
+                          <div style={{height:5,background:cd?'rgba(255,255,255,.07)':'#f0f0f0',borderRadius:99,overflow:'hidden',marginBottom:4}}>
+                            <div style={{height:'100%',width:`${Math.min(95,Math.max(10,Math.round(lastPct*0.35+15)))}%`,background:'linear-gradient(90deg,#FF653F,#ff8a5f)',borderRadius:99}}/>
+                          </div>
+                          <div style={{fontSize:10.5,color:_m,marginBottom:14}}>Ready to start your next test</div>
+                          <div style={{display:'flex',gap:10}}>
+                            <button onClick={()=>onStartTest?.('mock',selectedExamId)}
+                              style={{flex:1,background:_a,color:'#fff',border:'none',borderRadius:9,padding:'10px 16px',fontWeight:800,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                              Continue Test →
                             </button>
+                            <button onClick={()=>onOpenResult?.(lastTest)}
+                              style={{background:'none',color:_a,border:`1px solid ${cd?'rgba(255,101,63,.3)':'rgba(255,101,63,.25)'}`,borderRadius:9,padding:'10px 16px',fontWeight:700,fontSize:13,cursor:'pointer',whiteSpace:'nowrap'}}>
+                              View Details
+                            </button>
+                          </div>
+                        </>
+                      })() : (
+                        <div style={{textAlign:'center',padding:'14px 0'}}>
+                          <div style={{fontSize:12,color:_m,marginBottom:12}}>No tests yet. Start your first mock test to begin tracking your progress.</div>
+                          <button onClick={()=>onStartTest?.('mock',selectedExamId)} style={{background:_a,color:'#fff',border:'none',borderRadius:9,padding:'10px 20px',fontWeight:800,fontSize:13,cursor:'pointer'}}>Start First Test →</button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Your Recent Performance Chart */}
+                    <div className="db-card" style={{padding:'18px 20px'}}>
+                      <div className="db-ctitle">
+                        Your Recent Performance
+                        <div style={{display:'flex',gap:12}}>
+                          {[{col:'#FF653F',lbl:'Score %'},{col:'#3b82f6',lbl:'Accuracy %'}].map(l=>(
+                            <span key={l.lbl} style={{display:'flex',alignItems:'center',gap:5,fontSize:10,fontWeight:700,color:_m}}>
+                              <span style={{width:12,height:12,borderRadius:3,background:l.col,display:'inline-block',flexShrink:0}}/>
+                              {l.lbl}
+                            </span>
                           ))}
                         </div>
                       </div>
-                    )}
+                      {chartResults.length>0 ? (
+                        <div style={{width:'100%',overflow:'hidden'}}>
+                          <ResponsiveContainer width="100%" height={180}>
+                            <BarChart
+                              data={chartResults.map((r,i)=>({
+                                name: chartResults.length<=6
+                                  ? new Date(r.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})
+                                  : `T${i+1}`,
+                                Score: Math.round(r.percentage||0),
+                                Accuracy: ((r.correct_count||0)+(r.wrong_count||0))>0
+                                  ? Math.round((r.correct_count||0)/((r.correct_count||0)+(r.wrong_count||0))*100)
+                                  : 0
+                              }))}
+                              margin={{top:18,right:20,bottom:4,left:-20}}
+                              barCategoryGap="28%"
+                              barGap={3}>
+                              <CartesianGrid strokeDasharray="3 3" stroke={cd?'rgba(255,255,255,.06)':'#f0f0f0'} vertical={false}/>
+                              <XAxis dataKey="name" tick={{fontSize:9,fill:_m}} tickLine={false} axisLine={false}/>
+                              <YAxis tick={{fontSize:9,fill:_m}} tickLine={false} axisLine={false} domain={[0,100]} tickFormatter={v=>`${v}%`}/>
+                              <Tooltip
+                                cursor={{fill:cd?'rgba(255,255,255,.04)':'rgba(0,0,0,.04)'}}
+                                contentStyle={{background:_s,border:`1px solid ${_b}`,borderRadius:10,fontSize:11,padding:'8px 12px'}}
+                                labelStyle={{color:_t,fontWeight:700,marginBottom:4}}
+                                formatter={(val,name)=>[`${val}%`, name]}
+                              />
+                              <Bar dataKey="Score" fill="#FF653F" radius={[4,4,0,0]} maxBarSize={22}
+                                label={{position:'top',fontSize:9,fontWeight:700,fill:'#FF653F',formatter:v=>`${v}%`}}/>
+                              <Bar dataKey="Accuracy" fill="#3b82f6" radius={[4,4,0,0]} maxBarSize={22}
+                                label={{position:'top',fontSize:9,fontWeight:700,fill:'#3b82f6',formatter:v=>`${v}%`}}/>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      ) : (
+                        <div style={{height:160,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,color:_m}}>
+                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={_m} strokeWidth="1.5" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                          <span style={{fontSize:12}}>Take a test to see your performance</span>
+                        </div>
+                      )}
+                    </div>
 
-                    {/* Exam readiness rings */}
-                    {history.length > 0 && (() => {
-                      const SZ=68,R=23,CX=34,CY=34,CIRC=+(2*Math.PI*R).toFixed(1)
-                      const groupStats = ACTIVE_GROUPS.map(g => {
-                        const ids = g.exams.map(e=>e.id)
-                        const res = history.filter(r=>ids.includes(r.exam||''))
-                        const best=res.length?Math.round(Math.max(...res.map(r=>Number(r.percentage||0)))):0
-                        const avg=res.length?Math.round(res.reduce((s,r)=>s+Number(r.percentage||0),0)/res.length):0
-                        return {...g,count:res.length,best,avg}
-                      }).filter(g=>g.count>0)
-                      if (!groupStats.length) return null
-                      return (
-                        <div style={{marginBottom:20}}>
-                          <div className="ht-title">Exam Readiness</div>
-                          <div className="ht-card" style={{padding:'14px 16px'}}>
-                            <div style={{display:'grid',gridTemplateColumns:`repeat(${Math.min(groupStats.length,4)},1fr)`,gap:8}}>
-                              {groupStats.map(g=>{
-                                const col=gcol(g.best,g.count)
-                                const dash=+((g.best/100)*CIRC).toFixed(1)
-                                const isAct=g.id===selectedGroup?.id
-                                const stl=g.best>=82?'On Track':g.best>=65?'Improving':g.best>=40?'Needs Work':'Focus'
+                    </div>{/* end top db-sec-row */}
+
+                    {/* Section-wise + Topic side by side */}
+                    <div className="db-sec-row">
+
+                      {/* Section-wise Performance */}
+                      <div className="db-card" style={{padding:'18px 20px'}}>
+                        <div className="db-ctitle">
+                          Section-wise Performance
+                          <button onClick={()=>setActiveTab('performance')} style={{fontSize:11,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0,whiteSpace:'nowrap',flexShrink:0}}>View Detailed Analysis →</button>
+                        </div>
+                        {topicPerfArr.length>0 ? (
+                          <div style={{overflowX:'auto'}}>
+                          <table style={{width:'100%',borderCollapse:'collapse',minWidth:260}}>
+                            <thead>
+                              <tr style={{borderBottom:`1px solid ${_b}`}}>
+                                <td style={{padding:'0 8px 10px 0',fontSize:9.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',whiteSpace:'nowrap'}}>Section</td>
+                                <td style={{padding:'0 8px 10px 0',fontSize:9.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',whiteSpace:'nowrap'}}>Accuracy</td>
+                                <td className="db-sec-avgscore" style={{padding:'0 8px 10px 0',fontSize:9.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',whiteSpace:'nowrap'}}>Avg Score</td>
+                                <td style={{padding:'0 8px 10px 0',fontSize:9.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',whiteSpace:'nowrap'}}>Status</td>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {topicPerfArr.slice(0,5).map((tp,ti,arr)=>{
+                                const status=tp.accuracy>=75?{lbl:'Strong',col:'#16a34a',bg:'rgba(22,163,74,.12)'}
+                                  :tp.accuracy>=60?{lbl:'Good',col:'#3b82f6',bg:'rgba(59,130,246,.12)'}
+                                  :tp.accuracy>=45?{lbl:'Improve',col:'#d97706',bg:'rgba(217,119,6,.12)'}
+                                  :{lbl:'Focus',col:'#dc2626',bg:'rgba(220,38,38,.12)'}
+                                const accCol=tp.accuracy>=75?'#16a34a':tp.accuracy>=60?'#3b82f6':tp.accuracy>=45?'#d97706':'#dc2626'
+                                const barCol=tp.accuracy>=60?'linear-gradient(90deg,#16a34a,#4ade80)':tp.accuracy>=45?'linear-gradient(90deg,#d97706,#fbbf24)':'linear-gradient(90deg,#dc2626,#f97316)'
+                                const n=sectionAgg[Object.keys(sectionAgg).find(k=>k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())===tp.topic)]?.n||1
+                                const avgC=Math.round(tp.correct/n)
+                                const avgT=Math.round(tp.total/n)
                                 return (
-                                  <button key={g.id} onClick={()=>setSelectedExamId(g.exams[0].id)}
-                                    style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,padding:'10px 6px',borderRadius:12,border:`2px solid ${isAct?col:_b}`,background:isAct?`${col}0d`:(cd?'rgba(255,255,255,.03)':'#fafafa'),cursor:'pointer',transition:'all .12s',boxShadow:isAct?`0 4px 16px ${col}28`:'none',transform:isAct?'translateY(-2px)':'none'}}>
-                                    <svg width={SZ} height={SZ} viewBox={`0 0 ${SZ} ${SZ}`}>
-                                      <circle cx={CX} cy={CY} r={R} fill="none" stroke={cd?'rgba(255,255,255,.08)':'#ebebeb'} strokeWidth="8"/>
-                                      {g.best>0&&<circle cx={CX} cy={CY} r={R} fill="none" stroke={col} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${dash} ${CIRC}`} transform={`rotate(-90 ${CX} ${CY})`}/>}
-                                      <text x={CX} y={CY} textAnchor="middle" dominantBaseline="central" style={{fontSize:12,fontWeight:900,fill:g.best>0?col:(cd?'rgba(255,255,255,.2)':'#d1d5db')}}>{g.best>0?`${g.best}%`:'0%'}</text>
-                                    </svg>
-                                    <div style={{fontSize:10,fontWeight:800,color:isAct?col:_t,textAlign:'center',lineHeight:1.2}}>{shortLbl2(g.label)}</div>
-                                    <div style={{fontSize:8,fontWeight:700,color:isAct?col:_m,background:isAct?`${col}15`:(cd?'rgba(255,255,255,.06)':'#f5f5f5'),borderRadius:99,padding:'1px 6px'}}>{stl}</div>
+                                  <tr key={ti} style={{borderBottom:ti<arr.length-1?`1px solid ${_b}`:'none'}}>
+                                    <td style={{padding:'10px 8px 10px 0',fontSize:12.5,fontWeight:600,color:_t,maxWidth:90,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{tp.topic}</td>
+                                    <td style={{padding:'10px 8px 10px 0',whiteSpace:'nowrap'}}>
+                                      <span style={{fontSize:13,fontWeight:800,color:accCol}}>{tp.accuracy}%</span>
+                                    </td>
+                                    <td className="db-sec-avgscore" style={{padding:'10px 8px 10px 0',minWidth:80}}>
+                                      <div style={{display:'flex',alignItems:'center',gap:5}}>
+                                        <div style={{flex:1,height:6,background:cd?'rgba(255,255,255,.07)':'#f0f0f0',borderRadius:99,overflow:'hidden',minWidth:36}}>
+                                          <div style={{height:'100%',width:`${tp.accuracy}%`,background:barCol,borderRadius:99,transition:'width .6s'}}/>
+                                        </div>
+                                        <span style={{fontSize:10.5,fontWeight:700,color:_t,whiteSpace:'nowrap',flexShrink:0}}>{avgC}/{avgT}</span>
+                                      </div>
+                                    </td>
+                                    <td style={{padding:'10px 0',whiteSpace:'nowrap'}}>
+                                      <span style={{fontSize:10,fontWeight:700,color:status.col,background:status.bg,borderRadius:6,padding:'3px 7px'}}>{status.lbl}</span>
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                          </div>
+                        ) : (
+                          <div style={{textAlign:'center',padding:'18px 0',color:_m,fontSize:12}}>Take tests to see section-wise performance analysis</div>
+                        )}
+                      </div>
+
+                      {/* Topic Strengths & Weaknesses */}
+                      <div className="db-card" style={{padding:'18px 20px'}}>
+                        <div className="db-ctitle">
+                          Topic-wise Strengths & Weaknesses
+                          <button onClick={()=>setActiveTab('performance')} style={{fontSize:11,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0,whiteSpace:'nowrap',flexShrink:0}}>View All →</button>
+                        </div>
+                        {topicPerfArr.length>0 ? (
+                          <>
+                            {/* Interactive tabs */}
+                            <div style={{display:'flex',gap:6,marginBottom:14}}>
+                              {[{key:'weak',lbl:'Need Improvement'},{key:'strong',lbl:'Strong Topics'}].map(({key,lbl})=>{
+                                const isAct=topicTab===key
+                                return (
+                                  <button key={key} onClick={()=>setTopicTab(key)}
+                                    style={{padding:'5px 12px',borderRadius:7,border:`1.5px solid ${isAct?_a:cd?'rgba(255,255,255,.15)':'#e5e7eb'}`,cursor:'pointer',fontSize:11,fontWeight:700,
+                                      background:isAct?_a:'transparent',color:isAct?'#fff':_m,transition:'all .15s'}}>
+                                    {lbl}
                                   </button>
                                 )
                               })}
                             </div>
-                          </div>
-                        </div>
-                      )
-                    })()}
-
-                    {/* First-test hero (exam chosen, no results) */}
-                    {hasChosenExam && examResults.length === 0 && (
-                      <div style={{marginBottom:20}}>
-                        <div className="ht-card" style={{padding:'18px 20px',borderTop:`3px solid ${_a}`}}>
-                          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
-                            <div style={{width:34,height:34,borderRadius:9,background:'linear-gradient(135deg,#FF653F,#ff9a5f)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                              <svg width="14" height="14" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                            </div>
-                            <div>
-                              <div style={{fontSize:11,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em'}}>Ready to start</div>
-                              <div style={{fontSize:14,fontWeight:900,color:_t}}>{selectedGroup?.label||'Your exam'}</div>
-                            </div>
-                          </div>
-                          <p style={{fontSize:12.5,color:_m,lineHeight:1.65,marginBottom:14}}>
-                            Take your first full-length mock test and get a real picture of where you stand.
-                          </p>
-                          <button onClick={()=>onStartTest('mock',selectedExamId)}
-                            style={{display:'inline-flex',alignItems:'center',gap:7,background:_a,color:'#fff',border:'none',borderRadius:9,padding:'10px 20px',fontWeight:800,fontSize:13,cursor:'pointer'}}>
-                            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                            Start first mock test
-                          </button>
-                        </div>
+                            {/* Topic list */}
+                            {(() => {
+                              const ICONS=[
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+                              ]
+                              const showArr = topicTab==='weak'
+                                ? (weakTopicArr.length>0 ? weakTopicArr : topicPerfArr.slice(0,5))
+                                : (strongTopicArr.length>0 ? strongTopicArr : topicPerfArr.slice(0,5))
+                              if (showArr.length===0) return (
+                                <div style={{textAlign:'center',padding:'16px 0',color:_m,fontSize:12}}>
+                                  {topicTab==='weak'?'All sections look good!':'Keep practicing to build strong topics'}
+                                </div>
+                              )
+                              return (
+                                <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                                  {showArr.slice(0,5).map((tp,ti)=>{
+                                    const isWeak=tp.accuracy<65
+                                    const barCol=isWeak?'linear-gradient(90deg,#f97316,#fbbf24)':'linear-gradient(90deg,#16a34a,#4ade80)'
+                                    const iconCol=isWeak?'#f97316':'#16a34a'
+                                    const iconBg=isWeak?'rgba(249,115,22,.12)':'rgba(22,163,74,.12)'
+                                    return (
+                                      <div key={ti}>
+                                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+                                          <div style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
+                                            <div style={{width:24,height:24,borderRadius:7,background:iconBg,display:'flex',alignItems:'center',justifyContent:'center',color:iconCol,flexShrink:0}}>
+                                              {ICONS[ti%ICONS.length]}
+                                            </div>
+                                            <span style={{fontSize:12.5,fontWeight:600,color:_t,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{tp.topic}</span>
+                                          </div>
+                                          <span style={{fontSize:13,fontWeight:800,color:isWeak?'#f97316':'#16a34a',flexShrink:0,marginLeft:8}}>{tp.accuracy}%</span>
+                                        </div>
+                                        <div style={{height:7,background:cd?'rgba(255,255,255,.07)':'#f0f0f0',borderRadius:99,overflow:'hidden'}}>
+                                          <div style={{height:'100%',width:`${tp.accuracy}%`,background:barCol,borderRadius:99,transition:'width .7s'}}/>
+                                        </div>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              )
+                            })()}
+                          </>
+                        ) : (
+                          <div style={{textAlign:'center',padding:'20px 0',color:_m,fontSize:12}}>Take tests to see topic-wise analysis</div>
+                        )}
                       </div>
-                    )}
+
+                    </div>
 
                     {/* Recent Tests */}
-                    {history.length > 0 && (
-                      <div style={{marginBottom:16}}>
-                        <div className="ht-title">
-                          Recent Tests
-                          <button onClick={()=>setActiveTab('performance')} style={{fontSize:11,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0}}>View all →</button>
-                        </div>
-                        <div className="ht-card" style={{overflow:'hidden'}}>
-                          {history.slice(0,5).map((r,i,arr)=>{
-                            const pct=Number(r.percentage||0)
-                            const _tt2=s=>(s||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
-                            const nm=r.test_type==='topic_diagnostic'?`Topic · ${_tt2(r.topic||'')}`:r.test_type==='mini'||r.test_type==='concept_mini'?`Practice · ${_tt2(r.section||r.topic||'')}` : `Mock · ${_tt2(r.exam)||''}`
-                            const dt=new Date(r.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})
-                            const pass=pct>=40
-                            return (
-                              <button key={r.id||i} onClick={()=>onOpenResult?.(r)}
-                                style={{display:'flex',alignItems:'center',gap:14,padding:'10px 16px',width:'100%',border:'none',background:'none',cursor:'pointer',borderBottom:i<arr.length-1?`1px solid ${_b}`:'none',transition:'background .12s',textAlign:'left'}}
-                                onMouseOver={e=>{e.currentTarget.style.background=cd?'rgba(255,255,255,.04)':'#fffaf8'}}
-                                onMouseOut={e=>{e.currentTarget.style.background='transparent'}}>
-                                <span style={{fontSize:14,fontWeight:900,width:44,textAlign:'right',flexShrink:0,color:pass?'#16a34a':'#f97316',fontVariantNumeric:'tabular-nums'}}>{pct.toFixed(0)}%</span>
-                                <div style={{flex:1,minWidth:0,marginLeft:2}}>
-                                  <div style={{fontSize:12.5,fontWeight:600,color:_t,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{nm}</div>
-                                  <div style={{fontSize:11,color:_m,marginTop:1}}>{dt} · {r.correct_count||0}✓ {r.wrong_count||0}✗</div>
-                                </div>
-                                <span style={{fontSize:11,fontWeight:700,color:_a,flexShrink:0}}>Review →</span>
-                              </button>
-                            )
-                          })}
-                        </div>
+                    <div className="db-card" style={{padding:'18px 20px',overflowX:'auto'}}>
+                      <div className="db-ctitle">
+                        Recent Tests
+                        <button onClick={()=>setActiveTab('performance')} style={{fontSize:11,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0,whiteSpace:'nowrap',flexShrink:0}}>View All Tests →</button>
                       </div>
-                    )}
+                      {history.length>0 ? (
+                        <table style={{width:'100%',borderCollapse:'collapse',minWidth:260}}>
+                          <thead>
+                            <tr style={{borderBottom:`1px solid ${_b}`}}>
+                              <td style={{padding:'0 6px 8px 0',fontSize:9.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',whiteSpace:'nowrap'}}>Test Name</td>
+                              <td className="db-rt-date" style={{padding:'0 6px 8px 0',fontSize:9.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',whiteSpace:'nowrap'}}>Date</td>
+                              <td className="db-rt-score" style={{padding:'0 6px 8px 0',fontSize:9.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',whiteSpace:'nowrap'}}>Score</td>
+                              <td style={{padding:'0 6px 8px 0',fontSize:9.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',whiteSpace:'nowrap'}}>Accuracy</td>
+                              <td className="db-rt-rank" style={{padding:'0 6px 8px 0',fontSize:9.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',whiteSpace:'nowrap'}}>Rank</td>
+                              <td style={{padding:'0 6px 8px 0',fontSize:9.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',whiteSpace:'nowrap'}}>Action</td>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {history.slice(0,3).map((r,i,arr)=>{
+                              const pct=Math.round(r.percentage||0)
+                              const tot2=(r.correct_count||0)+(r.wrong_count||0)
+                              const acc=tot2>0?Math.round((r.correct_count||0)/tot2*100):0
+                              const nm=r.test_type==='topic_diagnostic'?`Topic · ${_toT2(r.topic||'')}`:r.test_type==='mini'?`Practice · ${_toT2(r.section||'')}`:_toT2(r.exam||'Mock')
+                              const dt=new Date(r.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'})
+                              const maxQ=(selectedGroup?.exams?.find(e=>e.id===r.exam)?.questions)||200
+                              const peerPct=r.peer_comparison?.peer_percentile||null
+                              const rankNum=peerPct?.rank||null
+                              const rankTotal=peerPct?.total_candidates||null
+                              return (
+                                <tr key={i} style={{borderBottom:i<arr.length-1?`1px solid ${_b}`:'none'}}>
+                                  <td style={{padding:'9px 6px 9px 0',fontSize:12,fontWeight:600,color:_t,maxWidth:90,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{nm}</td>
+                                  <td className="db-rt-date" style={{padding:'9px 6px',fontSize:11,color:_m,whiteSpace:'nowrap'}}>{dt}</td>
+                                  <td className="db-rt-score" style={{padding:'9px 6px',fontSize:12,fontWeight:800,color:pct>=60?'#16a34a':'#f97316',whiteSpace:'nowrap'}}>{r.correct_count||pct}/{maxQ}</td>
+                                  <td style={{padding:'9px 6px',fontSize:12,fontWeight:700,color:acc>=60?'#16a34a':'#f97316'}}>{acc}%</td>
+                                  <td className="db-rt-rank" style={{padding:'9px 6px',whiteSpace:'nowrap'}}>
+                                    {rankNum&&rankTotal
+                                      ? <span style={{fontSize:11,fontWeight:700,color:'#6366f1'}}>#{rankNum}<span style={{fontSize:10,fontWeight:500,color:_m}}> / {rankTotal}</span></span>
+                                      : <span style={{fontSize:11,color:_m}}>—</span>
+                                    }
+                                  </td>
+                                  <td style={{padding:'9px 0'}}>
+                                    <button onClick={()=>onOpenResult?.(r)} style={{fontSize:11,fontWeight:700,color:'#fff',background:_a,border:'none',borderRadius:6,padding:'4px 8px',cursor:'pointer',whiteSpace:'nowrap'}}>View</button>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <div style={{textAlign:'center',padding:'14px 0',color:_m,fontSize:12}}>No tests yet. Take your first test to see results here.</div>
+                      )}
+                    </div>
                   </div>
 
-                  {/* RIGHT sidebar */}
-                  <div>
-                    {/* Tests Overview */}
-                    {history.length > 0 && (() => {
-                      const gb = ACTIVE_GROUPS.map(g=>({...g,count:history.filter(r=>g.exams.map(e=>e.id).includes(r.exam||'')).length})).filter(g=>g.count>0)
-                      return (
-                        <div style={{marginBottom:18}}>
-                          <div className="ht-title" style={{fontSize:12,marginBottom:10}}>Tests Overview</div>
-                          <div className="ht-card" style={{padding:'14px 16px'}}>
-                            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingBottom:10,marginBottom:10,borderBottom:`1px solid ${_b}`}}>
-                              <span style={{fontSize:11.5,fontWeight:700,color:_m}}>Total Tests Taken</span>
-                              <span style={{fontSize:22,fontWeight:900,color:_t,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{history.length}</span>
-                            </div>
-                            <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                              {gb.map(g=>{
-                                const pct=Math.round((g.count/history.length)*100)
-                                return (
-                                  <div key={g.id}>
-                                    <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:4}}>
-                                      <div style={{width:7,height:7,borderRadius:'50%',background:g.hex,flexShrink:0}}/>
-                                      <span style={{fontSize:12,fontWeight:700,color:_t,flex:1}}>{shortLbl2(g.label)}</span>
-                                      <span style={{fontSize:13,fontWeight:900,color:g.hex,fontVariantNumeric:'tabular-nums'}}>{g.count}</span>
-                                    </div>
-                                    <div style={{height:4,background:cd?'rgba(255,255,255,.07)':'#f0f0f0',borderRadius:99,overflow:'hidden'}}>
-                                      <div style={{height:'100%',width:`${pct}%`,background:g.hex,borderRadius:99,transition:'width .8s'}}/>
-                                    </div>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })()}
+                  {/* RIGHT COLUMN */}
+                  <div style={{display:'flex',flexDirection:'column',gap:14}}>
 
-                    {/* Quick Launch */}
-                    <div style={{marginBottom:18}}>
-                      <div className="ht-title" style={{fontSize:12,marginBottom:10}}>Quick Launch</div>
+                    {/* Today's Goal */}
+                    <div className="db-card" style={{padding:'16px 18px'}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+                        <div style={{fontSize:13,fontWeight:700,color:_t}}>Today's Goal</div>
+                        <button onClick={()=>setActiveTab('studyplan')} style={{fontSize:11,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0}}>Edit Goal</button>
+                      </div>
+                      <div style={{display:'flex',alignItems:'flex-start',gap:10,marginBottom:12}}>
+                        <div style={{width:32,height:32,borderRadius:8,background:'rgba(59,130,246,.1)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="#3b82f6"/></svg>
+                        </div>
+                        <div style={{fontSize:12,fontWeight:600,color:_t,lineHeight:1.55}}>
+                          {savedPlan?'Complete today\'s study session and 1 topic practice':'Complete 1 mock test and 2 topic practice sessions'}
+                        </div>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:5}}>
+                        <div style={{flex:1,height:4,background:cd?'rgba(255,255,255,.07)':'#f0f0f0',borderRadius:99,overflow:'hidden'}}>
+                          <div style={{height:'100%',width:`${testsToday>0?Math.min(100,Math.round(testsToday/3*100)):0}%`,background:'linear-gradient(90deg,#3b82f6,#60a5fa)',borderRadius:99,transition:'width .5s'}}/>
+                        </div>
+                        <span style={{fontSize:11,fontWeight:700,color:_t,flexShrink:0}}>{testsToday} / 3</span>
+                      </div>
+                      <div style={{fontSize:10.5,color:_m}}>{testsToday===0?'⚡ Start a test to hit today\'s goal':`${testsToday} of 3 done today — keep going!`}</div>
+                    </div>
+
+                    {/* Recommended for You */}
+                    <div className="db-card" style={{padding:'16px 18px'}}>
+                      <div style={{fontSize:13,fontWeight:700,color:_t,marginBottom:12}}>Recommended for You</div>
                       <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                        {ACTIVE_MODES.map(m=>(
-                          <button key={m.id} onClick={()=>onStartTest(m.id,selectedExamId)}
-                            style={{display:'flex',gap:12,padding:'12px 13px',borderRadius:12,border:`1px solid ${_b}`,background:_s,cursor:'pointer',transition:'all .15s',textAlign:'left',alignItems:'flex-start',width:'100%'}}
-                            onMouseOver={e=>{e.currentTarget.style.borderColor='#ffcbb7';e.currentTarget.style.background=cd?'rgba(255,101,63,.08)':'#fffaf8'}}
-                            onMouseOut={e=>{e.currentTarget.style.borderColor=_b;e.currentTarget.style.background=_s}}>
-                            <span className={`${m.bg} rounded-xl flex-shrink-0`} style={{width:34,height:34,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                              <m.Icon/>
-                            </span>
-                            <span style={{display:'flex',flexDirection:'column',gap:2,minWidth:0}}>
-                              <span style={{fontSize:12.5,fontWeight:800,color:_t,lineHeight:1.2}}>{m.label}</span>
-                              <span style={{fontSize:11,color:_m,lineHeight:1.5}}>{m.desc}</span>
-                            </span>
+                        {[
+                          ...(weakTopicArr.slice(0,2).map((t,i)=>({col:i===0?'#FF653F':'#8b5cf6',label:t.topic,sub:`Practice more ${t.topic} questions`,act:()=>onStartTest?.('topic',selectedExamId),icon:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4z"/></svg>}))),
+                          {col:'#16a34a',label:'Take a Full Mock Test',sub:`${selectedGroup?.exams?.find(e=>e.id===selectedExamId)?.name||'Full Test'} – Next`,act:()=>onStartTest?.('mock',selectedExamId),icon:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>},
+                        ].slice(0,3).map((rec,ri)=>(
+                          <button key={ri} onClick={rec.act}
+                            style={{display:'flex',alignItems:'center',gap:9,padding:'9px 11px',borderRadius:10,border:`1px solid ${_b}`,background:cd?'rgba(255,255,255,.03)':'#fafafa',cursor:'pointer',textAlign:'left',width:'100%',transition:'all .15s'}}
+                            onMouseOver={e=>{e.currentTarget.style.borderColor=`${rec.col}55`;e.currentTarget.style.background=`${rec.col}08`}}
+                            onMouseOut={e=>{e.currentTarget.style.borderColor=_b;e.currentTarget.style.background=cd?'rgba(255,255,255,.03)':'#fafafa'}}>
+                            <div style={{width:30,height:30,borderRadius:8,background:`${rec.col}12`,display:'flex',alignItems:'center',justifyContent:'center',color:rec.col,flexShrink:0}}>{rec.icon}</div>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontSize:11.5,fontWeight:700,color:_t,lineHeight:1.2,marginBottom:1}}>{rec.label}</div>
+                              <div style={{fontSize:10.5,color:_m}}>{rec.sub}</div>
+                            </div>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={_m} strokeWidth="2.5" strokeLinecap="round" style={{flexShrink:0}}><polyline points="9 18 15 12 9 6"/></svg>
                           </button>
                         ))}
                       </div>
                     </div>
 
-                    {/* Your Exam */}
-                    {hasChosenExam && (
-                      <div style={{marginBottom:18}}>
-                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-                          <div className="ht-title" style={{fontSize:12,margin:0}}>Your Exam</div>
-                          <button onClick={()=>setChangingExam(v=>!v)} style={{fontSize:11,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0}}>
-                            {changingExam?'Done':'Change'}
-                          </button>
-                        </div>
-                        {changingExam ? (
-                          <div>
-                            {(isPro?ACTIVE_GROUPS:ACTIVE_GROUPS.filter(g=>g.id===selectedGroup.id)).map(g=>(
-                              <div key={g.id} style={{marginBottom:10}}>
-                                <div style={{fontSize:9,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:5}}>{g.label}</div>
-                                <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-                                  {g.exams.map(e=>(
-                                    <button key={e.id} onClick={()=>{if(!e.comingSoon)handleChangeExam(e.id)}} disabled={!!e.comingSoon}
-                                      style={{padding:'5px 10px',borderRadius:7,border:'1.5px solid',cursor:e.comingSoon?'not-allowed':'pointer',fontSize:11,fontWeight:700,opacity:e.comingSoon?.4:1,background:e.id===selectedExamId?_a:'transparent',borderColor:e.id===selectedExamId?_a:(cd?'rgba(255,255,255,.15)':'#e5e7eb'),color:e.id===selectedExamId?'#fff':(cd?'rgba(255,255,255,.7)':'#374151')}}>
-                                      {e.name}{e.comingSoon?' 🔒':''}
-                                    </button>
-                                  ))}
+                    {/* Study Plan Progress */}
+                    {savedPlan ? (()=>{
+                      const days=savedPlan.days||[], total=days.length
+                      const completed=Object.values(completedDays).filter(Boolean).length
+                      const pct=total?Math.round((completed/total)*100):0
+                      const R=26,CIRC=+(2*Math.PI*R).toFixed(1),dash=+((pct/100)*CIRC).toFixed(1)
+                      const next=days.filter(d=>!completedDays[d.day])[0]
+                      const tasks=next?(next.topics||[]).slice(0,4):['Complete a mock test this week','Review weak topic areas']
+                      return (
+                        <div className="db-card" style={{padding:'16px 18px'}}>
+                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+                            <div style={{fontSize:13,fontWeight:700,color:_t}}>Study Plan Progress</div>
+                            <button onClick={()=>setActiveTab('studyplan')} style={{fontSize:11,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0}}>View Plan →</button>
+                          </div>
+                          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
+                            <svg width="60" height="60" viewBox="0 0 60 60">
+                              <circle cx="30" cy="30" r={R} fill="none" stroke={cd?'rgba(255,255,255,.08)':'#f0f0f0'} strokeWidth="5"/>
+                              {pct>0&&<circle cx="30" cy="30" r={R} fill="none" stroke={_a} strokeWidth="5" strokeLinecap="round" strokeDasharray={`${dash} ${CIRC}`} transform="rotate(-90 30 30)"/>}
+                              <text x="30" y="34" textAnchor="middle" style={{fontSize:12,fontWeight:900,fill:_t}}>{pct}%</text>
+                            </svg>
+                            <div>
+                              <div style={{fontSize:12,fontWeight:800,color:_t,marginBottom:3}}>Your study plan</div>
+                              <div style={{fontSize:11,color:_m}}>{completed}/{total} days complete</div>
+                              <div style={{fontSize:10.5,color:_m,marginTop:2}}>{total-completed} remaining</div>
+                            </div>
+                          </div>
+                          <div style={{display:'flex',flexDirection:'column',gap:7}}>
+                            {tasks.map((task,ti)=>(
+                              <div key={ti} style={{display:'flex',alignItems:'center',gap:8,fontSize:11.5}}>
+                                <div style={{width:16,height:16,borderRadius:'50%',border:`1.5px solid ${ti===0?'#16a34a':_b}`,background:ti===0?'#16a34a':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                                  {ti===0&&<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
                                 </div>
+                                <span style={{color:ti===0?_t:_m,lineHeight:1.3}}>{task}</span>
                               </div>
                             ))}
-                            {!isPro&&<button onClick={()=>onNav?.('subscriptions')} style={{marginTop:2,fontSize:11.5,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0}}>Unlock more exams →</button>}
                           </div>
-                        ) : (
-                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
-                            {visibleGroupExams.map(e=>(
-                              <button key={e.id} onClick={()=>{if(!e.comingSoon)onStartTest('mock',e.id)}} disabled={!!e.comingSoon}
-                                style={{padding:'7px 9px',borderRadius:8,border:'1.5px solid',cursor:e.comingSoon?'not-allowed':'pointer',fontSize:11,fontWeight:700,opacity:e.comingSoon?.4:1,textAlign:'center',background:e.id===selectedExamId?_a:'transparent',borderColor:e.id===selectedExamId?_a:(cd?'rgba(255,255,255,.15)':'#e5e7eb'),color:e.id===selectedExamId?'#fff':(cd?'rgba(255,255,255,.7)':'#374151'),transition:'all .12s'}}
-                                onMouseOver={e2=>{if(e.id!==selectedExamId&&!e.comingSoon){e2.currentTarget.style.borderColor=_a;e2.currentTarget.style.color=_a}}}
-                                onMouseOut={e2=>{if(e.id!==selectedExamId){e2.currentTarget.style.borderColor=cd?'rgba(255,255,255,.15)':'#e5e7eb';e2.currentTarget.style.color=cd?'rgba(255,255,255,.7)':'#374151'}}}>
-                                {e.name}{e.comingSoon?' 🔒':''}
+                        </div>
+                      )
+                    })() : (
+                      <div className="db-card" style={{padding:'16px 18px',textAlign:'center'}}>
+                        <div style={{fontSize:13,fontWeight:700,color:_t,marginBottom:8}}>Study Plan</div>
+                        <div style={{fontSize:11.5,color:_m,marginBottom:12,lineHeight:1.5}}>Create a personalized study plan to track your daily progress</div>
+                        <button onClick={()=>setActiveTab('studyplan')} style={{background:_a,color:'#fff',border:'none',borderRadius:8,padding:'8px 16px',fontSize:12,fontWeight:700,cursor:'pointer'}}>Create Plan →</button>
+                      </div>
+                    )}
+
+                    {/* Exam change */}
+                    {hasChosenExam&&(
+                      <div className="db-card" style={{padding:'14px 16px'}}>
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:changingExam?10:0}}>
+                          <div style={{fontSize:12,fontWeight:700,color:_t}}>Your Exam</div>
+                          <button onClick={()=>setChangingExam(v=>!v)} style={{fontSize:11,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0}}>{changingExam?'Done':'Change'}</button>
+                        </div>
+                        {changingExam&&(
+                          <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                            {(isPro?ACTIVE_GROUPS:ACTIVE_GROUPS.filter(g=>g.id===selectedGroup?.id)).flatMap(g=>g.exams).slice(0,8).map(e=>(
+                              <button key={e.id} onClick={()=>{if(!e.comingSoon)handleChangeExam(e.id)}} disabled={!!e.comingSoon}
+                                style={{padding:'4px 9px',borderRadius:6,border:'1.5px solid',cursor:e.comingSoon?'not-allowed':'pointer',fontSize:11,fontWeight:700,opacity:e.comingSoon?.4:1,background:e.id===selectedExamId?_a:'transparent',borderColor:e.id===selectedExamId?_a:(cd?'rgba(255,255,255,.15)':'#e5e7eb'),color:e.id===selectedExamId?'#fff':(cd?'rgba(255,255,255,.7)':'#374151')}}>
+                                {e.name}
                               </button>
                             ))}
+                            {!isPro&&<button onClick={()=>onNav?.('subscriptions')} style={{marginTop:2,fontSize:11,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:'4px 0',width:'100%'}}>Unlock more exams →</button>}
                           </div>
                         )}
                       </div>
                     )}
-
-                    {/* Study Plan */}
-                    {savedPlan && (() => {
-                      const days=savedPlan.days||[]
-                      const total=days.length
-                      const completed=Object.values(completedDays).filter(Boolean).length
-                      const pct=total?Math.round((completed/total)*100):0
-                      const next=days.filter(d=>!completedDays[d.day])[0]
-                      return (
-                        <div>
-                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-                            <div className="ht-title" style={{fontSize:12,margin:0}}>Study Plan</div>
-                            <button onClick={()=>setActiveTab('studyplan')} style={{fontSize:11,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0}}>View →</button>
-                          </div>
-                          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:5}}>
-                            <div style={{flex:1,height:3,background:cd?'rgba(255,255,255,.08)':'#ebebeb',borderRadius:99,overflow:'hidden'}}>
-                              <div style={{height:'100%',width:`${pct}%`,background:_a,borderRadius:99,transition:'width .5s'}}/>
-                            </div>
-                            <span style={{fontSize:11.5,fontWeight:800,color:_t}}>{pct}%</span>
-                          </div>
-                          <div style={{fontSize:11,color:_m,marginBottom:6}}>{completed}/{total} days · {total-completed} remaining</div>
-                          {next&&<div style={{fontSize:12,fontWeight:600,color:_t,lineHeight:1.5}}>Up next: {(next.topics||[]).slice(0,2).join(', ')||'Study session'}<span style={{fontSize:11,color:_m,display:'block'}}>{next.date} · {next.duration}</span></div>}
-                        </div>
-                      )
-                    })()}
                   </div>
                 </div>
+
               </>
             })()}
 
@@ -3272,43 +3469,154 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
       {panelOpen && (
         <>
           <div className="fixed inset-0 bg-black/40 z-40" onClick={()=>setPanelOpen(false)}/>
-          <div className="fixed right-0 top-0 h-full w-72 z-50 flex flex-col overflow-y-auto shadow-2xl" style={{ background:'#fff' }}>
-            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom:'1px solid #e5e7eb' }}>
-              <div className="flex items-center gap-2">
-                <div style={{ width:28, height:28, background:'#FF653F', borderRadius:7, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <span style={{ color:'#fff', fontWeight:900, fontSize:10 }}>MT</span>
+
+          {/* ── WEB panel: full nav (unchanged from original) ── */}
+          {!isNative && (
+            <div className="fixed right-0 top-0 h-full w-72 z-50 flex flex-col overflow-y-auto shadow-2xl" style={{ background:'#fff' }}>
+              <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom:'1px solid #e5e7eb' }}>
+                <div className="flex items-center gap-2">
+                  <div style={{ width:28, height:28, background:'#FF653F', borderRadius:7, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <span style={{ color:'#fff', fontWeight:900, fontSize:10 }}>MT</span>
+                  </div>
+                  <div>
+                    <div className="font-bold text-sm" style={{color:'#111827'}}>MockTest</div>
+                    <div style={{fontSize:8.5,fontWeight:700,color:'#FF653F',letterSpacing:'.10em',textTransform:'uppercase',fontStyle:'italic',marginTop:3,lineHeight:1}}>Your World of Mock Tests</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-bold text-sm" style={{color:'#111827'}}>MockTest</div>
-                  <div style={{fontSize:8.5,fontWeight:700,color:'#FF653F',letterSpacing:'.10em',textTransform:'uppercase',fontStyle:'italic',marginTop:3,lineHeight:1}}>Your World of Mock Tests</div>
-                </div>
+                <button onClick={()=>setPanelOpen(false)} className="text-2xl w-8 h-8 flex items-center justify-center" style={{color:'#6b7280'}}>×</button>
               </div>
-              <button onClick={()=>setPanelOpen(false)} className="text-2xl w-8 h-8 flex items-center justify-center" style={{color:'#6b7280'}}>×</button>
+              <nav className="flex-1 py-3">
+                {SIDEBAR_NAV.map(item => (
+                  <button key={item.id}
+                    onClick={()=>{ setPanelOpen(false); setActiveTab(item.id) }}
+                    className="w-full flex items-center gap-3 px-5 py-3 transition-colors"
+                    style={ activeTab===item.id
+                      ? { background:'rgba(255,101,63,.08)', color:'#FF653F', fontWeight:700, borderLeft:'3px solid #FF653F' }
+                      : { color:'#374151', borderLeft:'3px solid transparent' } }
+                    onMouseOver={e=>{ if(activeTab!==item.id) e.currentTarget.style.background='#f9fafb' }}
+                    onMouseOut={e=>{ if(activeTab!==item.id) e.currentTarget.style.background='transparent' }}>
+                    <span className="flex-shrink-0" style={{color: activeTab===item.id ? '#FF653F' : '#9ca3af'}}><item.Icon /></span>
+                    <span className="text-sm font-semibold">{item.label}</span>
+                  </button>
+                ))}
+                <div className="mt-4 mx-5 pt-4" style={{ borderTop:'1px solid #f3f4f6' }}>
+                  {adminUser && (
+                    <button onClick={()=>{setPanelOpen(false);onNav?.('admin')}} className="w-full text-left py-2.5 text-sm flex items-center gap-2 mb-1" style={{ color:'#6b7280' }}><DIcGear s={13} c='#6b7280'/> Admin Panel</button>
+                  )}
+                  <button onClick={onLogout} className="w-full text-left py-2.5 text-sm font-semibold" style={{ color:'#ef4444' }}>↪ Log Out</button>
+                </div>
+              </nav>
             </div>
-            <nav className="flex-1 py-3">
-              {SIDEBAR_NAV.map(item => (
-                <button key={item.id}
-                  onClick={()=>{ setPanelOpen(false); setActiveTab(item.id) }}
-                  className="w-full flex items-center gap-3 px-5 py-3 transition-colors"
-                  style={ activeTab===item.id
-                    ? { background:'rgba(255,101,63,.08)', color:'#FF653F', fontWeight:700, borderLeft:'3px solid #FF653F' }
-                    : { color:'#374151', borderLeft:'3px solid transparent' } }
-                  onMouseOver={e=>{ if(activeTab!==item.id) e.currentTarget.style.background='#f9fafb' }}
-                  onMouseOut={e=>{ if(activeTab!==item.id) e.currentTarget.style.background='transparent' }}>
-                  <span className="flex-shrink-0" style={{color: activeTab===item.id ? '#FF653F' : '#9ca3af'}}><item.Icon /></span>
-                  <span className="text-sm font-semibold">{item.label}</span>
-                </button>
-              ))}
-              <div className="mt-4 mx-5 pt-4" style={{ borderTop:'1px solid #f3f4f6' }}>
-                {adminUser && (
-                  <button onClick={()=>{setPanelOpen(false);onNav?.('admin')}} className="w-full text-left py-2.5 text-sm flex items-center gap-2 mb-1" style={{ color:'#6b7280' }}><DIcGear s={13} c='#6b7280'/> Admin Panel</button>
-                )}
-                <button onClick={onLogout} className="w-full text-left py-2.5 text-sm font-semibold" style={{ color:'#ef4444' }}>↪ Log Out</button>
+          )}
+
+          {/* ── NATIVE APP "More" panel: secondary items only (bottom nav handles primary) ── */}
+          {isNative && (
+            <div className="fixed right-0 top-0 h-full w-72 z-50 flex flex-col overflow-y-auto shadow-2xl"
+              style={{background:cd?'#111':'#fff',paddingTop:'env(safe-area-inset-top,0px)'}}>
+              {/* Header */}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 18px',borderBottom:`1px solid ${cd?'rgba(255,255,255,.08)':'#f0f0f0'}`}}>
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  <div style={{width:34,height:34,background:'#FF653F',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    <span style={{color:'#fff',fontWeight:900,fontSize:12}}>MT</span>
+                  </div>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:800,color:cd?'#fff':'#111827'}}>MockTest</div>
+                    <div style={{fontSize:8,fontWeight:700,color:'#FF653F',letterSpacing:'.12em',textTransform:'uppercase'}}>More</div>
+                  </div>
+                </div>
+                <button onClick={()=>setPanelOpen(false)}
+                  style={{width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:8,border:'none',cursor:'pointer',
+                    background:cd?'rgba(255,255,255,.08)':'#f3f4f6',color:cd?'#9ca3af':'#6b7280',fontSize:18}}>×</button>
               </div>
-            </nav>
-          </div>
+              {/* User card */}
+              <div style={{margin:'14px 16px',padding:'14px 16px',borderRadius:14,background:cd?'rgba(255,255,255,.05)':'#fafafa',border:`1px solid ${cd?'rgba(255,255,255,.07)':'#f0f0f0'}`,display:'flex',alignItems:'center',gap:12}}>
+                <div style={{width:44,height:44,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#ff9a7a)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:900,color:'#fff',flexShrink:0}}>
+                  {(userName||'U')[0].toUpperCase()}
+                </div>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:800,color:cd?'#fff':'#111827',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{userName}</div>
+                  <div style={{fontSize:11,color:cd?'#6b7280':'#9ca3af',marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{user?.email}</div>
+                </div>
+              </div>
+              {/* Secondary nav */}
+              <nav style={{flex:1,padding:'4px 0'}}>
+                {[
+                  {id:'weakareas',     Icon:SvgFlame, label:'Weak Areas'},
+                  {id:'prediction',    Icon:SvgBolt,  label:'AI Prediction'},
+                  {id:'subscriptions', Icon:SvgClip,  label:'Subscriptions'},
+                  {id:'billing',       Icon:SvgCard,  label:'Billing'},
+                  {id:'settings',      Icon:SvgGear,  label:'Settings'},
+                ].map(item => {
+                  const isAct = activeTab === item.id
+                  return (
+                    <button key={item.id}
+                      onClick={()=>{ setPanelOpen(false); setActiveTab(item.id) }}
+                      style={{width:'100%',display:'flex',alignItems:'center',gap:14,padding:'14px 18px',border:'none',cursor:'pointer',textAlign:'left',
+                        background: isAct ? 'rgba(255,101,63,.1)' : 'transparent',
+                        borderLeft: isAct ? '3px solid #FF653F' : '3px solid transparent'}}>
+                      <span style={{color:isAct?'#FF653F':cd?'#6b7280':'#9ca3af',flexShrink:0}}><item.Icon /></span>
+                      <span style={{fontSize:13,fontWeight:600,color:isAct?'#FF653F':cd?'#e5e7eb':'#374151'}}>{item.label}</span>
+                    </button>
+                  )
+                })}
+                <div style={{margin:'10px 18px',borderTop:`1px solid ${cd?'rgba(255,255,255,.07)':'#f0f0f0'}`}}/>
+                {adminUser && (
+                  <button onClick={()=>{setPanelOpen(false);onNav?.('admin')}}
+                    style={{width:'100%',display:'flex',alignItems:'center',gap:14,padding:'14px 18px',border:'none',cursor:'pointer',background:'transparent'}}>
+                    <DIcGear s={15} c={cd?'#6b7280':'#9ca3af'}/><span style={{fontSize:13,fontWeight:600,color:cd?'#9ca3af':'#6b7280'}}>Admin Panel</span>
+                  </button>
+                )}
+                <button onClick={onLogout}
+                  style={{width:'100%',display:'flex',alignItems:'center',gap:14,padding:'14px 18px',border:'none',cursor:'pointer',background:'transparent'}}>
+                  <svg width="15" height="15" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                  <span style={{fontSize:13,fontWeight:700,color:'#ef4444'}}>Sign Out</span>
+                </button>
+              </nav>
+            </div>
+          )}
         </>
       )}
+
+      {/* ══ NATIVE APP BOTTOM NAV — only in Capacitor APK, never in web browser ══ */}
+      {isNative && (<>
+        <style>{`
+          .db-bnav{position:fixed;bottom:0;left:0;right:0;z-index:200;padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -1px 0 rgba(0,0,0,.1),0 -6px 24px rgba(0,0,0,.08)}
+          .db-bnav-inner{display:flex;width:100%;height:62px}
+          .db-bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:6px 2px;position:relative;min-width:0}
+          .db-bnav-pill{position:absolute;top:6px;width:32px;height:3px;border-radius:99px;background:#FF653F}
+          .db-bnav-lbl{font-size:9px;font-weight:700;line-height:1;letter-spacing:.02em}
+        `}</style>
+        <nav className="db-bnav" style={{background:cd?'#111':'#fff',borderTop:`1px solid ${cd?'rgba(255,255,255,.07)':'#e8e8e8'}`}}>
+          <div className="db-bnav-inner">
+            {[
+              { id:'home',        label:'Home',
+                path:'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10' },
+              { id:'explore',     label:'Explore',
+                path:'M21 21l-4.35-4.35 M11 19A8 8 0 1 0 11 3a8 8 0 0 0 0 16z' },
+              { id:'performance', label:'Progress',
+                path:'M22 7L13.5 15.5L8.5 10.5L2 17 M16 7h6v6' },
+              { id:'studyplan',   label:'Planner',
+                path:'M3 6h18 M3 12h18 M3 18h18' },
+              { id:'profile',     label:'Profile',
+                path:'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z' },
+            ].map(({id, label, path}) => {
+              const isAct = activeTab === id
+              const col = isAct ? '#FF653F' : cd ? '#555' : '#bbb'
+              return (
+                <button key={id} className="db-bnav-btn" onClick={() => setActiveTab(id)}>
+                  {isAct && <span className="db-bnav-pill"/>}
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    style={{transition:'stroke .15s',flexShrink:0}}>
+                    <path d={path}/>
+                  </svg>
+                  <span className="db-bnav-lbl" style={{color:col,transition:'color .15s'}}>{label}</span>
+                </button>
+              )
+            })}
+          </div>
+        </nav>
+      </>)}
 
     </div>
   )

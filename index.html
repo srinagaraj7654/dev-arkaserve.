@@ -123,6 +123,12 @@
     <h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap">
       Free Mock Tests for SAT, ACT, IBPS, SSC, EAMCET &amp; JEE — MockTest by Arkaserve
     </h1>
+    <!-- Native app OAuth relay: runs before React/Supabase, forwards tokens to the custom scheme -->
+    <script>
+      if (location.pathname === '/login-callback') {
+        location.replace('com.arkaserve.prep://login-callback' + location.search + location.hash);
+      }
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

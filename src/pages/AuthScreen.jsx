@@ -1,20 +1,22 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { supabase } from '../supabase.js'
 import { Browser } from '@capacitor/browser'
 import { App as CapApp } from '@capacitor/app'
 
-const isNative = typeof window !== 'undefined' &&
-  typeof window.Capacitor !== 'undefined' &&
-  window.Capacitor.isNativePlatform?.() === true
+const isNative = import.meta.env.VITE_IS_NATIVE === 'true'
 
-// Show Apple Sign In on: iOS native app, any iPhone/iPad browser, or macOS Safari
+// HTTPS redirect URL — Supabase always accepts HTTPS, and the website's /login-callback
+// page immediately forwards tokens to the custom scheme via an inline script.
+// This avoids Supabase silently rejecting custom-scheme redirects (com.arkaserve.prep://).
+const NATIVE_REDIRECT = 'https://prep.arkaserve.com/login-callback'
+
+// Show Apple Sign In only on iOS native or Apple web browsers — never on Android
 const isApplePlatform = (() => {
   if (typeof window === 'undefined') return false
-  if (isNative) return window.Capacitor?.getPlatform?.() === 'ios'
+  if (isNative) return Capacitor.getPlatform() === 'ios'
   const ua = navigator.userAgent || ''
-  // iPhone/iPad: show regardless of browser (Chrome on iOS still uses WebKit)
   if (/iPhone|iPad|iPod/.test(ua)) return true
-  // macOS: only show in Safari (not Chrome/Firefox on Mac)
   return /Macintosh/.test(ua) && /Safari/.test(ua) && !/Chrome/.test(ua)
 })()
 
@@ -36,39 +38,75 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
   const switchMode = (m) => setMode(m)
 
   /* ── Native Google OAuth deep-link callback ── */
+  // Keep a stable ref so listener churn doesn't happen on every render
+  const onAuthRef = useRef(onAuth)
+  useEffect(() => { onAuthRef.current = onAuth }, [onAuth])
+
   useEffect(() => {
     if (!isNative) return
-    let handle
+    let urlHandle, resumeHandle
+
+    // Deep link fires when the website's /login-callback relay page forwards
+    // the custom scheme to Android: com.arkaserve.prep://login-callback#access_token=...
     CapApp.addListener('appUrlOpen', async ({ url }) => {
       if (!url.startsWith('com.arkaserve.prep://login-callback')) return
       Browser.close()
+      setGoogleLoad(false)
+      setAppleLoad(false)
       const urlObj = new URL(url)
+      // PKCE: code in query string (fallback path)
       const code = urlObj.searchParams.get('code')
       if (code) {
         const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-        if (!error && data?.user) onAuth(data.user)
-      } else {
-        const params = new URLSearchParams(urlObj.hash.slice(1))
-        const access_token = params.get('access_token')
-        const refresh_token = params.get('refresh_token')
-        if (access_token && refresh_token) {
-          const { data, error } = await supabase.auth.setSession({ access_token, refresh_token })
-          if (!error && data?.user) onAuth(data.user)
-        }
+        if (!error && data?.user) { onAuthRef.current(data.user); return }
       }
-    }).then(h => { handle = h })
-    return () => { handle?.remove() }
-  }, [onAuth])
+      // Implicit: tokens in hash fragment (primary path with current supabase config)
+      const params = new URLSearchParams(urlObj.hash.slice(1))
+      const access_token = params.get('access_token')
+      const refresh_token = params.get('refresh_token')
+      if (access_token && refresh_token) {
+        const { data, error } = await supabase.auth.setSession({ access_token, refresh_token })
+        if (!error && data?.user) { onAuthRef.current(data.user); return }
+      }
+      // Last resort: session may already be active
+      const { data: s } = await supabase.auth.getSession()
+      if (s?.session?.user) onAuthRef.current(s.session.user)
+    }).then(h => { urlHandle = h })
+
+    // When app resumes from Chrome Custom Tab — retry session poll in case
+    // appUrlOpen fires slightly after the app comes to foreground
+    CapApp.addListener('appStateChange', async ({ isActive }) => {
+      if (!isActive) return
+      setGoogleLoad(false)
+      setAppleLoad(false)
+      for (let i = 1; i <= 4; i++) {
+        await new Promise(r => setTimeout(r, 500 * i))
+        const { data } = await supabase.auth.getSession()
+        if (data?.session?.user) { onAuthRef.current(data.session.user); return }
+      }
+    }).then(h => { resumeHandle = h })
+
+    let browserHandle
+    Browser.addListener('browserFinished', async () => {
+      setGoogleLoad(false)
+      setAppleLoad(false)
+      await new Promise(r => setTimeout(r, 1000))
+      const { data } = await supabase.auth.getSession()
+      if (data?.session?.user) onAuthRef.current(data.session.user)
+    }).then(h => { browserHandle = h })
+
+    return () => { urlHandle?.remove(); resumeHandle?.remove(); browserHandle?.remove() }
+  }, [])  // stable — uses onAuthRef
 
   const handleGoogle = async () => {
     setGoogleLoad(true)
     if (isNative) {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: 'com.arkaserve.prep://login-callback', skipBrowserRedirect: true },
+        options: { redirectTo: NATIVE_REDIRECT, skipBrowserRedirect: true },
       })
       if (error || !data?.url) { setGoogleLoad(false); return }
-      await Browser.open({ url: data.url })
+      await Browser.open({ url: data.url, toolbarColor: '#FF653F' })
     } else {
       supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
     }
@@ -82,14 +120,14 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
     if (isNative) {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
-        options: { redirectTo: 'com.arkaserve.prep://login-callback', skipBrowserRedirect: true },
+        options: { redirectTo: NATIVE_REDIRECT, skipBrowserRedirect: true },
       })
       if (error || !data?.url) {
         setAppleLoad(false)
         setAppleErr(error?.message || 'Apple Sign In unavailable. Please try Google.')
         return
       }
-      await Browser.open({ url: data.url })
+      await Browser.open({ url: data.url, toolbarColor: '#000000' })
     } else {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
@@ -115,6 +153,111 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
     { Svg: SvgTimer,  text: 'Real exam simulation with timed sections' },
   ]
 
+  /* ── Native full-screen auth UI (white / light theme) ── */
+  if (isNative) return (
+    <div style={{
+      fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
+      background: '#f0f2f5',
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      paddingTop: 'env(safe-area-inset-top, 0px)',
+    }}>
+      <style>{`@keyframes auth-spin { to { transform: rotate(360deg) } }`}</style>
+
+      {/* Brand hero */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 32px 32px' }}>
+        <div style={{
+          width: 88, height: 88,
+          background: '#FF653F',
+          borderRadius: 26,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 12px 36px rgba(255,101,63,.35)',
+          marginBottom: 22,
+        }}>
+          <span style={{ color: '#fff', fontWeight: 900, fontSize: 30, letterSpacing: -1 }}>MT</span>
+        </div>
+
+        <h1 style={{ fontSize: 32, fontWeight: 900, color: '#111', letterSpacing: -0.5, margin: '0 0 6px', textAlign: 'center' }}>MockTest</h1>
+        <p style={{ fontSize: 12, color: '#FF653F', letterSpacing: '.12em', textTransform: 'uppercase', fontStyle: 'italic', margin: 0, textAlign: 'center' }}>Your World of Mock Tests</p>
+
+        <div style={{ display: 'flex', gap: 32, marginTop: 36 }}>
+          {[{ v: '99+', l: 'Questions' }, { v: '3', l: 'Sections' }, { v: '100%', l: 'Free' }].map(s => (
+            <div key={s.l} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#FF653F', lineHeight: 1 }}>{s.v}</div>
+              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>{s.l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Sign-in card pinned to bottom */}
+      <div style={{
+        background: '#fff',
+        borderRadius: '28px 28px 0 0',
+        padding: '32px 28px',
+        paddingBottom: 'calc(28px + env(safe-area-inset-bottom, 0px))',
+        boxShadow: '0 -4px 32px rgba(0,0,0,.08)',
+      }}>
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: '#111', margin: '0 0 6px', textAlign: 'center' }}>Welcome back</h2>
+        <p style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', margin: '0 0 24px' }}>Sign in to continue your prep journey</p>
+
+        {/* Google */}
+        <button onClick={handleGoogle} disabled={googleLoad || appleLoad}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 16,
+            padding: '15px 20px', fontSize: 15, fontWeight: 600, color: '#111',
+            cursor: 'pointer', marginBottom: 12,
+            boxShadow: '0 1px 4px rgba(0,0,0,.06)',
+            opacity: (googleLoad || appleLoad) ? 0.6 : 1,
+          }}>
+          {googleLoad ? <Spinner /> : (
+            <svg width="20" height="20" viewBox="0 0 48 48">
+              <path fill="#4285F4" d="M46.145 24.503c0-1.633-.138-3.205-.397-4.712H24v8.924h12.441a10.6 10.6 0 01-4.602 6.958v5.782h7.45c4.358-4.013 6.856-9.924 6.856-16.952z"/>
+              <path fill="#34A853" d="M24 47c6.237 0 11.466-2.07 15.29-5.592l-7.45-5.782c-2.073 1.391-4.72 2.211-7.84 2.211-6.027 0-11.131-4.07-12.951-9.535H3.38v5.974C7.189 42.018 15.02 47 24 47z"/>
+              <path fill="#FBBC05" d="M11.049 28.302a13.71 13.71 0 01-.716-4.302c0-1.493.257-2.944.716-4.302v-5.974H3.38A23.986 23.986 0 001 24c0 3.868.924 7.527 2.38 10.276l7.669-5.974z"/>
+              <path fill="#EA4335" d="M24 9.8c3.397 0 6.444 1.168 8.84 3.461l6.624-6.624C35.462 2.973 30.234.8 24 .8 15.02.8 7.189 5.782 3.38 13.724l7.669 5.974C12.869 14.132 17.973 9.8 24 9.8z"/>
+            </svg>
+          )}
+          <span>{googleLoad ? 'Signing in…' : 'Continue with Google'}</span>
+        </button>
+
+        {/* Apple (iOS/macOS only) */}
+        {isApplePlatform && (
+          <>
+            <button onClick={handleApple} disabled={appleLoad || googleLoad}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                background: '#000', border: '1.5px solid #000', borderRadius: 16,
+                padding: '15px 20px', fontSize: 15, fontWeight: 600, color: '#fff',
+                cursor: 'pointer', marginBottom: 12,
+                boxShadow: '0 1px 4px rgba(0,0,0,.15)',
+                opacity: (appleLoad || googleLoad) ? 0.6 : 1,
+              }}>
+              {appleLoad ? <Spinner /> : (
+                <svg width="18" height="18" viewBox="0 0 814 1000" fill="white">
+                  <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 383.3 46 341.4 46 339.2c0-157.3 98.4-240.5 195-240.5 57.8 0 106.9 38.2 143.4 38.2 35.2 0 89.1-38.2 154.2-38.2 27.1 0 108.2 2.6 168.2 75.8zm-295-10.3c6.4-28.8 10.3-56.3 10.3-82.9 0-32.1-5.8-63.5-16.8-91.7-41.5 7.7-81.4 46.3-101.8 91.7-14.7 35.7-21 70.7-21 105.3 0 28.2 4.5 56.3 15.6 80.5 49.3 4.5 100.5-28.2 113.7-103z"/>
+                </svg>
+              )}
+              <span>{appleLoad ? 'Signing in…' : 'Continue with Apple'}</span>
+            </button>
+            {appleErr && <p style={{ fontSize: 12, color: '#dc2626', textAlign: 'center', marginBottom: 8 }}>{appleErr}</p>}
+          </>
+        )}
+
+        <p style={{ fontSize: 11, color: '#b0b8c4', textAlign: 'center', marginTop: 8, lineHeight: 1.6 }}>
+          By continuing you agree to our{' '}
+          <button onClick={() => handleNav('terms')} style={{ color: '#FF653F', background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit', textDecoration: 'underline' }}>Terms</button>
+          {' '}and{' '}
+          <button onClick={() => handleNav('privacy')} style={{ color: '#FF653F', background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit', textDecoration: 'underline' }}>Privacy Policy</button>.
+        </p>
+
+      </div>
+    </div>
+  )
+
+  /* ── Auth UI (web layout) ── */
   return (
     <div style={{ fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", background: '#ffffff', height: '100vh' }}
       className="flex flex-col md:flex-row overflow-hidden">
@@ -211,14 +354,14 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
       <div className="flex-1 flex flex-col min-h-0 h-full" style={{ background: '#ffffff' }}>
 
         {/* Mobile top bar */}
-        <div className="md:hidden flex items-center justify-between px-6 py-4 border-b border-gray-100" style={{ background: '#111' }}>
+        <div className="md:hidden flex items-center justify-between px-6 py-4 border-b border-gray-100" style={{ background: '#ffffff' }}>
           <div className="flex items-center gap-2">
             <div style={{ width: 32, height: 32, background: '#FF653F', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ color: '#fff', fontWeight: 900, fontSize: 11 }}>MT</span>
             </div>
-            <span style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>MockTest</span>
+            <span style={{ color: '#111', fontWeight: 700, fontSize: 14 }}>MockTest</span>
           </div>
-          <button onClick={onBack} style={{ color: '#999', fontSize: 13 }} className="hover:text-white transition-colors">Back</button>
+          {!isNative && onBack && <button onClick={onBack} style={{ color: '#999', fontSize: 13 }}>Back</button>}
         </div>
 
         <div className="flex-1 min-h-0 flex flex-col items-center justify-center px-5 sm:px-8 py-8 w-full">

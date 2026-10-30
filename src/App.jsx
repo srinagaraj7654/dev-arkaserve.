@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { supabase }        from './supabase.js'
 import { useSEO }          from './useSEO.js'
 
@@ -46,6 +47,9 @@ const CurrentAffairsPage      = lazy(() => import('./pages/CurrentAffairsPage.js
 const SyllabusPage            = lazy(() => import('./pages/SyllabusPage.jsx'))
 const ExamDatesPage           = lazy(() => import('./pages/ExamDatesPage.jsx'))
 
+// Build-time flag set when building for APK (VITE_IS_NATIVE=true npm run build)
+const isNative = import.meta.env.VITE_IS_NATIVE === 'true'
+
 // Sections rendered by the LandingPage (single-page tabs)
 const LANDING_TABS  = ['home','about','success','career']
 const PUBLIC_PAGES  = [
@@ -80,7 +84,8 @@ const IDLE_TIMEOUT  = 15 * 60 * 1000
 const IDLE_WARNING  = 60 * 1000
 
 export default function App() {
-  const [page,        setPage]        = useState(() => pathToPage(window.location.pathname) || 'home')
+  // In native APK: always start at auth (supabase.auth.getSession redirects to dashboard if already logged in)
+  const [page,        setPage]        = useState(() => isNative ? 'auth' : (pathToPage(window.location.pathname) || 'home'))
   useSEO(page)
   const [user,        setUser]        = useState(null)
   const [userRole,    setUserRole]    = useState('student')
@@ -288,8 +293,9 @@ export default function App() {
       // only event we receive — skipping it would leave the user logged out.
       if (event === 'INITIAL_SESSION' && !session?.user?.email_confirmed_at) return
       if (session?.user) {
-        // Skip navigation for unconfirmed signups — let OTP flow handle it
-        if (!session.user.email_confirmed_at) return
+        // Skip unconfirmed email/password signups on web only.
+        // Native app uses OAuth only (Google/Apple) — email is always confirmed, so skip this guard.
+        if (!isNative && !session.user.email_confirmed_at) return
         setUser(session.user)
         _saveExamRegion(session.user)
         _navigateOnce(session.user)
@@ -597,7 +603,8 @@ export default function App() {
         </div>
       )}
 
-      {isPublic && page !== 'auth' && page !== 'us-exams' && !page.startsWith('exams') && page !== 'cutoffs' && page !== 'papers' && (
+
+      {!isNative && isPublic && page !== 'auth' && page !== 'us-exams' && !page.startsWith('exams') && page !== 'cutoffs' && page !== 'papers' && (
         <Navbar currentPage={page} onNav={nav} user={user} onLogout={handleLogout} userRole={userRole} darkMode={darkMode} onToggleDark={() => setDarkMode(d => !d)} />
       )}
 
@@ -742,9 +749,9 @@ export default function App() {
       </main>
 
       {isPublic && page !== 'auth' && page !== 'dashboard' && !page.startsWith('exams') && page !== 'cutoffs' && page !== 'papers' && <Footer onNav={nav} />}
-      <CookieConsent />
+      {!isNative && <CookieConsent />}
       <ToastHost />
-      <InstallPrompt />
+      {!isNative && <InstallPrompt />}
 
       {/* ── Profile completion popup ── */}
       {showProfilePopup && user && (
@@ -764,8 +771,8 @@ export default function App() {
         />
       )}
 
-      {/* ── Floating WhatsApp button — landing/public pages only ── */}
-      {!user && <>
+      {/* ── Floating WhatsApp button — web only, landing/public pages only ── */}
+      {!user && !isNative && <>
 
       <style>{`
         .wa-float-text{display:inline}
