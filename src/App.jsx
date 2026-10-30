@@ -260,9 +260,12 @@ export default function App() {
         setUser(u)
         _saveExamRegion(u)
         _navigateOnce(u)
-      } else if (onAuthPage && data.session) {
-        // User is on the auth page — clear any stale session so they get a fresh start
-        supabase.auth.signOut().catch(() => {})
+      } else if (onAuthPage && data.session?.user?.email_confirmed_at) {
+        // Already logged in — redirect to Dashboard so they don't land on a blank auth page
+        const u = data.session.user
+        setUser(u)
+        _saveExamRegion(u)
+        _navigateOnce(u)
       }
       setAuthChecked(true)
       // Strip any leftover auth token from the URL so pressing Back can't

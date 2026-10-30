@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react'
+﻿import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { supabase } from '../supabase.js'
 import { startCheckout } from '../payments.js'
 import { toast } from '../toast.js'
@@ -906,6 +906,14 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
     }
   }, [history, examChosen])
 
+  /* theme-aware style tokens — shared across all tab render blocks */
+  const cd = document.documentElement.classList.contains('dark')
+  const _s = cd ? '#161b24' : '#fff'
+  const _b = cd ? '#232c3a' : '#efefef'
+  const _t = cd ? '#f1f5f9' : '#111827'
+  const _m = cd ? '#94a3b8' : '#6b7280'
+  const _a = '#FF653F'
+
   /* subscription tier — free users can only prepare for one exam group */
   const plan  = (user?.user_metadata?.plan || user?.user_metadata?.subscription || 'free').toLowerCase()
   const isPro = !['free','', 'none'].includes(plan)
@@ -1407,6 +1415,413 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
               const _m = cd ? '#94a3b8' : '#6b7280'
               const _a = '#FF653F'
               const shortLbl2 = l => l.replace(/\s*(exams?|tests?)\s*$/i,'').trim()
+
+              const isNewUser = !hasChosenExam
+              if (isNewUser) return (
+                <>
+                  <style>{`
+                    .ht-new-outer{display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start}.ht-new-col-right{align-self:stretch}
+                    .ht-new-right{position:sticky;top:0;display:flex;flex-direction:column;gap:20px}
+                    .ht-cat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+                    .ht-cat-card{background:${_s};border:1px solid ${_b};border-radius:14px;padding:20px 14px 16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;width:100%;transition:all .18s}
+                    .ht-explore-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+                    .ht-explore-card{background:${_s};border:1px solid ${_b};border-radius:14px;padding:18px 16px;display:flex;flex-direction:row;align-items:flex-start;gap:14px}
+                    .ht-why-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+                    .ht-feat-grid{display:flex;flex-wrap:wrap;gap:8px}
+                    .ht-feat-item{display:flex;align-items:center;gap:7px;padding:6px 12px;background:${cd?'rgba(255,255,255,.06)':'rgba(255,255,255,.82)'};border-radius:99px;border:1px solid ${cd?'rgba(255,255,255,.1)':'rgba(255,101,63,.14)'};flex-shrink:0}
+                    .ht-hero-illus{flex-shrink:0;width:240px;min-width:0}
+                    .ht-hero-inner{display:flex;align-items:center;gap:24;justify-content:space-between;position:relative}
+                    @media(max-width:1100px){.ht-hero-illus{display:none!important}}
+                    @media(max-width:980px){.ht-new-outer{grid-template-columns:1fr!important}.ht-new-col-right{align-self:auto!important}.ht-new-right{position:static!important}}
+                    @media(max-width:1100px){.ht-cat-grid{grid-template-columns:repeat(3,1fr)!important}}
+                    @media(max-width:700px){.ht-cat-grid{grid-template-columns:repeat(2,1fr)!important}.ht-why-grid{grid-template-columns:1fr 1fr!important}}
+                    @media(max-width:480px){.ht-explore-grid{grid-template-columns:1fr!important}.ht-why-grid{grid-template-columns:1fr!important}.ht-cat-grid{grid-template-columns:repeat(2,1fr)!important}.ht-feat-grid{gap:6px!important}}
+                    @media(max-width:360px){.ht-cat-grid{grid-template-columns:1fr!important}}
+                  `}</style>
+
+                  <div className="ht-new-outer">
+                    {/* LEFT COLUMN */}
+                    <div>
+
+                      {/* HERO BANNER */}
+                      <div style={{position:'relative',borderRadius:18,overflow:'hidden',
+                        background:cd?'linear-gradient(135deg,#0d1117 0%,#161b24 100%)':'linear-gradient(135deg,#fff8f5 0%,#fff3ee 100%)',
+                        border:`1px solid ${cd?'#1e2738':'#ffdece'}`,
+                        boxShadow:cd?'0 2px 20px rgba(0,0,0,.35)':'0 4px 24px rgba(255,101,63,.08)',
+                        marginBottom:22,padding:'26px 28px 26px 32px'}}>
+                        <div style={{position:'absolute',left:0,top:0,bottom:0,width:4,background:'linear-gradient(180deg,#FF653F,#ff9c68)'}}/>
+                        <div style={{position:'absolute',top:-50,right:-30,width:180,height:180,borderRadius:'50%',background:'radial-gradient(circle,rgba(255,101,63,.1) 0%,transparent 70%)',pointerEvents:'none'}}/>
+                        <div style={{display:'flex',alignItems:'center',gap:24,justifyContent:'space-between',position:'relative'}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:13,fontWeight:700,color:_a,marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
+                              <span style={{fontSize:16}}>👋</span>
+                              <span>Hi, {(u=>{const fn=u.split(/[\s._@]/)[0];return fn.charAt(0).toUpperCase()+fn.slice(1)})(userName)}!</span>
+                            </div>
+                            <h1 style={{fontSize:18,fontWeight:400,color:cd?'#fff':_t,letterSpacing:'-.01em',lineHeight:1.3,margin:'0 0 12px',whiteSpace:'nowrap'}}>
+                              Prepare Smarter, Score Higher
+                            </h1>
+                            <p style={{margin:'0 0 20px',fontSize:13,color:_m,fontWeight:500,lineHeight:1.7,maxWidth:380}}>
+                              Full-length mock tests, topic-wise practice, and detailed analytics — everything you need to crack your exam.
+                            </p>
+                            <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:18}}>
+                              <button onClick={()=>setActiveTab('explore')}
+                                style={{background:_a,color:'#fff',border:'none',borderRadius:10,padding:'11px 22px',fontWeight:800,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',gap:7,boxShadow:'0 4px 16px rgba(255,101,63,.32)'}}>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                Browse Exams
+                              </button>
+                            </div>
+                            <div className="ht-feat-grid">
+                              {[
+                                {label:'Full-Length Mock Tests',icon:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>},
+                                {label:'Topic-Wise Practice',icon:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>},
+                                {label:'Detailed Explanations',icon:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>},
+                                {label:'Personalised Study Plan',icon:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>},
+                              ].map((f,fi)=>(
+                                <div key={fi} className="ht-feat-item">
+                                  {f.icon}
+                                  <span style={{fontSize:11.5,fontWeight:700,color:cd?'rgba(255,220,190,.88)':_t,lineHeight:1.3,whiteSpace:'nowrap'}}>{f.label}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="ht-hero-illus">
+                            <svg viewBox="0 0 400 270" fill="none" xmlns="http://www.w3.org/2000/svg"
+                              style={{width:'100%',height:'auto',display:'block',maxHeight:260}}>
+                              <circle cx="280" cy="140" r="130" fill={cd?'rgba(255,101,63,.06)':'rgba(255,101,63,.08)'}/>
+                              <circle cx="80" cy="215" r="90" fill={cd?'rgba(255,200,100,.04)':'rgba(255,190,80,.05)'}/>
+                              <circle cx="360" cy="55" r="65" fill={cd?'rgba(255,140,80,.04)':'rgba(255,140,80,.06)'}/>
+                              <path d="M195 88 L268 60 L341 88 L268 116 Z" fill={cd?'#1e1208':'#1e293b'}/>
+                              <path d="M195 88 L268 116 L341 88" fill={cd?'rgba(0,0,0,.25)':'rgba(0,0,0,.12)'}/>
+                              <ellipse cx="268" cy="116" rx="34" ry="20" fill={cd?'#2d1e0a':'#334155'}/>
+                              <path d="M234 116 Q268 148 302 116" fill={cd?'#3d2b14':'#475569'}/>
+                              <line x1="341" y1="88" x2="341" y2="120" stroke={_a} strokeWidth="2.5" strokeLinecap="round"/>
+                              <circle cx="341" cy="127" r="8" fill={_a}/>
+                              <circle cx="341" cy="127" r="4" fill={cd?'rgba(0,0,0,.3)':'rgba(255,255,255,.25)'}/>
+                              <line x1="336" y1="135" x2="334" y2="155" stroke={_a} strokeWidth="1.8" strokeLinecap="round"/>
+                              <line x1="339" y1="135" x2="338" y2="157" stroke={_a} strokeWidth="1.8" strokeLinecap="round"/>
+                              <line x1="342" y1="135" x2="343" y2="157" stroke={_a} strokeWidth="1.8" strokeLinecap="round"/>
+                              <line x1="345" y1="135" x2="347" y2="155" stroke={_a} strokeWidth="1.8" strokeLinecap="round"/>
+                              <path d="M220 88 L268 72 L316 88" stroke="rgba(255,255,255,.09)" strokeWidth="1" fill="none"/>
+                              <rect x="48" y="208" width="120" height="22" rx="5" fill={cd?'#312e81':'#4338ca'}/>
+                              <rect x="48" y="208" width="9" height="22" rx="3" fill="rgba(0,0,0,.22)"/>
+                              <rect x="54" y="212" width="36" height="5" rx="1.5" fill="rgba(255,255,255,.18)"/>
+                              <rect x="54" y="221" width="52" height="3.5" rx="1" fill="rgba(255,255,255,.1)"/>
+                              <rect x="53" y="187" width="114" height="22" rx="5" fill={cd?'#065f46':'#0d9488'}/>
+                              <rect x="53" y="187" width="9" height="22" rx="3" fill="rgba(0,0,0,.22)"/>
+                              <rect x="59" y="191" width="44" height="5" rx="1.5" fill="rgba(255,255,255,.18)"/>
+                              <rect x="59" y="200" width="30" height="3.5" rx="1" fill="rgba(255,255,255,.1)"/>
+                              <rect x="58" y="166" width="108" height="22" rx="5" fill={cd?'#78350f':'#d97706'}/>
+                              <rect x="58" y="166" width="9" height="22" rx="3" fill="rgba(0,0,0,.22)"/>
+                              <rect x="64" y="170" width="50" height="5" rx="1.5" fill="rgba(255,255,255,.2)"/>
+                              <rect x="64" y="179" width="34" height="3.5" rx="1" fill="rgba(255,255,255,.12)"/>
+                              <rect x="56" y="145" width="102" height="22" rx="5" fill={cd?'#7f1d1d':'#ef4444'}/>
+                              <rect x="56" y="145" width="9" height="22" rx="3" fill="rgba(0,0,0,.22)"/>
+                              <rect x="62" y="149" width="40" height="5" rx="1.5" fill="rgba(255,255,255,.2)"/>
+                              <rect x="62" y="158" width="24" height="3.5" rx="1" fill="rgba(255,255,255,.12)"/>
+                              <circle cx="332" cy="202" r="56" fill={cd?'rgba(255,101,63,.05)':'rgba(255,101,63,.07)'} stroke={cd?'rgba(255,101,63,.14)':'rgba(255,101,63,.18)'} strokeWidth="1.5"/>
+                              <circle cx="332" cy="202" r="38" fill={cd?'rgba(255,101,63,.07)':'rgba(255,101,63,.11)'} stroke={cd?'rgba(255,101,63,.18)':'rgba(255,101,63,.24)'} strokeWidth="1.5"/>
+                              <circle cx="332" cy="202" r="20" fill={cd?'rgba(255,101,63,.12)':'rgba(255,101,63,.16)'} stroke={cd?'rgba(255,101,63,.28)':'rgba(255,101,63,.32)'} strokeWidth="1.5"/>
+                              <circle cx="332" cy="202" r="7" fill={_a}/>
+                              <line x1="332" y1="176" x2="332" y2="228" stroke={cd?'rgba(255,101,63,.18)':'rgba(255,101,63,.2)'} strokeWidth="1"/>
+                              <line x1="306" y1="202" x2="358" y2="202" stroke={cd?'rgba(255,101,63,.18)':'rgba(255,101,63,.2)'} strokeWidth="1"/>
+                              <rect x="115" y="42" width="106" height="108" rx="10" fill={cd?'rgba(20,12,5,.93)':'rgba(255,255,255,.95)'} stroke={cd?'rgba(255,150,80,.18)':'rgba(255,101,63,.2)'} strokeWidth="1.2"/>
+                              <rect x="143" y="35" width="50" height="16" rx="6" fill={cd?'#3d2510':'#d1d5db'}/>
+                              <rect x="155" y="38" width="26" height="10" rx="4" fill={cd?'#1e1208':'rgba(255,255,255,.55)'}/>
+                              <rect x="125" y="58" width="86" height="9" rx="3" fill={_a} opacity="0.85"/>
+                              <rect x="125" y="78" width="11" height="11" rx="2.5" fill={_a}/>
+                              <path d="M127.5 83.5 L130 87 L135 80.5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                              <rect x="141" y="81" width="68" height="5" rx="1.5" fill={cd?'rgba(255,220,190,.5)':'rgba(30,41,59,.25)'}/>
+                              <rect x="125" y="98" width="11" height="11" rx="2.5" fill={_a}/>
+                              <path d="M127.5 103.5 L130 107 L135 100.5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                              <rect x="141" y="101" width="58" height="5" rx="1.5" fill={cd?'rgba(255,220,190,.5)':'rgba(30,41,59,.25)'}/>
+                              <rect x="125" y="118" width="11" height="11" rx="2.5" fill="none" stroke={cd?'rgba(255,150,80,.4)':'rgba(255,101,63,.3)'} strokeWidth="1.5"/>
+                              <rect x="141" y="121" width="74" height="5" rx="1.5" fill={cd?'rgba(255,220,190,.3)':'rgba(30,41,59,.15)'}/>
+                              <rect x="125" y="137" width="11" height="11" rx="2.5" fill="none" stroke={cd?'rgba(255,150,80,.28)':'rgba(255,101,63,.22)'} strokeWidth="1.5"/>
+                              <rect x="141" y="140" width="62" height="5" rx="1.5" fill={cd?'rgba(255,220,190,.2)':'rgba(30,41,59,.12)'}/>
+                              <circle cx="356" cy="110" r="19" fill={cd?'rgba(255,160,50,.12)':'rgba(255,180,50,.16)'} stroke={cd?'rgba(255,160,50,.28)':'rgba(255,180,50,.42)'} strokeWidth="1.5"/>
+                              <path d="M348 107 L350.5 103 L353 107 L357.5 107.5 L354.5 110.5 L355.5 115 L351.5 112.8 L347.5 115 L348.5 110.5 L345.5 107.5 Z" fill={cd?'rgba(255,180,80,.6)':'rgba(255,180,50,.75)'}/>
+                              <line x1="356" y1="91" x2="352" y2="80" stroke={cd?'rgba(255,160,50,.4)':'rgba(255,180,50,.48)'} strokeWidth="2" strokeLinecap="round"/>
+                              <line x1="356" y1="91" x2="360" y2="80" stroke={cd?'rgba(255,160,50,.4)':'rgba(255,180,50,.48)'} strokeWidth="2" strokeLinecap="round"/>
+                              <path d="M32 74 L33.5 68 L35 74 L41 75.5 L35 77 L33.5 83 L32 77 L26 75.5 Z" fill={cd?'rgba(255,180,80,.4)':'rgba(255,180,80,.5)'}/>
+                              <path d="M370 36 L371 32 L372 36 L376 37 L372 38 L371 42 L370 38 L366 37 Z" fill={cd?'rgba(255,101,63,.3)':'rgba(255,101,63,.42)'}/>
+                              <circle cx="24" cy="100" r="3.5" fill={cd?'rgba(255,101,63,.28)':'rgba(255,101,63,.38)'}/>
+                              <circle cx="378" cy="160" r="2.5" fill={cd?'rgba(255,200,100,.32)':'rgba(255,200,100,.42)'}/>
+                              <circle cx="148" cy="28" r="3" fill={cd?'rgba(255,101,63,.22)':'rgba(255,101,63,.32)'}/>
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* POPULAR EXAM CATEGORIES */}
+                      <div style={{marginBottom:24}}>
+                        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14,flexWrap:'wrap',gap:8}}>
+                          <div>
+                            <div style={{fontSize:18,fontWeight:900,color:_t,letterSpacing:'-.02em',lineHeight:1.2}}>Popular Exam Categories</div>
+                            <div style={{fontSize:12.5,color:_m,marginTop:4}}>Choose your target exam to get started</div>
+                          </div>
+                          <button onClick={()=>setActiveTab('explore')} style={{background:'none',border:'none',color:_a,fontSize:12.5,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:5,padding:0,flexShrink:0,marginTop:2}}>
+                            View All Exams
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                          </button>
+                        </div>
+                        <div className="ht-cat-grid">
+                          {[
+                            {label:'Banking Exams',sub:'IBPS, SBI, RRB, NABARD\nand more',col:'#3b82f6',grp:'ibps',
+                              icon:<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>},
+                            {label:'SSC Exams',sub:'CGL, CHSL, MTS, GD\nand more',col:'#8b5cf6',grp:'ssc',
+                              icon:<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>},
+                            {label:'Railway Exams',sub:'RRB NTPC, Group D\nand more',col:'#16a34a',grp:'rrb',
+                              icon:<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="16" rx="2"/><path d="M4 11h16"/><path d="M12 3v8"/><circle cx="8.5" cy="17" r="1.5"/><circle cx="15.5" cy="17" r="1.5"/><path d="M8 19l-2 3"/><path d="M16 19l2 3"/></svg>},
+                            {label:'Entrance Exams',sub:'JEE, NEET, CUET\nand more',col:'#7c3aed',grp:null,
+                              icon:<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>},
+                            {label:'International',sub:'SAT, ACT\nand more',col:'#d97706',grp:'sat',
+                              icon:<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>},
+                          ].map((cat,ci)=>(
+                            <button key={ci}
+                              onClick={cat.grp?()=>{setActiveExploreGroup(cat.grp);setActiveTab('explore')}:undefined}
+                              className="ht-cat-card"
+                              style={{cursor:cat.grp?'pointer':'default',opacity:cat.grp?1:.75}}
+                              onMouseOver={cat.grp?e=>{e.currentTarget.style.borderColor=cat.col+'55';e.currentTarget.style.boxShadow=`0 8px 24px ${cat.col}18`;e.currentTarget.style.transform='translateY(-3px)'}:undefined}
+                              onMouseOut={cat.grp?e=>{e.currentTarget.style.borderColor='';e.currentTarget.style.boxShadow='';e.currentTarget.style.transform=''}:undefined}>
+                              <div style={{width:52,height:52,borderRadius:15,background:cat.col+'15',display:'flex',alignItems:'center',justifyContent:'center',color:cat.col,flexShrink:0}}>
+                                {cat.icon}
+                              </div>
+                              <div style={{flex:1,display:'flex',flexDirection:'column',gap:3,minWidth:0}}>
+                                <div style={{fontSize:12.5,fontWeight:800,color:_t,lineHeight:1.3}}>{cat.label}</div>
+                                <div style={{fontSize:10.5,color:_m,lineHeight:1.5,whiteSpace:'pre-line'}}>{cat.sub}</div>
+                              </div>
+                              {cat.grp
+                                ?<div style={{width:24,height:24,borderRadius:'50%',border:`1.5px solid ${cat.col}44`,display:'flex',alignItems:'center',justifyContent:'center',color:cat.col,flexShrink:0}}>
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                                </div>
+                                :<div style={{fontSize:9,fontWeight:800,color:cat.col,background:cat.col+'18',borderRadius:99,padding:'3px 9px',flexShrink:0,letterSpacing:'.04em'}}>Soon</div>
+                              }
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* EXPLORE WHAT YOU CAN DO */}
+                      <div style={{marginBottom:24}}>
+                        <div style={{marginBottom:14}}>
+                          <div style={{fontSize:18,fontWeight:900,color:_t,letterSpacing:'-.02em',lineHeight:1.2}}>Explore What You Can Do</div>
+                          <div style={{fontSize:12.5,color:_m,marginTop:4}}>Everything you need for effective exam preparation</div>
+                        </div>
+                        <div className="ht-explore-grid">
+                          {[
+                            {label:'Full Mock Tests',desc:'Take complete tests with real exam pattern',btnText:'Start Now',col:'#FF653F',bg:`${_a}15`,act:()=>onStartTest?.('mock',selectedExamId),
+                              icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>},
+                            {label:'Topic Practice',desc:'Practice topic-wise questions',btnText:'Start Practice',col:'#3b82f6',bg:'rgba(59,130,246,.12)',act:()=>onStartTest?.('topic',selectedExamId),
+                              icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>},
+                            {label:'Previous Year Papers',desc:'Access past exam question papers',btnText:'Explore',col:'#16a34a',bg:'rgba(22,163,74,.12)',act:()=>onNav?.('papers'),
+                              icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>},
+                            {label:'Study Planner',desc:'Plan your study schedule effectively',btnText:'Create Plan',col:'#d97706',bg:'rgba(217,119,6,.12)',act:()=>setActiveTab('studyplan'),
+                              icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>},
+                          ].map((ex,ei)=>(
+                            <div key={ei} className="ht-explore-card">
+                              <div style={{width:40,height:40,borderRadius:11,background:ex.bg,display:'flex',alignItems:'center',justifyContent:'center',color:ex.col,flexShrink:0}}>
+                                {ex.icon}
+                              </div>
+                              <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',gap:4}}>
+                                <div style={{fontSize:13,fontWeight:800,color:_t,lineHeight:1.3}}>{ex.label}</div>
+                                <div style={{fontSize:11.5,color:_m,lineHeight:1.5}}>{ex.desc}</div>
+                                <button onClick={ex.act}
+                                  style={{background:'none',border:'none',color:ex.col,fontSize:12,fontWeight:800,cursor:'pointer',padding:0,display:'flex',alignItems:'center',gap:4,marginTop:4}}>
+                                  {ex.btnText}
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* WHY CHOOSE MOCKTEST */}
+                      <div style={{display:'flex',alignItems:'center',gap:20,
+                        background:cd?'linear-gradient(135deg,#0a1628 0%,#0d2236 100%)':'linear-gradient(135deg,#e8f4fd 0%,#dbeef9 100%)',
+                        border:`1px solid ${cd?'rgba(59,130,246,.18)':'rgba(59,130,246,.22)'}`,
+                        borderRadius:18,padding:'22px 24px',marginBottom:22}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:17,fontWeight:900,color:cd?'rgba(255,255,255,.95)':'#1e293b',letterSpacing:'-.02em',marginBottom:3}}>Why Choose MockTest?</div>
+                          <div style={{fontSize:12,color:cd?'rgba(180,210,255,.68)':'rgba(30,41,59,.55)',marginBottom:18}}>A complete platform for your exam preparation journey</div>
+                          <div className="ht-why-grid">
+                            {[
+                              {col:'#d97706',label:'Exam-focused Content',desc:'Curriculum aligned with latest exam patterns.',
+                                icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 10.5 16.5 14 13"/></svg>},
+                              {col:'#3b82f6',label:'Detailed Analytics',desc:'Know your strengths and weak areas.',
+                                icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>},
+                              {col:'#8b5cf6',label:'Expert Solutions',desc:'Step-by-step explanations for every question.',
+                                icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>},
+                              {col:'#16a34a',label:'Trusted by Students',desc:'Helping students throughout their preparation journey.',
+                                icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>},
+                            ].map((f,fi)=>(
+                              <div key={fi} style={{display:'flex',flexDirection:'column',gap:9}}>
+                                <div style={{width:42,height:42,borderRadius:'50%',background:f.col+'1a',display:'flex',alignItems:'center',justifyContent:'center',color:f.col,flexShrink:0}}>
+                                  {f.icon}
+                                </div>
+                                <div>
+                                  <div style={{fontSize:12,fontWeight:800,color:cd?'rgba(255,255,255,.9)':'#1e293b',marginBottom:3,lineHeight:1.3}}>{f.label}</div>
+                                  <div style={{fontSize:10.5,color:cd?'rgba(180,210,255,.6)':'rgba(30,41,59,.55)',lineHeight:1.55}}>{f.desc}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div style={{flexShrink:0,opacity:cd?.7:1}}>
+                          <svg width="88" height="88" viewBox="0 0 88 88" fill="none">
+                            <circle cx="44" cy="44" r="42" fill={cd?'rgba(59,130,246,.08)':'rgba(59,130,246,.1)'}/>
+                            <path d="M20 43 L44 33 L68 43 L44 53 Z" fill={cd?'#1e3a5f':'#1e293b'}/>
+                            <path d="M20 43 L44 53 L68 43" fill="rgba(0,0,0,.12)"/>
+                            <ellipse cx="44" cy="53" rx="15" ry="8" fill={cd?'#2a4a70':'#334155'}/>
+                            <path d="M29 53 Q44 64 59 53" fill={cd?'#3a5a82':'#475569'}/>
+                            <line x1="68" y1="43" x2="68" y2="57" stroke="#FF653F" strokeWidth="2.5" strokeLinecap="round"/>
+                            <circle cx="68" cy="61" r="4" fill="#FF653F"/>
+                            <line x1="65" y1="65" x2="63" y2="75" stroke="#FF653F" strokeWidth="1.5" strokeLinecap="round"/>
+                            <line x1="68" y1="65" x2="68" y2="76" stroke="#FF653F" strokeWidth="1.5" strokeLinecap="round"/>
+                            <line x1="71" y1="65" x2="73" y2="75" stroke="#FF653F" strokeWidth="1.5" strokeLinecap="round"/>
+                            <circle cx="26" cy="37" r="2.5" fill={cd?'rgba(255,200,80,.4)':'rgba(255,180,50,.5)'}/>
+                            <circle cx="62" cy="25" r="2" fill={cd?'rgba(255,101,63,.4)':'rgba(255,101,63,.5)'}/>
+                            <path d="M17 55 L18.5 50 L20 55 L25 56.5 L20 58 L18.5 63 L17 58 L12 56.5 Z" fill={cd?'rgba(255,180,80,.3)':'rgba(255,180,80,.45)'}/>
+                          </svg>
+                        </div>
+                      </div>
+
+                      {/* HOW IT WORKS */}
+                      <div style={{marginBottom:24}}>
+                        <div style={{fontSize:18,fontWeight:900,color:_t,letterSpacing:'-.02em',lineHeight:1.2,marginBottom:14}}>How It Works</div>
+                        <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,padding:'20px 22px'}}>
+                          {[
+                            {n:'01',title:'Choose your exam',desc:'Select from Banking, SSC, Railway, Entrance exams and more.',col:'#3b82f6'},
+                            {n:'02',title:'Practice intelligently',desc:'Take full mocks, topic-wise drills, or section tests with instant scoring.',col:'#8b5cf6'},
+                            {n:'03',title:'Analyse and improve',desc:'Get detailed analytics, topic accuracy reports and a personalised study plan.',col:'#16a34a'},
+                          ].map((s,si)=>(
+                            <div key={s.n} style={{display:'flex',gap:14,paddingBottom:si<2?16:0,borderBottom:si<2?`1px dashed ${_b}`:'none',marginBottom:si<2?16:0}}>
+                              <div style={{width:36,height:36,borderRadius:10,background:`${s.col}15`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:2}}>
+                                <span style={{fontSize:11,fontWeight:900,color:s.col}}>{s.n}</span>
+                              </div>
+                              <div>
+                                <div style={{fontSize:13.5,fontWeight:800,color:_t,marginBottom:4}}>{s.title}</div>
+                                <div style={{fontSize:12,color:_m,lineHeight:1.65}}>{s.desc}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                    </div>
+
+                    {/* RIGHT STICKY COLUMN */}
+                    <div className="ht-new-col-right"><div className="ht-new-right">
+
+                      {/* Card A: Your Success Starts Here! */}
+                      <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:14,padding:'24px 18px',
+                        boxShadow:`0 2px 10px rgba(0,0,0,${cd?.12:.04})`}}>
+                        <div style={{display:'flex',alignItems:'flex-start',gap:14}}>
+                          <div style={{flexShrink:0}}>
+                            <svg width="54" height="54" viewBox="0 0 44 44" fill="none">
+                              <circle cx="22" cy="22" r="22" fill={cd?'rgba(251,191,36,.1)':'rgba(251,191,36,.16)'}/>
+                              <path d="M13.5 11h11v8.5a5.5 5.5 0 0 1-11 0V11z" fill={cd?'#d97706':'#f59e0b'}/>
+                              <path d="M10.5 12.5h3v4.5a3.5 3.5 0 0 1-3 0v-4.5z" fill={cd?'#b45309':'#d97706'} opacity=".8"/>
+                              <path d="M24.5 12.5h3v4.5a3.5 3.5 0 0 1-3 0v-4.5z" fill={cd?'#b45309':'#d97706'} opacity=".8"/>
+                              <rect x="19.5" y="23.5" width="5" height="4.5" rx="1" fill={cd?'#d97706':'#f59e0b'}/>
+                              <rect x="15" y="28" width="14" height="3" rx="1.5" fill={cd?'#d97706':'#f59e0b'}/>
+                              <path d="M18 17L19.5 13.5L21 17L24.5 17.5L22 20L22.5 24L19.5 22.3L16.5 24L17 20L14.5 17.5Z" fill={cd?'#fef08a':'#fde68a'} opacity=".85"/>
+                            </svg>
+                          </div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:14.5,fontWeight:900,color:_t,lineHeight:1.25,marginBottom:8}}>Your Success Starts Here!</div>
+                            <div style={{fontSize:12,color:_m,lineHeight:1.7}}>Join thousands of students who are preparing smarter with MockTest. Your journey to success begins today.</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card B: Today's Motivation */}
+                      <div style={{borderRadius:14,
+                        background:cd?'linear-gradient(135deg,#1a0814 0%,#220c1a 100%)':'linear-gradient(135deg,#fdf2f8 0%,#fce7f3 100%)',
+                        border:`1px solid ${cd?'rgba(236,72,153,.15)':'rgba(236,72,153,.18)'}`,
+                        padding:'20px 18px'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+                          <div style={{width:30,height:30,borderRadius:9,background:'rgba(236,72,153,.14)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                          </div>
+                          <div style={{fontSize:12.5,fontWeight:800,color:cd?'rgba(255,180,220,.9)':'#9d174d'}}>Today's Motivation</div>
+                        </div>
+                        <div style={{fontSize:12.5,color:cd?'rgba(255,200,230,.8)':'rgba(157,23,77,.75)',lineHeight:1.8,fontStyle:'italic',paddingLeft:2}}>
+                          <span style={{fontSize:20,color:cd?'rgba(236,72,153,.5)':'rgba(236,72,153,.4)',lineHeight:1,marginRight:4,verticalAlign:'top',fontStyle:'normal'}}>{'"'}</span>
+                          {(d=>{const q=['Discipline today creates the results you\'ll be proud of tomorrow.','Every expert was once a beginner — keep going.','Success is the sum of small efforts, repeated every day.','Your only limit is you — push beyond it.','The secret of getting ahead is getting started.','Believe you can and you\'re halfway there.','Don\'t stop when you\'re tired. Stop when you\'re done.','The harder you work, the luckier you get.','Champions are made in the quiet hours of practice.','One day you\'ll look back and thank yourself for not giving up.','Progress, not perfection — each step forward counts.','Your future is created by what you do today, not tomorrow.','Consistency is the bridge between goals and achievement.','Push yourself — no one else is going to do it for you.','The pain of discipline is far less than the pain of regret.','Every study session is an investment in your future.','Greatness is earned through relentless effort, not given.','Setbacks are setups for comebacks.','Your education is the one thing no one can take from you.','Hard work beats talent when talent doesn\'t work hard.','The best time to start was yesterday. The next best time is now.','A little progress each day adds up to big results.','Motivation gets you started — habit keeps you going.','Success doesn\'t come from what you do occasionally.','Doubt kills more dreams than failure ever will.','An investment in knowledge pays the best interest.','The difference between ordinary and extraordinary is that little extra.','You are capable of far more than you imagine.','Small daily improvements lead to stunning long-term results.','Stay patient and trust the process — your time is coming.'];return q[d%q.length]})(Math.floor((+new Date()- +(new Date(new Date().getFullYear(),0,1)))/864e5))}
+                          <span style={{fontSize:20,color:cd?'rgba(236,72,153,.5)':'rgba(236,72,153,.4)',lineHeight:1,marginLeft:4,verticalAlign:'bottom',fontStyle:'normal'}}>{'"'}</span>
+                        </div>
+                      </div>
+
+                      {/* Card C: Your Preparation Journey */}
+                      <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:14,padding:'18px 16px'}}>
+                        <div style={{fontSize:12,fontWeight:800,color:_t,marginBottom:14}}>Your Preparation Journey</div>
+                        {[
+                          {n:1,col:'#FF653F',label:'Choose Your Exam',desc:'Select your target exam from the categories above.',
+                            icon:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>},
+                          {n:2,col:'#3b82f6',label:'Take Your First Mock',desc:'Experience real exam patterns with full-length timed tests.',
+                            icon:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>},
+                          {n:3,col:'#16a34a',label:'Track Your Progress',desc:'Identify strengths, improve weak areas, and achieve your goal.',
+                            icon:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>},
+                        ].map((step,si,arr)=>(
+                          <div key={si} style={{display:'flex',gap:10,position:'relative'}}>
+                            {si<arr.length-1&&<div style={{position:'absolute',left:13,top:28,width:2,height:'calc(100% - 14px)',background:cd?'rgba(255,255,255,.07)':'rgba(0,0,0,.07)',zIndex:0}}/>}
+                            <div style={{width:26,height:26,borderRadius:'50%',background:_a,
+                              display:'flex',alignItems:'center',justifyContent:'center',
+                              flexShrink:0,zIndex:1,color:'#fff'}}>
+                              <span style={{fontSize:11,fontWeight:900}}>{step.n}</span>
+                            </div>
+                            <div style={{width:26,height:26,borderRadius:8,background:`${step.col}15`,display:'flex',alignItems:'center',justifyContent:'center',color:step.col,flexShrink:0,zIndex:1}}>
+                              {step.icon}
+                            </div>
+                            <div style={{flex:1,paddingBottom:si<arr.length-1?20:0}}>
+                              <div style={{fontSize:12,fontWeight:700,color:_t,lineHeight:1.2,marginBottom:4}}>{step.label}</div>
+                              <div style={{fontSize:10.5,color:_m,lineHeight:1.6}}>{step.desc}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Card D: Need Help? */}
+                      <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:14,padding:'18px 16px'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
+                          <div style={{width:30,height:30,borderRadius:9,background:cd?'rgba(255,255,255,.06)':'rgba(59,130,246,.1)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+                              <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+                            </svg>
+                          </div>
+                          <div>
+                            <div style={{fontSize:12.5,fontWeight:800,color:_t,lineHeight:1.2}}>Need Help?</div>
+                            <div style={{fontSize:10.5,color:_m,marginTop:1}}>Guides and support at your fingertips</div>
+                          </div>
+                        </div>
+                        {[
+                          {label:'Getting Started Guide',sub:'Learn how to use MockTest',col:'#3b82f6',act:()=>setActiveTab('explore'),
+                            icon:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>},
+                          {label:'Contact Support',sub:'We\'re here to help you',col:'#8b5cf6',act:()=>setActiveTab('profile'),
+                            icon:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>},
+                        ].map((item,ii)=>(
+                          <button key={ii} onClick={item.act}
+                            style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px',borderRadius:10,border:`1px solid ${_b}`,background:cd?'rgba(255,255,255,.03)':'rgba(0,0,0,.02)',cursor:'pointer',transition:'all .15s',textAlign:'left',width:'100%',marginBottom:ii===0?10:0}}
+                            onMouseOver={e=>{e.currentTarget.style.borderColor=item.col+'55';e.currentTarget.style.background=`${item.col}08`}}
+                            onMouseOut={e=>{e.currentTarget.style.borderColor=_b;e.currentTarget.style.background=cd?'rgba(255,255,255,.03)':'rgba(0,0,0,.02)'}}>
+                            <div style={{width:30,height:30,borderRadius:8,background:`${item.col}12`,display:'flex',alignItems:'center',justifyContent:'center',color:item.col,flexShrink:0}}>
+                              {item.icon}
+                            </div>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontSize:12,fontWeight:700,color:_t,lineHeight:1.2}}>{item.label}</div>
+                              <div style={{fontSize:10.5,color:_m,marginTop:1}}>{item.sub}</div>
+                            </div>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={_m} strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                          </button>
+                        ))}
+                      </div>
+
+                    </div></div>
+                  </div>
+                </>
+              )
 
               return <>
                 <style>{`
@@ -2597,6 +3012,258 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
               </div>
             )}
 
+            {/* ── PROFILE tab ── */}
+            {activeTab === 'profile' && (
+              <div className="max-w-lg">
+                <h2 className="text-xl font-black mb-1" style={{color:_t}}>Your Profile</h2>
+                <p className="text-sm mb-6" style={{color:_m}}>Manage your personal information and exam preferences</p>
+
+                {/* Avatar + name row */}
+                <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,padding:'20px 22px',marginBottom:16,display:'flex',alignItems:'center',gap:18}}>
+                  <div style={{width:64,height:64,borderRadius:'50%',background:`${_a}18`,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,fontSize:24,color:_a,flexShrink:0,overflow:'hidden',position:'relative'}}>
+                    {avatarUrl ? <img src={avatarUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/> : (userName[0]||'U').toUpperCase()}
+                    <label style={{position:'absolute',inset:0,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0)',transition:'background .15s'}}
+                      onMouseOver={e=>e.currentTarget.style.background='rgba(0,0,0,.35)'}
+                      onMouseOut={e=>e.currentTarget.style.background='rgba(0,0,0,0)'}>
+                      <input type="file" accept="image/*" style={{display:'none'}} onChange={handleAvatarUpload}/>
+                    </label>
+                  </div>
+                  <div>
+                    <div style={{fontWeight:800,fontSize:16,color:_t}}>{profileName || userName}</div>
+                    <div style={{fontSize:12,color:_m,marginTop:2}}>{user?.email}</div>
+                    <div style={{marginTop:6,padding:'3px 10px',background:isPro?`${_a}18`:(cd?'rgba(255,255,255,.07)':'#f1f5f9'),borderRadius:99,display:'inline-block',fontSize:10.5,fontWeight:800,color:isPro?_a:(cd?'rgba(255,255,255,.5)':'#64748b')}}>
+                      {isPro ? plan.charAt(0).toUpperCase()+plan.slice(1)+' Plan' : `Free Trial · ${trialDaysLeft}d left`}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Form */}
+                <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,overflow:'hidden',marginBottom:16}}>
+                  {[
+                    {label:'Full Name',      value:profileName,     set:setProfileName,     type:'text',    placeholder:'Your full name'},
+                    {label:'Phone Number',   value:profilePhone,    set:setProfilePhone,    type:'tel',     placeholder:'+91 XXXXX XXXXX'},
+                    {label:'Date of Birth',  value:profileDob,      set:setProfileDob,      type:'date',    placeholder:''},
+                  ].map((f,i,arr)=>(
+                    <div key={f.label} style={{padding:'14px 20px',borderBottom:i<arr.length-1?`1px solid ${_b}`:'none'}}>
+                      <label style={{display:'block',fontSize:10.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>{f.label}</label>
+                      <input type={f.type} value={f.value} onChange={e=>f.set(e.target.value)} placeholder={f.placeholder}
+                        style={{width:'100%',background:'none',border:'none',outline:'none',fontSize:13.5,fontWeight:500,color:_t,padding:0}}/>
+                    </div>
+                  ))}
+                  <div style={{padding:'14px 20px',borderBottom:`1px solid ${_b}`}}>
+                    <label style={{display:'block',fontSize:10.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>Gender</label>
+                    <select value={profileGender} onChange={e=>setProfileGender(e.target.value)}
+                      style={{background:'none',border:'none',outline:'none',fontSize:13.5,fontWeight:500,color:_t,padding:0,width:'100%',cursor:'pointer'}}>
+                      <option value="">Select gender</option>
+                      {['Male','Female','Non-binary','Prefer not to say'].map(g=><option key={g} value={g.toLowerCase()}>{g}</option>)}
+                    </select>
+                  </div>
+                  <div style={{padding:'14px 20px'}}>
+                    <label style={{display:'block',fontSize:10.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>Category</label>
+                    <select value={profileCategory} onChange={e=>setProfileCategory(e.target.value)}
+                      style={{background:'none',border:'none',outline:'none',fontSize:13.5,fontWeight:500,color:_t,padding:0,width:'100%',cursor:'pointer'}}>
+                      {['UR','OBC','SC','ST','EWS'].map(c=><option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{display:'flex',alignItems:'center',gap:12}}>
+                  <button onClick={handleSaveProfile} disabled={profileSaving}
+                    style={{background:_a,color:'#fff',border:'none',borderRadius:10,padding:'11px 24px',fontWeight:800,fontSize:13,cursor:profileSaving?'default':'pointer',opacity:profileSaving?.6:1}}>
+                    {profileSaving ? 'Saving…' : 'Save Changes'}
+                  </button>
+                  {profileMsg && <span style={{fontSize:12.5,fontWeight:700,color:'#16a34a'}}>{profileMsg}</span>}
+                </div>
+              </div>
+            )}
+
+            {/* ── WEAK AREAS tab ── */}
+            {activeTab === 'weakareas' && (
+              <div>
+                <h2 className="text-xl font-black mb-1" style={{color:_t}}>Weak Areas</h2>
+                <p className="text-sm mb-6" style={{color:_m}}>Topics that need more practice based on your test history</p>
+                {history.length === 0 ? (
+                  <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,padding:'36px 24px',textAlign:'center'}}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={_m} strokeWidth="1.5" strokeLinecap="round" style={{margin:'0 auto 14px'}}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <div style={{fontWeight:800,fontSize:15,color:_t,marginBottom:6}}>No data yet</div>
+                    <div style={{fontSize:13,color:_m,marginBottom:20}}>Take a few mock tests to see your weak areas here.</div>
+                    <button onClick={()=>setActiveTab('explore')} style={{background:_a,color:'#fff',border:'none',borderRadius:10,padding:'10px 22px',fontWeight:800,fontSize:13,cursor:'pointer'}}>Browse Exams</button>
+                  </div>
+                ) : (()=>{
+                  const topicMap = {}
+                  history.forEach(r => {
+                    if (!r.topic_breakdown) return
+                    Object.entries(r.topic_breakdown).forEach(([topic, data]) => {
+                      if (!topicMap[topic]) topicMap[topic] = {correct:0,total:0}
+                      topicMap[topic].correct += (data.correct || 0)
+                      topicMap[topic].total   += (data.total   || 0)
+                    })
+                  })
+                  const topics = Object.entries(topicMap)
+                    .filter(([,d]) => d.total >= 3)
+                    .map(([topic, d]) => ({topic, pct: Math.round((d.correct/d.total)*100), total:d.total}))
+                    .sort((a,b) => a.pct - b.pct)
+                  if (!topics.length) return (
+                    <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,padding:'28px 24px',textAlign:'center'}}>
+                      <div style={{fontWeight:700,fontSize:14,color:_t,marginBottom:6}}>Not enough topic data yet</div>
+                      <div style={{fontSize:12.5,color:_m}}>Complete more tests with topic breakdowns to identify weak areas.</div>
+                    </div>
+                  )
+                  const weak = topics.filter(t => t.pct < 60)
+                  const ok   = topics.filter(t => t.pct >= 60)
+                  return (
+                    <div style={{display:'flex',flexDirection:'column',gap:16}}>
+                      {weak.length > 0 && (
+                        <div>
+                          <div style={{fontSize:12.5,fontWeight:800,color:'#dc2626',marginBottom:10,display:'flex',alignItems:'center',gap:6}}>
+                            <span style={{width:8,height:8,borderRadius:'50%',background:'#dc2626',display:'inline-block'}}/>
+                            Needs Attention ({weak.length} topics)
+                          </div>
+                          <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:14,overflow:'hidden'}}>
+                            {weak.map((t,i)=>(
+                              <div key={t.topic} style={{padding:'12px 18px',borderBottom:i<weak.length-1?`1px solid ${_b}`:'none',display:'flex',alignItems:'center',gap:14}}>
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{fontSize:13,fontWeight:700,color:_t,marginBottom:4}}>{t.topic}</div>
+                                  <div style={{height:5,background:cd?'rgba(255,255,255,.1)':'#f0f0f0',borderRadius:99,overflow:'hidden'}}>
+                                    <div style={{height:'100%',width:`${t.pct}%`,background:t.pct<40?'#dc2626':'#f97316',borderRadius:99}}/>
+                                  </div>
+                                </div>
+                                <div style={{fontWeight:900,fontSize:14,color:t.pct<40?'#dc2626':'#f97316',flexShrink:0,minWidth:40,textAlign:'right'}}>{t.pct}%</div>
+                                <button onClick={()=>onStartTest?.('topic',selectedExamId)} style={{background:_a,color:'#fff',border:'none',borderRadius:8,padding:'6px 14px',fontSize:11.5,fontWeight:800,cursor:'pointer',flexShrink:0}}>Practice</button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {ok.length > 0 && (
+                        <div>
+                          <div style={{fontSize:12.5,fontWeight:800,color:'#16a34a',marginBottom:10,display:'flex',alignItems:'center',gap:6}}>
+                            <span style={{width:8,height:8,borderRadius:'50%',background:'#16a34a',display:'inline-block'}}/>
+                            Strong Areas ({ok.length} topics)
+                          </div>
+                          <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:14,overflow:'hidden'}}>
+                            {ok.map((t,i)=>(
+                              <div key={t.topic} style={{padding:'12px 18px',borderBottom:i<ok.length-1?`1px solid ${_b}`:'none',display:'flex',alignItems:'center',gap:14}}>
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{fontSize:13,fontWeight:700,color:_t,marginBottom:4}}>{t.topic}</div>
+                                  <div style={{height:5,background:cd?'rgba(255,255,255,.1)':'#f0f0f0',borderRadius:99,overflow:'hidden'}}>
+                                    <div style={{height:'100%',width:`${t.pct}%`,background:'#16a34a',borderRadius:99}}/>
+                                  </div>
+                                </div>
+                                <div style={{fontWeight:900,fontSize:14,color:'#16a34a',flexShrink:0,minWidth:40,textAlign:'right'}}>{t.pct}%</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
+            )}
+
+            {/* ── SUBSCRIPTIONS tab ── */}
+            {activeTab === 'subscriptions' && (
+              <div>
+                <h2 className="text-xl font-black mb-1" style={{color:_t}}>Subscriptions</h2>
+                <p className="text-sm mb-6" style={{color:_m}}>Choose a plan to unlock the full MockTest experience</p>
+
+                {/* Current plan status */}
+                <div style={{background:isPro?`${_a}10`:(cd?'rgba(255,255,255,.05)':'#f8fafc'),border:`1px solid ${isPro?`${_a}30`:_b}`,borderRadius:14,padding:'16px 20px',marginBottom:24,display:'flex',alignItems:'center',gap:14}}>
+                  <div style={{width:40,height:40,borderRadius:12,background:isPro?`${_a}18`:(cd?'rgba(255,255,255,.08)':'#e5e7eb'),display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={isPro?_a:'#64748b'} strokeWidth="2" strokeLinecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13.5,fontWeight:800,color:_t}}>
+                      {isPro ? `${plan.charAt(0).toUpperCase()+plan.slice(1)} Plan — Active` : trialActive ? `Free Trial — ${trialDaysLeft} days remaining` : 'Free Trial Expired'}
+                    </div>
+                    <div style={{fontSize:12,color:_m,marginTop:2}}>
+                      {isPro ? 'You have full access to all features.' : trialActive ? 'Upgrade to keep access after your trial ends.' : 'Your trial has ended. Upgrade to continue.'}
+                    </div>
+                  </div>
+                  {isPro && <div style={{fontSize:10.5,fontWeight:800,color:_a,background:`${_a}15`,borderRadius:99,padding:'4px 12px'}}>Active</div>}
+                </div>
+
+                {/* Plan cards */}
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:16}}>
+                  {PLAN_TIERS.map(tier=>(
+                    <div key={tier.id} style={{background:_s,border:`2px solid ${tier.popular?_a:_b}`,borderRadius:16,padding:'22px 18px',position:'relative',display:'flex',flexDirection:'column',gap:12}}>
+                      {tier.popular && <div style={{position:'absolute',top:-1,left:'50%',transform:'translateX(-50%)',background:_a,color:'#fff',fontSize:10,fontWeight:800,padding:'3px 14px',borderRadius:'0 0 10px 10px',letterSpacing:'.04em'}}>MOST POPULAR</div>}
+                      <div>
+                        <div style={{fontSize:13,fontWeight:800,color:_m,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:4}}>{tier.name}</div>
+                        <div style={{fontSize:28,fontWeight:900,color:_t,lineHeight:1}}>{tier.price}<span style={{fontSize:13,fontWeight:600,color:_m}}>/{tier.validity}</span></div>
+                      </div>
+                      <ul style={{listStyle:'none',padding:0,margin:0,display:'flex',flexDirection:'column',gap:8,flex:1}}>
+                        {tier.features.map(f=>(
+                          <li key={f} style={{display:'flex',alignItems:'flex-start',gap:8,fontSize:12.5,color:_t,lineHeight:1.4}}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke='#16a34a' strokeWidth="2.5" strokeLinecap="round" style={{flexShrink:0,marginTop:1}}><polyline points="20 6 9 17 4 12"/></svg>
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                      <button onClick={()=>onNav?.('subscriptions')}
+                        style={{background:tier.popular?_a:'none',color:tier.popular?'#fff':_a,border:`2px solid ${_a}`,borderRadius:10,padding:'10px',fontWeight:800,fontSize:13,cursor:'pointer',transition:'all .15s',marginTop:'auto'}}
+                        onMouseOver={e=>{if(!tier.popular){e.currentTarget.style.background=_a;e.currentTarget.style.color='#fff'}}}
+                        onMouseOut={e=>{if(!tier.popular){e.currentTarget.style.background='none';e.currentTarget.style.color=_a}}}>
+                        {isPro && plan===tier.id ? 'Current Plan' : 'Get Started'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── BILLING tab ── */}
+            {activeTab === 'billing' && (
+              <div className="max-w-lg">
+                <h2 className="text-xl font-black mb-1" style={{color:_t}}>Billing</h2>
+                <p className="text-sm mb-6" style={{color:_m}}>Your payment details and transaction history</p>
+
+                {/* Plan summary */}
+                <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,padding:'20px 22px',marginBottom:16}}>
+                  <div style={{fontSize:11,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:10}}>Current Plan</div>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+                    <div>
+                      <div style={{fontSize:16,fontWeight:900,color:_t}}>{isPro ? plan.charAt(0).toUpperCase()+plan.slice(1)+' Plan' : 'Free Trial'}</div>
+                      <div style={{fontSize:12.5,color:_m,marginTop:3}}>{isPro ? 'Billed monthly' : trialActive ? `${trialDaysLeft} days remaining in trial` : 'Trial period has ended'}</div>
+                    </div>
+                    <button onClick={()=>setActiveTab('subscriptions')}
+                      style={{background:_a,color:'#fff',border:'none',borderRadius:10,padding:'9px 18px',fontWeight:800,fontSize:12.5,cursor:'pointer',flexShrink:0}}>
+                      {isPro ? 'Manage' : 'Upgrade'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Payment method placeholder */}
+                <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,padding:'20px 22px',marginBottom:16}}>
+                  <div style={{fontSize:11,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:12}}>Payment Method</div>
+                  {isPro ? (
+                    <div style={{display:'flex',alignItems:'center',gap:14}}>
+                      <div style={{width:44,height:30,borderRadius:6,background:cd?'rgba(255,255,255,.1)':'#e5e7eb',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                        <svg width="22" height="16" viewBox="0 0 32 20" fill="none"><rect width="32" height="20" rx="3" fill="#1a1f71"/><rect y="5" width="32" height="5" fill="#f7b600"/></svg>
+                      </div>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:700,color:_t}}>Card ending ••••</div>
+                        <div style={{fontSize:11.5,color:_m,marginTop:2}}>Update your payment method below</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{fontSize:13,color:_m}}>No payment method on file. Add one when you upgrade.</div>
+                  )}
+                </div>
+
+                {/* Transaction history */}
+                <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,overflow:'hidden'}}>
+                  <div style={{padding:'16px 20px',borderBottom:`1px solid ${_b}`,fontSize:11,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.07em'}}>Transaction History</div>
+                  <div style={{padding:'32px 20px',textAlign:'center'}}>
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={_m} strokeWidth="1.5" strokeLinecap="round" style={{margin:'0 auto 12px',display:'block'}}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
+                    <div style={{fontSize:13,fontWeight:700,color:_t,marginBottom:4}}>No transactions yet</div>
+                    <div style={{fontSize:12,color:_m}}>Your payment history will appear here once you subscribe.</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
         </main>
       </div>
@@ -2619,57 +3286,24 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
               <button onClick={()=>setPanelOpen(false)} className="text-2xl w-8 h-8 flex items-center justify-center" style={{color:'#6b7280'}}>×</button>
             </div>
             <nav className="flex-1 py-3">
-              {/* Dashboard sections — MOBILE ONLY (desktop already has the sidebar) */}
-              <div className="md:hidden">
-                <div className="px-5 pt-1 pb-2 text-xs font-bold uppercase tracking-widest" style={{ color:'#FF653F' }}>Menu</div>
-                {SIDEBAR_NAV.map(item => (
-                  <button key={item.id}
-                    onClick={()=>{ setPanelOpen(false); setActiveTab(item.id) }}
-                    className="w-full flex items-center gap-3 px-5 py-2.5 transition-colors"
-                    style={ activeTab===item.id ? { background:'rgba(255,101,63,.1)', color:'#FF653F', fontWeight:700 } : { color:'#374151' } }
-                    onMouseOver={e=>{ if(activeTab!==item.id) e.currentTarget.style.background='#f3f4f6' }}
-                    onMouseOut={e=>{ if(activeTab!==item.id) e.currentTarget.style.background='transparent' }}>
-                    <span className="flex-shrink-0" style={{color: activeTab===item.id ? '#FF653F' : '#6b7280'}}><item.Icon /></span>
-                    <span className="text-sm font-semibold">{item.label}</span>
-                  </button>
-                ))}
-              </div>
-              <div className="px-5 pt-1 md:pt-1 pb-2 text-xs font-bold uppercase tracking-widest" style={{ color:'#FF653F' }}>Practice Modes</div>
-              {ACTIVE_MODES.map(m => (
-                <button key={m.id} onClick={()=>{setPanelOpen(false);onStartTest(m.id, selectedExamId)}}
+              {SIDEBAR_NAV.map(item => (
+                <button key={item.id}
+                  onClick={()=>{ setPanelOpen(false); setActiveTab(item.id) }}
                   className="w-full flex items-center gap-3 px-5 py-3 transition-colors"
-                  style={{ borderRadius:0, color:'#374151' }}
-                  onMouseOver={e=>e.currentTarget.style.background='#fef3f2'}
-                  onMouseOut={e=>e.currentTarget.style.background='transparent'}>
-                  <span style={{color:'#FF653F'}} className="flex-shrink-0"><m.Icon /></span>
-                  <div>
-                    <div className="text-sm font-bold">{m.label}</div>
-                  </div>
+                  style={ activeTab===item.id
+                    ? { background:'rgba(255,101,63,.08)', color:'#FF653F', fontWeight:700, borderLeft:'3px solid #FF653F' }
+                    : { color:'#374151', borderLeft:'3px solid transparent' } }
+                  onMouseOver={e=>{ if(activeTab!==item.id) e.currentTarget.style.background='#f9fafb' }}
+                  onMouseOut={e=>{ if(activeTab!==item.id) e.currentTarget.style.background='transparent' }}>
+                  <span className="flex-shrink-0" style={{color: activeTab===item.id ? '#FF653F' : '#9ca3af'}}><item.Icon /></span>
+                  <span className="text-sm font-semibold">{item.label}</span>
                 </button>
               ))}
-              {ACTIVE_GROUPS.map(g => (
-                <div key={g.id} className="mt-2">
-                  <div className="px-5 py-2 text-xs font-bold uppercase tracking-widest" style={{ color:'#FF653F', borderTop:'1px solid #e5e7eb' }}>{g.label}</div>
-                  {g.exams.map(e => (
-                    <button key={e.id} onClick={()=>{setPanelOpen(false);onStartTest('mock', e.id)}}
-                      className="w-full flex items-center justify-between px-5 py-2.5 transition-colors"
-                      style={{color:'#374151'}}
-                      onMouseOver={ev=>ev.currentTarget.style.background='#f9fafb'}
-                      onMouseOut={ev=>ev.currentTarget.style.background='transparent'}>
-                      <div>
-                        <span className="text-sm font-medium">{e.name}</span>
-                        <span className="text-xs ml-2" style={{ color:'#9ca3af' }}>{e.sub}</span>
-                      </div>
-                      {e.tag && <span className="text-xs px-2 py-0.5 rounded-full" style={{background:'#FFF3EE',color:'#FF653F'}}>{e.tag}</span>}
-                    </button>
-                  ))}
-                </div>
-              ))}
-              <div className="mt-3 pt-2" style={{ borderTop:'1px solid #e5e7eb' }}>
+              <div className="mt-4 mx-5 pt-4" style={{ borderTop:'1px solid #f3f4f6' }}>
                 {adminUser && (
-                  <button onClick={()=>{setPanelOpen(false);onNav?.('admin')}} className="w-full text-left px-5 py-2.5 text-sm flex items-center gap-2" style={{ color:'#6b7280' }}><DIcGear s={13} c='#6b7280'/> Admin Panel</button>
+                  <button onClick={()=>{setPanelOpen(false);onNav?.('admin')}} className="w-full text-left py-2.5 text-sm flex items-center gap-2 mb-1" style={{ color:'#6b7280' }}><DIcGear s={13} c='#6b7280'/> Admin Panel</button>
                 )}
-                <button onClick={onLogout} className="w-full text-left px-5 py-2.5 text-sm" style={{ color:'#ef4444' }}>→ Log out</button>
+                <button onClick={onLogout} className="w-full text-left py-2.5 text-sm font-semibold" style={{ color:'#ef4444' }}>↪ Log Out</button>
               </div>
             </nav>
           </div>
