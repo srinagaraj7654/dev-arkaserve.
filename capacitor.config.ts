@@ -25,8 +25,13 @@ const config: CapacitorConfig = {
     },
   },
 
+  // Sets the WebView's virtual hostname so API requests carry Origin: https://prep.arkaserve.com,
+  // matching the backend's CORS allowlist (https://localhost is rejected by the backend).
+  server: {
+    hostname: 'prep.arkaserve.com',
+  },
+
   android: {
-    // Allow HTTP in debug builds only — production uses HTTPS exclusively.
     allowMixedContent: false,
     captureInput: true,
     webContentsDebuggingEnabled: false,
