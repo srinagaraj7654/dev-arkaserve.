@@ -60,12 +60,8 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
     CapApp.addListener('appUrlOpen', async ({ url }) => {
       const isAppLink = url.startsWith('https://prep.arkaserve.com/login-callback')
       const isCustomScheme = url.startsWith('com.arkaserve.prep://login-callback')
-      if (!isAppLink && !isCustomScheme) {
-        toast(`[DBG] URL ignored: ${url.slice(0,40)}`, 'info')
-        return
-      }
-      toast(`[DBG] URL received (${isAppLink ? 'AppLink' : 'scheme'})`, 'success')
-      if (oauthRef.current.handled) { toast('[DBG] already handled', 'info'); return }
+      if (!isAppLink && !isCustomScheme) return
+      if (oauthRef.current.handled) return
       oauthRef.current.handled    = true
       oauthRef.current.inProgress = false
       Browser.close()
@@ -73,15 +69,10 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
       setAppleLoad(false)
       const code = new URL(url).searchParams.get('code')
       if (code) {
-        toast('[DBG] exchanging code…', 'info')
         const { data, error } = await supabase.auth.exchangeCodeForSession(code)
         if (!error && data?.user) {
-          toast(`[DBG] exchange OK: ${data.user.email}`, 'success')
           onAuthRef.current(data.user); return
         }
-        toast(`[DBG] exchange FAIL: ${error?.message || 'no user'}`, 'error')
-      } else {
-        toast('[DBG] no code in URL', 'error')
       }
       // code missing or exchange failed — release lock so the user can retry
       oauthRef.current.handled = false
@@ -107,7 +98,6 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
         oauthRef.current.inProgress = false
         setGoogleLoad(false)
         setAppleLoad(false)
-        toast('[DBG] fallbackA: no session — reset', 'error')
       }
     }).then(h => { resumeHandle = h })
 
@@ -118,13 +108,11 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
       oauthRef.current.inProgress = false
       setGoogleLoad(false)
       setAppleLoad(false)
-      toast(`[DBG] browserFinished (pending=${wasOAuthPending})`, 'info')
       if (!wasOAuthPending) return
       // Short delay — appUrlOpen fires before browserFinished in the App Link flow
       await new Promise(r => setTimeout(r, 800))
-      if (oauthRef.current.handled) { toast('[DBG] fallbackB: already handled', 'info'); return }
+      if (oauthRef.current.handled) return
       const { data } = await supabase.auth.getSession()
-      toast(`[DBG] fallbackB getSession: ${data?.session?.user?.email || 'no session'}`, data?.session ? 'success' : 'error')
       if (data?.session?.user) {
         oauthRef.current.handled = true
         onAuthRef.current(data.session.user)
@@ -155,7 +143,6 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
         if (oauthRef.current.inProgress && !oauthRef.current.handled) {
           oauthRef.current.inProgress = false
           setGoogleLoad(false)
-          toast('[DBG] timeout — reset', 'error')
         }
       }, 120_000)
 

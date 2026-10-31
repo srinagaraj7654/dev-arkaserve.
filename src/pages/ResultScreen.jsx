@@ -1134,7 +1134,8 @@ ${stepsHtml ? `<div class="s-wrap">
         <aside className="w-full md:w-52 flex-shrink-0 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col overflow-y-auto" style={{background:'#fafafa'}}>
 
           {/* Nav tabs */}
-          <div className="flex md:block overflow-x-auto border-b border-gray-100 p-2 gap-1 md:gap-0">
+          <div className="flex md:block overflow-x-auto border-b border-gray-100 p-2 gap-1 md:gap-0"
+            style={{WebkitOverflowScrolling:'touch', touchAction:'pan-x'}}>
             {TABS.map((t)=>{
               const isActive = tab === t.id
               return (
@@ -1142,7 +1143,9 @@ ${stepsHtml ? `<div class="s-wrap">
                   className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap md:w-full mb-0 md:mb-0.5 ${
                     isActive ? 'text-white' : 'text-gray-600 hover:bg-white hover:text-gray-900'
                   }`}
-                  style={isActive ? {background:'#FF653F', boxShadow:'0 2px 8px rgba(255,101,63,.35)'} : {}}>
+                  style={isActive
+                    ? {background:'#FF653F', boxShadow:'0 2px 8px rgba(255,101,63,.35)', touchAction:'manipulation'}
+                    : {touchAction:'manipulation'}}>
                   <span className="w-4 text-center text-sm">{t.icon}</span>
                   <span>{t.label}</span>
                   {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/70 flex-shrink-0 hidden md:block"/>}

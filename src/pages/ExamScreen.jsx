@@ -497,40 +497,46 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
     <div className="flex flex-col h-screen bg-gray-100">
 
       {/* ── Top bar ── */}
-      <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-sm sm:text-base" style={{color:'#FF653F'}}>{testTypeLabel}</span>
+      <div className="flex-shrink-0 px-4 py-2 flex items-center justify-between gap-2" style={{background:'#111', minHeight:52}}>
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{background:'#FF653F'}}>
+            <span className="text-white font-black text-xs">MT</span>
+          </div>
+          <span className="font-bold text-sm truncate" style={{color:'#fff'}}>{testTypeLabel}</span>
           {violations > 0 && (
-            <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
+            <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0" style={{background:'rgba(239,68,68,.2)',color:'#fca5a5'}}>
               ⚠ {violations}
             </span>
           )}
         </div>
-        <div className={`flex flex-col items-center px-2 py-1 rounded-lg font-mono font-bold
-          ${isLow ? 'bg-red-50 text-red-600 border border-red-200' : 'border'}`}
-          style={!isLow ? {background:'#FFF3EE',color:'#FF653F',borderColor:'#fec9b0'} : {}}>
-          <span className="text-sm sm:text-lg leading-tight">{formatTime(secsLeft)}</span>
+        <div className={`flex flex-col items-center px-3 py-1.5 rounded-xl font-mono font-bold flex-shrink-0
+          ${isLow ? 'border border-red-400' : 'border'}`}
+          style={isLow ? {background:'rgba(239,68,68,.15)',color:'#fca5a5',borderColor:'rgba(239,68,68,.4)'} : {background:'rgba(255,101,63,.15)',color:'#FF653F',borderColor:'rgba(255,101,63,.3)'}}>
+          <span className="text-sm sm:text-base leading-tight">{formatTime(secsLeft)}</span>
           {secTimers[activeSection] !== undefined && (
-            <span className={`text-[10px] leading-tight ${secTimers[activeSection] < 120 ? 'text-red-400' : ''}`}
-              style={secTimers[activeSection] >= 120 ? {color:'#FF653F'} : {}}>
+            <span className={`text-[9px] leading-tight ${secTimers[activeSection] < 120 ? 'text-red-400' : ''}`}
+              style={secTimers[activeSection] >= 120 ? {color:'rgba(255,101,63,.7)'} : {}}>
               {getSectionLabel(activeSection)}: {formatTime(secTimers[activeSection])}
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3">
-          <span className="hidden sm:inline text-sm text-gray-600">Hi, <b>{(studentName||'').replace(/\b\w/g,c=>c.toUpperCase())}</b></span>
+        <div className="flex items-center gap-2 flex-shrink-0">
           {!navigator.onLine && (
-          <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-lg">Offline</span>
-        )}
-        <button onClick={() => setShowConfirm(true)}
-            className="btn-primary text-xs sm:text-sm px-2 sm:px-4 py-1.5 whitespace-nowrap">
-            Submit Test
+            <span className="text-xs px-2 py-1 rounded-lg" style={{background:'rgba(239,68,68,.15)',color:'#fca5a5'}}>Offline</span>
+          )}
+          <button onClick={() => setShowConfirm(true)}
+            className="text-xs sm:text-sm font-bold px-3 sm:px-4 py-1.5 rounded-lg text-white whitespace-nowrap transition-colors"
+            style={{background:'#FF653F'}}
+            onMouseOver={e=>e.currentTarget.style.background='#e5512f'}
+            onMouseOut={e=>e.currentTarget.style.background='#FF653F'}>
+            Submit
           </button>
         </div>
       </div>
 
       {/* ── Section tabs ── */}
-      <div className="bg-white border-b border-gray-200 px-2 flex gap-0.5 pt-1 overflow-x-auto scrollbar-hide">
+      <div className="bg-white border-b border-gray-200 px-2 flex gap-0.5 pt-1 overflow-x-auto scrollbar-hide"
+        style={{WebkitOverflowScrolling:'touch', touchAction:'pan-x'}}>
         {sections.map(sec => {
           const col          = SECTION_COLORS[sec] || SECTION_COLORS.english
           const sectionData  = testData.sections[sec] || {}
@@ -553,6 +559,7 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
                 setActiveSection(sec)
               }}
               title={expired ? 'Time over for this section' : undefined}
+              style={{touchAction:'manipulation'}}
               className={`px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-t-lg border-b-2 transition-colors whitespace-nowrap
                 ${expired
                   ? 'text-gray-300 border-transparent cursor-not-allowed'
@@ -637,7 +644,7 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
                   return (
                     <button key={opt} onClick={() => selectAnswer(label)}
                       className={`w-full text-left flex items-center gap-3 p-2.5 sm:p-3 rounded-xl border-2 transition-all min-h-[44px] ${chosen ? 'shadow-sm' : 'border-gray-200 bg-white'}`}
-                      style={chosen ? {borderColor:'#FF653F', background:'#FFF3EE'} : {}}
+                      style={chosen ? {borderColor:'#FF653F', background:'#FFF3EE', touchAction:'manipulation'} : {touchAction:'manipulation'}}
                       onMouseOver={e => !chosen && (e.currentTarget.style.borderColor='#fec9b0')}
                       onMouseOut={e => !chosen && (e.currentTarget.style.borderColor='#e5e7eb')}>
                       <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0 ${chosen ? 'text-white' : 'bg-gray-100 text-gray-600'}`}
@@ -688,6 +695,7 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
               <button
                 onClick={() => currentIdx > 0 && goTo(currentIdx - 1)}
                 disabled={currentIdx === 0}
+                style={{touchAction:'manipulation'}}
                 className="btn-outline px-5 disabled:opacity-40"
               >
                 Previous
@@ -696,6 +704,7 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
                 {answers[qNum] && (
                   <button
                     onClick={() => setAnswers(a => { const n = {...a}; delete n[qNum]; return n })}
+                    style={{touchAction:'manipulation'}}
                     className="btn text-sm border border-red-200 text-red-600 hover:bg-red-50"
                   >
                     Clear
@@ -705,6 +714,7 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
               <button
                 onClick={() => currentIdx < totalQ - 1 && goTo(currentIdx + 1)}
                 disabled={currentIdx === totalQ - 1}
+                style={{touchAction:'manipulation'}}
                 className="btn-primary px-5 disabled:opacity-40"
               >
                 Next
@@ -762,6 +772,7 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
                         <button
                           key={q.question_number}
                           onClick={() => goTo(idx)}
+                          style={{touchAction:'manipulation'}}
                           className={`w-9 h-9 text-xs font-medium rounded border transition-all
                             ${STATUS_STYLE[status]}
                             ${currentIdx === idx ? 'ring-2 ring-blue-400 ring-offset-1' : ''}`}

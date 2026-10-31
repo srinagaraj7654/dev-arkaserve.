@@ -780,28 +780,29 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
     <div className="h-screen overflow-hidden flex flex-col" style={{background:'#fff'}}>
 
       {/* ── Header ── */}
-      <header className="h-16 flex items-center px-5 gap-4 flex-shrink-0" style={{ background:'#fff', borderBottom:'1px solid #e5e7eb', boxShadow:'0 1px 4px rgba(0,0,0,.06)' }}>
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:'#FF653F'}}>
-            <span className="text-white text-sm font-black">MT</span>
+      <header className="h-14 flex items-center px-4 gap-3 flex-shrink-0" style={{ background:'#111', boxShadow:'0 2px 8px rgba(0,0,0,.3)' }}>
+        <div className="flex items-center gap-2.5 flex-shrink-0">
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{background:'#FF653F'}}>
+            <span className="text-white text-xs font-black">MT</span>
           </div>
           <div className="hidden sm:block leading-none">
-            <div className="text-base font-black tracking-tight" style={{color:'#111827'}}>MockTest</div>
-            <div style={{fontSize:8.5,fontWeight:700,color:'#FF653F',letterSpacing:'.10em',textTransform:'uppercase',fontStyle:'italic',marginTop:3,lineHeight:1}}>Your World of Mock Tests</div>
+            <div className="text-sm font-black tracking-tight text-white">MockTest</div>
+            <div style={{fontSize:8,fontWeight:700,color:'#FF653F',letterSpacing:'.10em',textTransform:'uppercase',marginTop:2,lineHeight:1}}>Your World of Mock Tests</div>
           </div>
         </div>
         {/* Bank nav in header — Full Mock tab only; spacer otherwise */}
         {tab === 'mock' ? (
           <>
             <div style={{flex:1,minWidth:0}} />
-            <div style={{overflowX:'auto',scrollbarWidth:'none',flexShrink:1}}>
-              <div style={{display:'flex',alignItems:'stretch',height:64,minWidth:'max-content'}}>
+            <div style={{overflowX:'auto',scrollbarWidth:'none',flexShrink:1,WebkitOverflowScrolling:'touch'}}>
+              <div style={{display:'flex',alignItems:'stretch',height:56,minWidth:'max-content'}}>
                 {bankTree.map(g => (
                   <button key={g.bank} onClick={() => setActiveBank(g.bank)} style={{
-                    padding:'0 13px',fontWeight:700,fontSize:12,border:'none',cursor:'pointer',
+                    padding:'0 12px',fontWeight:700,fontSize:12,border:'none',cursor:'pointer',
                     transition:'all .12s',whiteSpace:'nowrap',background:'transparent',
-                    color: activeBank===g.bank ? '#FF653F' : '#9ca3af',
+                    color: activeBank===g.bank ? '#FF653F' : 'rgba(255,255,255,.5)',
                     borderBottom: activeBank===g.bank ? '2.5px solid #FF653F' : '2.5px solid transparent',
+                    touchAction:'manipulation',
                   }}>{g.bank}</button>
                 ))}
               </div>
@@ -813,7 +814,7 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
         )}
         {/* Trial pill */}
         {trialActive && (
-          <div className="hidden sm:flex items-center gap-2 text-xs flex-shrink-0" style={{color:'#6b7280'}}>
+          <div className="hidden sm:flex items-center gap-2 text-xs flex-shrink-0" style={{color:'rgba(255,255,255,.6)'}}>
             <span>{trialDaysLeft === 1 ? 'Last day' : <><b style={{color:'#FF653F'}}>{trialDaysLeft}d</b> left</>}</span>
             <button onClick={()=>onNav?.('subscriptions')}
               className="text-white text-xs font-bold px-3 py-1 rounded-lg flex-shrink-0"
@@ -823,22 +824,22 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
           </div>
         )}
         <button onClick={onBack}
-          className="text-sm rounded-xl px-3 py-1.5 font-medium transition-colors flex-shrink-0"
-          style={{color:'#374151',background:'#f3f4f6',border:'1px solid #e5e7eb'}}>
+          className="text-xs rounded-xl px-3 py-1.5 font-semibold transition-colors flex-shrink-0"
+          style={{color:'rgba(255,255,255,.7)',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)'}}>
           ← <span className="hidden sm:inline">Exit</span>
         </button>
         {/* User avatar dropdown */}
         <div className="relative flex-shrink-0" style={{zIndex:50}}>
           {userMenuOpen && <div style={{position:'fixed',inset:0,zIndex:40}} onClick={()=>setUserMenuOpen(false)}/>}
           <button onClick={()=>setUserMenuOpen(o=>!o)}
-            style={{display:'flex',alignItems:'center',gap:7,background:'#f3f4f6',border:'1px solid #e5e7eb',borderRadius:999,padding:'4px 10px 4px 4px',cursor:'pointer',position:'relative',zIndex:50}}>
+            style={{display:'flex',alignItems:'center',gap:7,background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:999,padding:'4px 10px 4px 4px',cursor:'pointer',position:'relative',zIndex:50,touchAction:'manipulation'}}>
             <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:900,color:'#fff',flexShrink:0}}>
               {initials[0]}
             </div>
-            <span className="hidden sm:block" style={{fontSize:12,fontWeight:700,color:'#374151',maxWidth:90,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+            <span className="hidden sm:block" style={{fontSize:12,fontWeight:700,color:'rgba(255,255,255,.8)',maxWidth:90,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
               {(studentName||'').split(' ')[0] || 'User'}
             </span>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.5)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
               style={{transform:userMenuOpen?'rotate(180deg)':'none',transition:'transform .2s',flexShrink:0}}>
               <polyline points="6 9 12 15 18 9"/>
             </svg>
