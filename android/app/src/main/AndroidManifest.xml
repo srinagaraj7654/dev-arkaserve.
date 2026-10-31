@@ -19,19 +19,14 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Custom scheme fallback (kept for older Android) -->
+            <!-- Custom scheme deep-link: receives com.arkaserve.prep://login-callback?code=
+                 from Supabase's HTTP 302 redirect after Google OAuth. Chrome Custom Tab
+                 forwards server-side 302s to custom schemes as Android intents. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="com.arkaserve.prep" android:host="login-callback" />
-            </intent-filter>
-            <!-- HTTPS App Link — Chrome Custom Tab intercepts this directly, no relay needed -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="prep.arkaserve.com" android:pathPrefix="/login-callback" />
             </intent-filter>
         </activity>
 

@@ -6,9 +6,10 @@ import { App as CapApp } from '@capacitor/app'
 
 const isNative = import.meta.env.VITE_IS_NATIVE === 'true'
 
-// HTTPS redirect URL — Supabase always accepts HTTPS, and the website's /login-callback
-// page immediately forwards tokens to the custom scheme via an inline script.
-// This avoids Supabase silently rejecting custom-scheme redirects (com.arkaserve.prep://).
+// HTTPS relay: Chrome Custom Tab does NOT reliably forward HTTP 302 redirects to
+// custom schemes as Android intents — it silently closes instead. HTTPS loads fine.
+// The relay page at /login-callback fires an intent:// URL (which Chrome CT does
+// forward), so the app receives the PKCE code via appUrlOpen as a custom-scheme URL.
 const NATIVE_REDIRECT = 'https://prep.arkaserve.com/login-callback'
 
 // Show Apple Sign In only on iOS native or Apple web browsers — never on Android
@@ -50,34 +51,24 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
     if (!isNative) return
     let urlHandle, resumeHandle, browserHandle
 
-    // PRIMARY: fires when Android delivers the App Link or custom-scheme deep link.
-    // Claims oauthRef.handled immediately so the other two handlers skip.
+    // PRIMARY: fires when Android delivers the custom-scheme deep link from Supabase's
+    // HTTP 302 redirect (com.arkaserve.prep://login-callback?code=xxx).
+    // Chrome Custom Tab forwards server-side 302s to custom schemes as Android intents —
+    // gesture policy only blocks JS-initiated redirects, not HTTP 302s.
     CapApp.addListener('appUrlOpen', async ({ url }) => {
-      const isAppLink = url.startsWith('https://prep.arkaserve.com/login-callback')
-      const isCustom  = url.startsWith('com.arkaserve.prep://login-callback')
-      if (!isAppLink && !isCustom) return
-      if (oauthRef.current.handled) return          // another handler already finished
+      if (!url.startsWith('com.arkaserve.prep://login-callback')) return
+      if (oauthRef.current.handled) return
       oauthRef.current.handled    = true
       oauthRef.current.inProgress = false
       Browser.close()
       setGoogleLoad(false)
       setAppleLoad(false)
-      const urlObj = new URL(url)
-      // PKCE: code in query string
-      const code = urlObj.searchParams.get('code')
+      const code = new URL(url).searchParams.get('code')
       if (code) {
         const { data, error } = await supabase.auth.exchangeCodeForSession(code)
         if (!error && data?.user) { onAuthRef.current(data.user); return }
       }
-      // Implicit: tokens in hash fragment (primary path with current supabase config)
-      const params = new URLSearchParams(urlObj.hash.slice(1))
-      const access_token = params.get('access_token')
-      const refresh_token = params.get('refresh_token')
-      if (access_token && refresh_token) {
-        const { data, error } = await supabase.auth.setSession({ access_token, refresh_token })
-        if (!error && data?.user) { onAuthRef.current(data.user); return }
-      }
-      // Callback arrived but contained no valid credentials — release the lock so retry works
+      // code missing or exchange failed — release lock so the user can retry
       oauthRef.current.handled = false
     }).then(h => { urlHandle = h })
 
