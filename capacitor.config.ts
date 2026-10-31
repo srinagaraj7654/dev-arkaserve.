@@ -5,11 +5,6 @@ const config: CapacitorConfig = {
   appName: 'MockTest',
   webDir: 'dist',
 
-  // Bundled build — the app loads from the dist/ folder, not a live server.
-  // For local dev against the running Vite server, temporarily set:
-  //   server: { url: 'http://YOUR_LAN_IP:3000', cleartext: true }
-  // but never commit that to source control.
-
   plugins: {
     SplashScreen: {
       launchShowDuration: 1800,
@@ -34,7 +29,7 @@ const config: CapacitorConfig = {
     // Allow HTTP in debug builds only — production uses HTTPS exclusively.
     allowMixedContent: false,
     captureInput: true,
-    webContentsDebuggingEnabled: false, // set true only for dev builds
+    webContentsDebuggingEnabled: false,
   },
 
   ios: {

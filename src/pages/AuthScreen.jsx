@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core'
 import { supabase } from '../supabase.js'
 import { Browser } from '@capacitor/browser'
 import { App as CapApp } from '@capacitor/app'
+import { toast } from '../toast.js'
 
 const isNative = import.meta.env.VITE_IS_NATIVE === 'true'
 
@@ -51,13 +52,20 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
     if (!isNative) return
     let urlHandle, resumeHandle, browserHandle
 
-    // PRIMARY: fires when Android delivers the custom-scheme deep link from Supabase's
-    // HTTP 302 redirect (com.arkaserve.prep://login-callback?code=xxx).
-    // Chrome Custom Tab forwards server-side 302s to custom schemes as Android intents —
-    // gesture policy only blocks JS-initiated redirects, not HTTP 302s.
+    // PRIMARY: fires when Android delivers the OAuth callback URL.
+    // App Links (HTTPS): Android intercepts https://prep.arkaserve.com/login-callback
+    //   before Chrome CT loads it and fires it here directly — most reliable path.
+    // Custom scheme fallback: intent:// relay on the website fires com.arkaserve.prep://
+    //   for devices where App Links verification hasn't completed yet.
     CapApp.addListener('appUrlOpen', async ({ url }) => {
-      if (!url.startsWith('com.arkaserve.prep://login-callback')) return
-      if (oauthRef.current.handled) return
+      const isAppLink = url.startsWith('https://prep.arkaserve.com/login-callback')
+      const isCustomScheme = url.startsWith('com.arkaserve.prep://login-callback')
+      if (!isAppLink && !isCustomScheme) {
+        toast(`[DBG] URL ignored: ${url.slice(0,40)}`, 'info')
+        return
+      }
+      toast(`[DBG] URL received (${isAppLink ? 'AppLink' : 'scheme'})`, 'success')
+      if (oauthRef.current.handled) { toast('[DBG] already handled', 'info'); return }
       oauthRef.current.handled    = true
       oauthRef.current.inProgress = false
       Browser.close()
@@ -65,8 +73,15 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
       setAppleLoad(false)
       const code = new URL(url).searchParams.get('code')
       if (code) {
+        toast('[DBG] exchanging code…', 'info')
         const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-        if (!error && data?.user) { onAuthRef.current(data.user); return }
+        if (!error && data?.user) {
+          toast(`[DBG] exchange OK: ${data.user.email}`, 'success')
+          onAuthRef.current(data.user); return
+        }
+        toast(`[DBG] exchange FAIL: ${error?.message || 'no user'}`, 'error')
+      } else {
+        toast('[DBG] no code in URL', 'error')
       }
       // code missing or exchange failed — release lock so the user can retry
       oauthRef.current.handled = false
@@ -86,6 +101,13 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
         setGoogleLoad(false)
         setAppleLoad(false)
         onAuthRef.current(data.session.user)
+      } else {
+        // No session found — OAuth callback didn't arrive (e.g. MIUI blocked the intent).
+        // Reset loading state so the user can tap the button again.
+        oauthRef.current.inProgress = false
+        setGoogleLoad(false)
+        setAppleLoad(false)
+        toast('[DBG] fallbackA: no session — reset', 'error')
       }
     }).then(h => { resumeHandle = h })
 
@@ -96,11 +118,13 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
       oauthRef.current.inProgress = false
       setGoogleLoad(false)
       setAppleLoad(false)
+      toast(`[DBG] browserFinished (pending=${wasOAuthPending})`, 'info')
       if (!wasOAuthPending) return
       // Short delay — appUrlOpen fires before browserFinished in the App Link flow
       await new Promise(r => setTimeout(r, 800))
-      if (oauthRef.current.handled) return
+      if (oauthRef.current.handled) { toast('[DBG] fallbackB: already handled', 'info'); return }
       const { data } = await supabase.auth.getSession()
+      toast(`[DBG] fallbackB getSession: ${data?.session?.user?.email || 'no session'}`, data?.session ? 'success' : 'error')
       if (data?.session?.user) {
         oauthRef.current.handled = true
         onAuthRef.current(data.session.user)
@@ -120,7 +144,18 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
       })
       if (error || !data?.url) { setGoogleLoad(false); return }
       oauthRef.current.inProgress = true   // browser is open — handlers may now act
+
+      // Safety net: if no handler claims the flow within 120 s, reset the button.
+      const safetyTimer = setTimeout(() => {
+        if (oauthRef.current.inProgress && !oauthRef.current.handled) {
+          oauthRef.current.inProgress = false
+          setGoogleLoad(false)
+          toast('[DBG] timeout — reset', 'error')
+        }
+      }, 120_000)
+
       await Browser.open({ url: data.url, toolbarColor: '#FF653F' })
+      clearTimeout(safetyTimer)
     } else {
       supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
     }
