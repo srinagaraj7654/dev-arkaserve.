@@ -291,7 +291,10 @@ export default function App() {
         : window.location.pathname === '/auth'
       if (onAuthPage) {
         if (!session) { setUser(null); navClaimedRef.current = false; regionSavedRef.current = false }
-        return
+        // SIGNED_IN means the user just completed OAuth/exchange — let it through to navigate.
+        // Other events on the auth page (INITIAL_SESSION, TOKEN_REFRESHED, USER_UPDATED) are
+        // background refreshes that must not auto-navigate away from the auth screen.
+        if (event !== 'SIGNED_IN') return
       }
       // Process INITIAL_SESSION only when it carries a confirmed user (OAuth/magic-link
       // callback). Normally getSession() handles session restore, but if SIGNED_IN fired
