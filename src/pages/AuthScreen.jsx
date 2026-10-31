@@ -135,15 +135,20 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
   }, [])  // stable — uses refs, never needs to re-register
 
   const handleGoogle = async () => {
-    oauthRef.current = { inProgress: false, handled: false }  // reset for fresh attempt
+    // Mark inProgress=true BEFORE any async work so appStateChange can reset the button
+    // if the app is backgrounded during the signInWithOAuth network round-trip.
+    oauthRef.current = { inProgress: true, handled: false }
     setGoogleLoad(true)
     if (isNative) {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: NATIVE_REDIRECT, skipBrowserRedirect: true },
       })
-      if (error || !data?.url) { setGoogleLoad(false); return }
-      oauthRef.current.inProgress = true   // browser is open — handlers may now act
+      if (error || !data?.url) {
+        oauthRef.current.inProgress = false
+        setGoogleLoad(false)
+        return
+      }
 
       // Safety net: if no handler claims the flow within 120 s, reset the button.
       const safetyTimer = setTimeout(() => {
@@ -157,6 +162,7 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
       await Browser.open({ url: data.url, toolbarColor: '#FF653F' })
       clearTimeout(safetyTimer)
     } else {
+      oauthRef.current.inProgress = false
       supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
     }
   }
