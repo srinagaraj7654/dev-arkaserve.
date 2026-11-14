@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 
 const _sv = (c,w) => ({fill:'none',stroke:c||'currentColor',strokeWidth:w||'1.5',strokeLinecap:'round',strokeLinejoin:'round'})
 const _IcTarget   = ({s=22,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
@@ -20,8 +20,8 @@ const STAGES = [
     title: 'Set Your Goal',
     subtitle: 'Choose Your Dream Exam',
     desc: 'Pick from IBPS, SBI, RRB, SSC and more. Define the target that drives everything forward.',
-    color: '#FF653F',
-    glow: 'rgba(255,101,63,.35)',
+    color: '#F06535',
+    glow: 'rgba(232,90,44,.35)',
     side: 'right',
   },
   {
@@ -80,8 +80,8 @@ const STAGES = [
     title: 'Track Your Rise',
     subtitle: 'Watch Scores Climb Week Over Week',
     desc: 'Visual progress charts show every improvement. Compare against cut-offs for your category in real time.',
-    color: '#FF653F',
-    glow: 'rgba(255,101,63,.35)',
+    color: '#F06535',
+    glow: 'rgba(232,90,44,.35)',
     side: 'right',
   },
   {
@@ -280,7 +280,7 @@ export default function CareerJourney({ onNav }) {
       }} />
 
       {/* Ambient glow blobs */}
-      <div style={{ position: 'absolute', top: '10%', left: '5%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,101,63,.06) 0%, transparent 70%)', zIndex: 0, pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: '10%', left: '5%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(232,90,44,.06) 0%, transparent 70%)', zIndex: 0, pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', bottom: '15%', right: '5%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(5,150,105,.06) 0%, transparent 70%)', zIndex: 0, pointerEvents: 'none' }} />
 
       <div style={{ maxWidth: 960, margin: '0 auto', position: 'relative', zIndex: 1 }}>
@@ -292,12 +292,12 @@ export default function CareerJourney({ onNav }) {
           transform: visible ? 'translateY(0)' : 'translateY(30px)',
           transition: 'opacity .7s ease, transform .7s ease',
         }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,101,63,.12)', border: '1px solid rgba(255,101,63,.25)', borderRadius: 20, padding: '6px 16px', marginBottom: 20 }}>
-            <_IcArrow s={13} c='#FF653F'/>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#FF653F', textTransform: 'uppercase', letterSpacing: '.1em' }}>Student Success Journey</span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(232,90,44,.12)', border: '1px solid rgba(232,90,44,.25)', borderRadius: 20, padding: '6px 16px', marginBottom: 20 }}>
+            <_IcArrow s={13} c='#F06535'/>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#F06535', textTransform: 'uppercase', letterSpacing: '.1em' }}>Student Success Journey</span>
           </div>
           <h2 style={{ fontSize: 42, fontWeight: 900, color: '#fff', letterSpacing: '-0.8px', lineHeight: 1.15, marginBottom: 16 }}>
-            From <span style={{ color: '#FF653F' }}>First Step</span> to{' '}
+            From <span style={{ color: '#F06535' }}>First Step</span> to{' '}
             <span style={{ background: 'linear-gradient(90deg,#059669,#34d399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Dream Career</span>
           </h2>
           <p style={{ fontSize: 17, color: '#6b7280', maxWidth: 520, margin: '0 auto', lineHeight: 1.7 }}>
@@ -316,7 +316,7 @@ export default function CareerJourney({ onNav }) {
             bottom: 0,
             width: 2,
             transform: 'translateX(-50%)',
-            background: 'linear-gradient(180deg, #FF653F, #D97706, #7C3AED, #0891B2, #059669, #DB2777, #FF653F, #D97706, #059669)',
+            background: 'linear-gradient(180deg, #F06535, #D97706, #7C3AED, #0891B2, #059669, #DB2777, #F06535, #D97706, #059669)',
             opacity: visible ? 0.4 : 0,
             transition: 'opacity 1s ease .3s',
             zIndex: 1,
@@ -359,15 +359,15 @@ export default function CareerJourney({ onNav }) {
             onClick={() => onNav('auth')}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 10,
-              background: 'linear-gradient(135deg, #FF653F, #ff8c42)',
+              background: 'linear-gradient(135deg, #F06535, #ff8c42)',
               color: '#fff', border: 'none', borderRadius: 10,
               padding: '16px 36px', fontSize: 16, fontWeight: 800,
               cursor: 'pointer',
-              boxShadow: '0 8px 32px rgba(255,101,63,.4)',
+              boxShadow: '0 8px 32px rgba(232,90,44,.4)',
               transition: 'transform .15s, box-shadow .15s',
             }}
-            onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,101,63,.55)' }}
-            onMouseOut={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(255,101,63,.4)' }}
+            onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(232,90,44,.55)' }}
+            onMouseOut={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(232,90,44,.4)' }}
           >
             Begin Your Journey — It's Free
           </button>

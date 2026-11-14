@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 
 /* ──────────────────────────────────────────────────────────────
    Exam Dates & Predictions Page
@@ -270,11 +270,11 @@ export default function ExamDatesPage({ onNav }) {
             <div style={{ fontSize:13, color:'rgba(255,255,255,.5)' }}>Attempt free full-length mock tests and track your readiness score.</div>
           </div>
           <button onClick={() => onNav?.('exams-banking')} style={{
-            background:'#FF653F', color:'#fff', border:'none', borderRadius:10,
+            background:'#F06535', color:'#fff', border:'none', borderRadius:10,
             padding:'11px 22px', fontSize:13.5, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap',
           }}
           onMouseOver={e => e.currentTarget.style.background='#e5512f'}
-          onMouseOut={e => e.currentTarget.style.background='#FF653F'}>
+          onMouseOut={e => e.currentTarget.style.background='#F06535'}>
             Take a Mock Test →
           </button>
         </div>

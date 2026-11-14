@@ -1,4 +1,4 @@
-const _MailIc = ({s=28,c}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c||'#FF653F'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+﻿const _MailIc = ({s=28,c}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c||'#F06535'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
 
 export default function ContactPage() {
   return (
@@ -23,7 +23,7 @@ export default function ContactPage() {
             href="https://www.arkaserve.com/contact"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ display:'inline-block', background:'#FF653F', color:'#fff', textDecoration:'none', borderRadius:10, padding:'13px 32px', fontSize:14, fontWeight:700 }}
+            style={{ display:'inline-block', background:'#F06535', color:'#fff', textDecoration:'none', borderRadius:10, padding:'13px 32px', fontSize:14, fontWeight:700 }}
           >
             Go to arkaserve.com/contact →
           </a>

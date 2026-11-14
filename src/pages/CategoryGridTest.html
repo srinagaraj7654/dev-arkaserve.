@@ -1,0 +1,215 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Category Grid Test</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #f5f5f5; padding: 16px; }
+  h2 { font-size: 13px; font-weight: 800; color: #666; text-transform: uppercase; letter-spacing: .08em; margin: 20px 0 10px; }
+  h2:first-child { margin-top: 0; }
+  .scenario { background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 24px; border: 1px solid #e5e7eb; }
+  .scenario-label { font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 12px; }
+  .vw-label { font-size: 10px; color: #d1d5db; font-weight: 600; margin-top: 6px; }
+
+  /* ── Category grid — exact copy from Dashboard ── */
+  .ht-cat-grid {
+    display: grid;
+    grid-template-columns: var(--cc, repeat(5,1fr));
+    gap: 14px;
+  }
+  .ht-cat-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 20px 14px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    width: 100%;
+    transition: all .18s;
+    cursor: pointer;
+  }
+  .ht-cat-card-solo {
+    flex-direction: row !important;
+    text-align: left !important;
+    align-items: center !important;
+    padding: 18px 20px !important;
+    gap: 16px !important;
+  }
+  .ht-cat-card-span2 { grid-column: span 2 !important; }
+  @media(max-width:700px) {
+    .ht-cat-grid { grid-template-columns: var(--cc-sm, repeat(2,1fr)) !important }
+  }
+  @media(max-width:360px) {
+    .ht-cat-grid { grid-template-columns: var(--cc-sm, 1fr) !important }
+  }
+
+  .cat-icon-wrap {
+    width: 52px; height: 52px; border-radius: 15px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; flex-shrink: 0;
+  }
+  .cat-text { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .cat-label { font-size: 12.5px; font-weight: 800; color: #111827; line-height: 1.3; }
+  .cat-sub { font-size: 10.5px; color: #6b7280; line-height: 1.5; white-space: pre-line; }
+  .cat-arrow {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ── Viewport width controls ── */
+  .width-controls { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .width-btn {
+    padding: 6px 12px; border-radius: 8px; border: 1.5px solid #e5e7eb;
+    background: #fff; font-size: 11px; font-weight: 700; cursor: pointer; color: #374151;
+    transition: all .15s;
+  }
+  .width-btn.active { background: #F06535; border-color: #F06535; color: #fff; }
+  #preview-wrap { max-width: 100%; overflow: hidden; }
+  #preview-inner { width: 430px; transition: width .2s; }
+  .current-width { font-size: 11px; color: #9ca3af; font-weight: 600; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div style="max-width:600px;margin:0 auto">
+  <h1 style="font-size:16px;font-weight:900;color:#111827;margin-bottom:4px">Category Grid — Layout Verification</h1>
+  <p style="font-size:12px;color:#6b7280;margin-bottom:16px">Tests all 4 scenarios at 360px / 390px / 430px widths</p>
+
+  <div class="width-controls">
+    <button class="width-btn" onclick="setW(360)">360px</button>
+    <button class="width-btn" onclick="setW(390)">390px</button>
+    <button class="width-btn active" onclick="setW(430)">430px (default)</button>
+    <button class="width-btn" onclick="setW(768)">768px tablet</button>
+  </div>
+  <div class="current-width" id="wlabel">Preview width: 430px</div>
+
+  <div id="preview-wrap">
+  <div id="preview-inner">
+
+  <!-- SCENARIO 1: 1 category (Banking only) -->
+  <div class="scenario">
+    <div class="scenario-label">Scenario 1 — 1 category selected (Banking)</div>
+    <div class="ht-cat-grid" style="--cc:1fr;--cc-sm:1fr">
+      <button class="ht-cat-card ht-cat-card-solo">
+        <div class="cat-icon-wrap" style="background:#3b82f6">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>
+        </div>
+        <div class="cat-text">
+          <div class="cat-label">Banking Exams</div>
+          <div class="cat-sub">IBPS, SBI, RRB, NABARD&#10;and more</div>
+        </div>
+        <div class="cat-arrow" style="border:1.5px solid #3b82f644;color:#3b82f6">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- SCENARIO 2: 2 categories (Banking + SSC) -->
+  <div class="scenario">
+    <div class="scenario-label">Scenario 2 — 2 categories selected (Banking + SSC)</div>
+    <div class="ht-cat-grid" style="--cc:repeat(2,1fr);--cc-sm:repeat(2,1fr)">
+      <button class="ht-cat-card">
+        <div class="cat-icon-wrap" style="background:#3b82f6">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>
+        </div>
+        <div class="cat-text">
+          <div class="cat-label">Banking Exams</div>
+          <div class="cat-sub">IBPS, SBI, RRB, NABARD&#10;and more</div>
+        </div>
+        <div class="cat-arrow" style="border:1.5px solid #3b82f644;color:#3b82f6">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </button>
+      <button class="ht-cat-card">
+        <div class="cat-icon-wrap" style="background:#8b5cf6">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>
+        </div>
+        <div class="cat-text">
+          <div class="cat-label">SSC Exams</div>
+          <div class="cat-sub">CGL, CHSL, MTS, GD&#10;and more</div>
+        </div>
+        <div class="cat-arrow" style="border:1.5px solid #8b5cf644;color:#8b5cf6">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- SCENARIO 3: 3 categories -->
+  <div class="scenario">
+    <div class="scenario-label">Scenario 3 — 3 categories (Banking + SSC + Railway)</div>
+    <div class="ht-cat-grid" style="--cc:repeat(2,1fr);--cc-sm:repeat(2,1fr)">
+      <button class="ht-cat-card">
+        <div class="cat-icon-wrap" style="background:#3b82f6">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>
+        </div>
+        <div class="cat-text"><div class="cat-label">Banking Exams</div><div class="cat-sub">IBPS, SBI, RRB, NABARD&#10;and more</div></div>
+        <div class="cat-arrow" style="border:1.5px solid #3b82f644;color:#3b82f6"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </button>
+      <button class="ht-cat-card">
+        <div class="cat-icon-wrap" style="background:#8b5cf6">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>
+        </div>
+        <div class="cat-text"><div class="cat-label">SSC Exams</div><div class="cat-sub">CGL, CHSL, MTS, GD&#10;and more</div></div>
+        <div class="cat-arrow" style="border:1.5px solid #8b5cf644;color:#8b5cf6"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </button>
+      <button class="ht-cat-card ht-cat-card-span2">
+        <div class="cat-icon-wrap" style="background:#16a34a">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="16" rx="2"/><path d="M4 11h16"/><path d="M12 3v8"/><circle cx="8.5" cy="17" r="1.5"/><circle cx="15.5" cy="17" r="1.5"/><path d="M8 19l-2 3"/><path d="M16 19l2 3"/></svg>
+        </div>
+        <div class="cat-text"><div class="cat-label">Railway Exams</div><div class="cat-sub">RRB NTPC, Group D&#10;and more</div></div>
+        <div class="cat-arrow" style="border:1.5px solid #16a34a44;color:#16a34a"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </button>
+    </div>
+  </div>
+
+  <!-- SCENARIO 4: 4 categories -->
+  <div class="scenario">
+    <div class="scenario-label">Scenario 4 — 4 categories (Banking + SSC + Railway + Entrance)</div>
+    <div class="ht-cat-grid" style="--cc:repeat(2,1fr);--cc-sm:repeat(2,1fr)">
+      <button class="ht-cat-card">
+        <div class="cat-icon-wrap" style="background:#3b82f6"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg></div>
+        <div class="cat-text"><div class="cat-label">Banking Exams</div><div class="cat-sub">IBPS, SBI, RRB, NABARD&#10;and more</div></div>
+        <div class="cat-arrow" style="border:1.5px solid #3b82f644;color:#3b82f6"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </button>
+      <button class="ht-cat-card">
+        <div class="cat-icon-wrap" style="background:#8b5cf6"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg></div>
+        <div class="cat-text"><div class="cat-label">SSC Exams</div><div class="cat-sub">CGL, CHSL, MTS, GD&#10;and more</div></div>
+        <div class="cat-arrow" style="border:1.5px solid #8b5cf644;color:#8b5cf6"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </button>
+      <button class="ht-cat-card">
+        <div class="cat-icon-wrap" style="background:#16a34a"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="16" rx="2"/><path d="M4 11h16"/><path d="M12 3v8"/><circle cx="8.5" cy="17" r="1.5"/><circle cx="15.5" cy="17" r="1.5"/><path d="M8 19l-2 3"/><path d="M16 19l2 3"/></svg></div>
+        <div class="cat-text"><div class="cat-label">Railway Exams</div><div class="cat-sub">RRB NTPC, Group D&#10;and more</div></div>
+        <div class="cat-arrow" style="border:1.5px solid #16a34a44;color:#16a34a"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </button>
+      <button class="ht-cat-card">
+        <div class="cat-icon-wrap" style="background:#7c3aed"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div>
+        <div class="cat-text"><div class="cat-label">Entrance Exams</div><div class="cat-sub">JEE, NEET, CUET&#10;and more</div></div>
+        <div class="cat-arrow" style="border:1.5px solid #7c3aed44;color:#7c3aed"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </button>
+    </div>
+  </div>
+
+  </div><!-- /preview-inner -->
+  </div><!-- /preview-wrap -->
+</div>
+
+<script>
+function setW(w) {
+  document.getElementById('preview-inner').style.width = w + 'px';
+  document.getElementById('wlabel').textContent = 'Preview width: ' + w + 'px';
+  document.querySelectorAll('.width-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent === w + 'px' || b.textContent === w + 'px (default)');
+  });
+}
+// init
+setW(430);
+</script>
+</body>
+</html>

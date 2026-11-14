@@ -1,4 +1,4 @@
-import { useState, memo, useRef, useEffect } from 'react'
+﻿import { useState, memo, useRef, useEffect } from 'react'
 import api from '../api'
 
 /* ─── SVG icon library ─── */
@@ -43,7 +43,7 @@ const ALL_EXAMS = [
 ]
 
 const EXAM_GROUPS = [
-  { id:'ibps', label:'IBPS', color:'#FF653F', exams:[
+  { id:'ibps', label:'IBPS', color:'#F06535', exams:[
     { id:'bank_clerk_prelims', name:'IBPS Clerk Prelims', meta:'100Q · 60 min',  tag:'Popular' },
     { id:'bank_clerk_mains',   name:'IBPS Clerk Mains',   meta:'175Q · 160 min' },
     { id:'bank_po_prelims',    name:'IBPS PO Prelims',    meta:'100Q · 60 min',  tag:'Popular' },
@@ -67,7 +67,7 @@ const EXAM_GROUPS = [
 ]
 
 const AI_FEATURES = [
-  { icon:<IcInfinity s={26}/>, title:'Infinite Unique Questions',   desc:'Every question is uniquely crafted — zero repetition, ever.',                         tag:'Only on MockTest', ic:'#FF653F', bg:'#FFF3EE' },
+  { icon:<IcInfinity s={26}/>, title:'Infinite Unique Questions',   desc:'Every question is uniquely crafted — zero repetition, ever.',                         tag:'Only on MockTest', ic:'#F06535', bg:'#FFF3EE' },
   { icon:<IcBrain s={26}/>,    title:'Adaptive Difficulty',         desc:'Tracks accuracy per topic. Starts easy, pushes to hard as you improve.',              tag:'Smart System',    ic:'#D97706', bg:'#FFFBEB' },
   { icon:<IcTimer s={26}/>,    title:'Per-Section Timers',          desc:'Each section has its own countdown. Auto-advances on expiry. Exact IBPS/SBI format.', tag:'Real Exam Feel',  ic:'#D97706', bg:'#FFFBEB' },
   { icon:<IcDocument s={26}/>, title:'PDF with Charts & Solutions', desc:'Download solutions with bar/pie charts, step-by-step working and all wrong answers.',  tag:'Post-Exam Review',ic:'#7C3AED', bg:'#F5F3FF' },
@@ -89,7 +89,7 @@ const HOW_IT_WORKS = [
 
 
 const TESTIMONIALS = [
-  { text:'The expert-crafted questions are genuinely at exam level. I took 12 tests and not a single question repeated. The section timers made the real exam feel familiar.', name:'Priya S.',   exam:'IBPS Clerk 2024 — Selected', init:'PS', c:'#FF653F' },
+  { text:'The expert-crafted questions are genuinely at exam level. I took 12 tests and not a single question repeated. The section timers made the real exam feel familiar.', name:'Priya S.',   exam:'IBPS Clerk 2024 — Selected', init:'PS', c:'#F06535' },
   { text:'MockTest mock tests are closest to the real exam. The adaptive difficulty kept pushing me harder each day. Cleared IBPS PO in my first attempt.',              name:'Rahul M.',   exam:'IBPS PO 2023',               init:'RM', c:'#059669' },
   { text:'I followed the 20-days plan and cleared RRB PO. I highly recommend MockTest for the DI charts — they look exactly like the real screen.',                      name:'Amit Singh', exam:'RRB PO 2023',                 init:'AS', c:'#0891B2' },
 ]
@@ -104,7 +104,7 @@ const CAREER_TIPS = [
 ]
 
 const JOURNEY_STEPS = [
-  { title:'Choose Exam',        sub:'Select Your Goal',     icon:<IcTarget s={24}/>,   color:'#FF653F', bg:'#FFF3EE' },
+  { title:'Choose Exam',        sub:'Select Your Goal',     icon:<IcTarget s={24}/>,   color:'#F06535', bg:'#FFF3EE' },
   { title:'Tell Us About You',  sub:'Time, Date & Level',   icon:<IcUser s={24}/>,     color:'#D97706', bg:'#FFFBEB' },
   { title:'We Build Your Plan', sub:'Personalized Journey', icon:<IcGear s={24}/>,     color:'#7C3AED', bg:'#F5F3FF' },
   { title:'Daily Mission',      sub:'Stay On Track',        icon:<IcCalendar s={24}/>, color:'#0891B2', bg:'#ECFEFF' },
@@ -123,7 +123,7 @@ const NAV_LINKS = [
 /* ─── Mega-menu overlay (Browse Exams) ────────────────────────── */
 const MEGA_CATS = [
   {
-    cat: 'BANKING', color: '#FF653F',
+    cat: 'BANKING', color: '#F06535',
     items: [
       { label: 'IBPS Clerk',       dest: 'mocktest' },
       { label: 'IBPS PO',          dest: 'mocktest' },
@@ -245,7 +245,7 @@ function ExamsMegaMenu({ onClose, onNav }) {
                         fontSize:14, fontWeight: item.soon ? 400 : 500,
                         display:'flex', alignItems:'center', gap:7, transition:'color .12s',
                       }}
-                      onMouseOver={e => { if (!item.soon) e.currentTarget.style.color = '#FF653F' }}
+                      onMouseOver={e => { if (!item.soon) e.currentTarget.style.color = '#F06535' }}
                       onMouseOut={e => { if (!item.soon) e.currentTarget.style.color = '#fff' }}
                     >
                       <span>{item.label}</span>
@@ -303,7 +303,7 @@ function LandingPage({ onNav, initialTab='home' }) {
         .nav-link{font-size:14px;font-weight:500;color:#ffffff;background:transparent;border:none;padding:8px 14px;cursor:pointer;border-radius:6px;transition:color .12s,background .12s;white-space:nowrap}
         .nav-link:hover,.nav-link.active{color:#fff;background:rgba(255,255,255,.12)}
         /* BUTTONS */
-        .btn-orange{display:inline-flex;align-items:center;gap:8px;background:#FF653F;color:#fff;border:none;border-radius:8px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer;transition:background .15s,transform .15s,box-shadow .15s;box-shadow:0 4px 16px rgba(255,107,53,.35)}
+        .btn-orange{display:inline-flex;align-items:center;gap:8px;background:#F06535;color:#fff;border:none;border-radius:8px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer;transition:background .15s,transform .15s,box-shadow .15s;box-shadow:0 4px 16px rgba(255,107,53,.35)}
         .btn-orange:hover{background:#e5512f;transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,107,53,.45)}
         .btn-dark{display:inline-flex;align-items:center;gap:8px;background:#1a1a1a;color:#fff;border:none;border-radius:8px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer;transition:background .15s,transform .15s}
         .btn-dark:hover{background:#333;transform:translateY(-2px)}
@@ -311,10 +311,10 @@ function LandingPage({ onNav, initialTab='home' }) {
         .btn-outline-dark:hover{background:#1a1a1a;color:#fff}
         /* CARDS */
         .feat-card{background:#fff;border:1.5px solid #f0f0f0;border-radius:16px;padding:28px;transition:transform .15s,box-shadow .15s,border-color .15s}
-        .feat-card:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.08);border-color:#FF653F}
+        .feat-card:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.08);border-color:#F06535}
         /* MISC */
         .tip-acc{border:1.5px solid #f0f0f0;border-radius:12px;overflow:hidden;transition:border-color .12s}
-        .tip-acc:hover{border-color:#FF653F}
+        .tip-acc:hover{border-color:#F06535}
         button:active{transform:translateY(0)!important;opacity:.9}
         section{contain:layout style}
         @media(max-width:900px){
@@ -398,7 +398,7 @@ function LandingPage({ onNav, initialTab='home' }) {
               <h1 style={{fontSize:'clamp(32px,3.8vw,56px)',fontWeight:900,color:'#fff',lineHeight:1.15,marginBottom:20,letterSpacing:'-1.5px'}}>
                 <span style={{whiteSpace:'nowrap'}}>Your Study Coach for</span>
                 <br/>
-                <span style={{color:'#FF653F',fontSize:'clamp(22px,2.6vw,38px)',letterSpacing:'-1px'}}>Every Competitive Exam Goal</span>
+                <span style={{color:'#F06535',fontSize:'clamp(22px,2.6vw,38px)',letterSpacing:'-1px'}}>Every Competitive Exam Goal</span>
               </h1>
 
               {/* Description */}
@@ -426,8 +426,8 @@ function LandingPage({ onNav, initialTab='home' }) {
         <section style={{padding:'80px 48px',background:'#fafafa'}}>
           <div style={{maxWidth:1280,margin:'0 auto'}}>
             <div style={{textAlign:'center',marginBottom:52}}>
-              <div style={{fontSize:12,fontWeight:700,color:'#FF653F',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:10}}>What Makes Us Different</div>
-              <h2 style={{fontSize:38,fontWeight:800,color:'#111',marginBottom:12,letterSpacing:'-0.5px'}}>Study Smart with <span style={{color:'#FF653F'}}>Expert-Crafted</span> Features</h2>
+              <div style={{fontSize:12,fontWeight:700,color:'#F06535',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:10}}>What Makes Us Different</div>
+              <h2 style={{fontSize:38,fontWeight:800,color:'#111',marginBottom:12,letterSpacing:'-0.5px'}}>Study Smart with <span style={{color:'#F06535'}}>Expert-Crafted</span> Features</h2>
               <p style={{fontSize:16,color:'#666',maxWidth:520,margin:'0 auto'}}>Not a question bank. Every question is uniquely crafted — fresh, exam-accurate, zero repetition.</p>
             </div>
             <div className="feat-grid-4" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:20}}>
@@ -447,18 +447,18 @@ function LandingPage({ onNav, initialTab='home' }) {
         <section style={{padding:'80px 48px',background:'#fff'}}>
           <div style={{maxWidth:1280,margin:'0 auto'}}>
             <div style={{textAlign:'center',marginBottom:52}}>
-              <div style={{fontSize:12,fontWeight:700,color:'#FF653F',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:10}}>Study Plans</div>
-              <h2 style={{fontSize:38,fontWeight:800,color:'#111',marginBottom:10,letterSpacing:'-0.5px'}}>Whether you have <span style={{color:'#FF653F'}}>10, 20 or 30 days</span>,<br/>we can create the perfect plan</h2>
+              <div style={{fontSize:12,fontWeight:700,color:'#F06535',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:10}}>Study Plans</div>
+              <h2 style={{fontSize:38,fontWeight:800,color:'#111',marginBottom:10,letterSpacing:'-0.5px'}}>Whether you have <span style={{color:'#F06535'}}>10, 20 or 30 days</span>,<br/>we can create the perfect plan</h2>
               <p style={{fontSize:16,color:'#666'}}>Based on your target exam and available time</p>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:20}}>
               {PLANS.map((p,i)=>(
-                <div key={p.days} style={{border:'2px solid',borderColor:p.popular?'#FF653F':'#e5e5e5',borderRadius:18,overflow:'hidden',background:'#fff',boxShadow:p.popular?'0 12px 40px rgba(255,107,53,.15)':'none',position:'relative',transition:'transform .15s,box-shadow .15s'}}
+                <div key={p.days} style={{border:'2px solid',borderColor:p.popular?'#F06535':'#e5e5e5',borderRadius:18,overflow:'hidden',background:'#fff',boxShadow:p.popular?'0 12px 40px rgba(255,107,53,.15)':'none',position:'relative',transition:'transform .15s,box-shadow .15s'}}
                   onMouseOver={e=>{e.currentTarget.style.transform='translateY(-4px)';e.currentTarget.style.boxShadow=p.popular?'0 20px 48px rgba(255,107,53,.22)':'0 8px 28px rgba(0,0,0,.07)'}}
                   onMouseOut={e=>{e.currentTarget.style.transform='';e.currentTarget.style.boxShadow=p.popular?'0 12px 40px rgba(255,107,53,.15)':'none'}}>
-                  {p.popular && <div style={{position:'absolute',top:14,right:14,background:'#FF653F',color:'#fff',fontSize:10,fontWeight:700,padding:'3px 10px',borderRadius:12}}>Most Popular</div>}
-                  <div style={{padding:'24px 24px 20px',background:p.popular?'#FF653F':'#fafafa',borderBottom:'1px solid',borderBottomColor:p.popular?'rgba(255,255,255,.15)':'#e5e5e5'}}>
-                    <div style={{fontSize:32,fontWeight:900,color:p.popular?'#fff':'#FF653F',lineHeight:1}}>{p.days} Days</div>
+                  {p.popular && <div style={{position:'absolute',top:14,right:14,background:'#F06535',color:'#fff',fontSize:10,fontWeight:700,padding:'3px 10px',borderRadius:12}}>Most Popular</div>}
+                  <div style={{padding:'24px 24px 20px',background:p.popular?'#F06535':'#fafafa',borderBottom:'1px solid',borderBottomColor:p.popular?'rgba(255,255,255,.15)':'#e5e5e5'}}>
+                    <div style={{fontSize:32,fontWeight:900,color:p.popular?'#fff':'#F06535',lineHeight:1}}>{p.days} Days</div>
                     <div style={{fontSize:15,fontWeight:700,color:p.popular?'rgba(255,255,255,.9)':'#111',marginTop:3}}>{p.label}</div>
                     <div style={{fontSize:13,color:p.popular?'rgba(255,255,255,.7)':'#888',marginTop:5,lineHeight:1.5}}>{p.sub}</div>
                   </div>
@@ -466,14 +466,14 @@ function LandingPage({ onNav, initialTab='home' }) {
                     {p.points.map((pt,j)=>(
                       <div key={j} style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
                         <span style={{width:18,height:18,borderRadius:'50%',background:p.popular?'#FFF3EE':'#FFF3EE',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                          <span style={{color:'#FF653F',fontSize:9,fontWeight:800}}>✓</span>
+                          <span style={{color:'#F06535',fontSize:9,fontWeight:800}}>✓</span>
                         </span>
                         <span style={{fontSize:14,color:'#374151'}}>{pt}</span>
                       </div>
                     ))}
-                    <button onClick={()=>onNav('auth')} style={{width:'100%',marginTop:12,padding:'12px 0',background:p.popular?'#111':'transparent',color:p.popular?'#fff':'#FF653F',border:p.popular?'none':'2px solid #FF653F',borderRadius:10,fontSize:14,fontWeight:700,cursor:'pointer',transition:'background .12s,color .12s'}}
-                      onMouseOver={e=>{if(!p.popular){e.currentTarget.style.background='#FF653F';e.currentTarget.style.color='#fff'}}}
-                      onMouseOut={e=>{if(!p.popular){e.currentTarget.style.background='transparent';e.currentTarget.style.color='#FF653F'}}}>
+                    <button onClick={()=>onNav('auth')} style={{width:'100%',marginTop:12,padding:'12px 0',background:p.popular?'#111':'transparent',color:p.popular?'#fff':'#F06535',border:p.popular?'none':'2px solid #F06535',borderRadius:10,fontSize:14,fontWeight:700,cursor:'pointer',transition:'background .12s,color .12s'}}
+                      onMouseOver={e=>{if(!p.popular){e.currentTarget.style.background='#F06535';e.currentTarget.style.color='#fff'}}}
+                      onMouseOut={e=>{if(!p.popular){e.currentTarget.style.background='transparent';e.currentTarget.style.color='#F06535'}}}>
                       {p.popular?'Get Started →':'Choose Plan →'}
                     </button>
                   </div>
@@ -487,19 +487,19 @@ function LandingPage({ onNav, initialTab='home' }) {
         <section style={{padding:'80px 48px',background:'#fafafa'}}>
           <div style={{maxWidth:1280,margin:'0 auto'}}>
             <div style={{textAlign:'center',marginBottom:52}}>
-              <div style={{fontSize:12,fontWeight:700,color:'#FF653F',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:10}}>How It Works</div>
+              <div style={{fontSize:12,fontWeight:700,color:'#F06535',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:10}}>How It Works</div>
               <h2 style={{fontSize:38,fontWeight:800,color:'#111',letterSpacing:'-0.5px'}}>5 Steps to Your Success</h2>
             </div>
             <div style={{display:'flex',position:'relative'}}>
               {HOW_IT_WORKS.map((s,i)=>(
                 <div key={s.n} style={{flex:1,textAlign:'center',padding:'0 4px',position:'relative',minWidth:0}}>
                   {i < HOW_IT_WORKS.length-1 && (
-                    <div style={{position:'absolute',top:20,left:'60%',width:'80%',height:2,background:'linear-gradient(90deg,#FF653F,#fec9b0)',zIndex:0}}/>
+                    <div style={{position:'absolute',top:20,left:'60%',width:'80%',height:2,background:'linear-gradient(90deg,#F06535,#fec9b0)',zIndex:0}}/>
                   )}
-                  <div style={{width:40,height:40,background:'#FF653F',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px',position:'relative',zIndex:1,boxShadow:'0 4px 12px rgba(255,107,53,.3)'}}>
+                  <div style={{width:40,height:40,background:'#F06535',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px',position:'relative',zIndex:1,boxShadow:'0 4px 12px rgba(255,107,53,.3)'}}>
                     <span style={{display:'inline-flex'}}>{s.icon}</span>
                   </div>
-                  <div style={{fontSize:10,fontWeight:700,color:'#FF653F',marginBottom:3}}>{s.n}</div>
+                  <div style={{fontSize:10,fontWeight:700,color:'#F06535',marginBottom:3}}>{s.n}</div>
                   <div style={{fontSize:11,fontWeight:700,color:'#111',marginBottom:3,lineHeight:1.3}}>{s.title}</div>
                   <div style={{fontSize:10,color:'#666',lineHeight:1.4,display:'none'}} className="sm-show">{s.desc}</div>
                 </div>
@@ -513,7 +513,7 @@ function LandingPage({ onNav, initialTab='home' }) {
           <div style={{maxWidth:1280,margin:'0 auto'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:36}}>
               <div>
-                <div style={{fontSize:12,fontWeight:700,color:'#FF653F',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>Success Stories</div>
+                <div style={{fontSize:12,fontWeight:700,color:'#F06535',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>Success Stories</div>
                 <h2 style={{fontSize:32,fontWeight:800,color:'#111',letterSpacing:'-0.4px'}}>What Aspirants Say</h2>
               </div>
               <button onClick={()=>setTab('success')} className="btn-outline-dark">View All Stories →</button>
@@ -521,7 +521,7 @@ function LandingPage({ onNav, initialTab='home' }) {
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:20}}>
               {TESTIMONIALS.map((t,i)=>(
                 <div key={i} className="feat-card">
-                  <div style={{color:'#FF653F',fontSize:16,letterSpacing:3,marginBottom:14}}>★★★★★</div>
+                  <div style={{color:'#F06535',fontSize:16,letterSpacing:3,marginBottom:14}}>★★★★★</div>
                   <p style={{fontSize:14,color:'#444',lineHeight:1.75,marginBottom:20}}>{t.text}</p>
                   <div style={{display:'flex',alignItems:'center',gap:12}}>
                     <div style={{width:40,height:40,borderRadius:'50%',background:t.c,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:13,fontWeight:700,flexShrink:0}}>{t.init}</div>
@@ -570,7 +570,7 @@ function LandingPage({ onNav, initialTab='home' }) {
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:4}}>
                       <span style={{fontSize:14,fontWeight:700,color:'#111',lineHeight:1.3}}>{e.name}</span>
-                      {e.tag && <span style={{fontSize:10,fontWeight:700,background:'#FFF3EE',color:'#FF653F',padding:'2px 9px',borderRadius:20,flexShrink:0,whiteSpace:'nowrap'}}>{e.tag}</span>}
+                      {e.tag && <span style={{fontSize:10,fontWeight:700,background:'#FFF3EE',color:'#F06535',padding:'2px 9px',borderRadius:20,flexShrink:0,whiteSpace:'nowrap'}}>{e.tag}</span>}
                     </div>
                     <div style={{fontSize:12,color:'#999'}}>{e.meta} · −0.25 negative marking</div>
                   </div>
@@ -597,8 +597,8 @@ function LandingPage({ onNav, initialTab='home' }) {
 
             {/* Hero */}
             <div style={{textAlign:'center',marginBottom:40}}>
-              <div style={{display:'inline-flex',alignItems:'center',gap:7,background:'#FFF3EE',color:'#FF653F',border:'1px solid #fec9b0',borderRadius:22,padding:'6px 16px',fontSize:13,fontWeight:700,marginBottom:14}}>Careers at MockTest</div>
-              <h2 style={{fontSize:36,fontWeight:800,color:'#111',marginBottom:10,letterSpacing:'-0.5px'}}>Build the future of <span style={{color:'#FF653F'}}>exam prep</span> with us</h2>
+              <div style={{display:'inline-flex',alignItems:'center',gap:7,background:'#FFF3EE',color:'#F06535',border:'1px solid #fec9b0',borderRadius:22,padding:'6px 16px',fontSize:13,fontWeight:700,marginBottom:14}}>Careers at MockTest</div>
+              <h2 style={{fontSize:36,fontWeight:800,color:'#111',marginBottom:10,letterSpacing:'-0.5px'}}>Build the future of <span style={{color:'#F06535'}}>exam prep</span> with us</h2>
               <p style={{fontSize:16,color:'#666',maxWidth:560,margin:'0 auto',lineHeight:1.7}}>We're a small, fast-moving team working to make quality exam preparation free for every aspirant in India. Come help us scale it to millions.</p>
             </div>
 
@@ -622,7 +622,7 @@ function LandingPage({ onNav, initialTab='home' }) {
                 <h3 style={{fontSize:18,fontWeight:800,color:'#111',marginBottom:12}}>Life at MockTest</h3>
                 {['Small team, big ownership — your work ships fast','Remote-friendly with flexible hours','Direct impact on lakhs of aspirants','Learn across product & ed-tech'].map((t,i)=>(
                   <div key={i} style={{display:'flex',gap:10,marginBottom:10,fontSize:14,color:'#444'}}>
-                    <span style={{color:'#FF653F',fontWeight:800}}>✓</span>{t}
+                    <span style={{color:'#F06535',fontWeight:800}}>✓</span>{t}
                   </div>
                 ))}
               </div>
@@ -630,7 +630,7 @@ function LandingPage({ onNav, initialTab='home' }) {
                 <h3 style={{fontSize:18,fontWeight:800,color:'#111',marginBottom:12}}>Benefits & Perks</h3>
                 {['Competitive pay + ESOPs','Annual learning & upskilling budget','Health coverage','Latest hardware & tools','Generous leave policy'].map((t,i)=>(
                   <div key={i} style={{display:'flex',gap:10,marginBottom:10,fontSize:14,color:'#444'}}>
-                    <span style={{color:'#FF653F',fontWeight:800}}>★</span>{t}
+                    <span style={{color:'#F06535',fontWeight:800}}>★</span>{t}
                   </div>
                 ))}
               </div>
@@ -672,9 +672,9 @@ function LandingPage({ onNav, initialTab='home' }) {
           <div style={{maxWidth:1280,margin:'0 auto'}}>
             {/* Headline — single line */}
             <div style={{textAlign:'center',marginBottom:40}}>
-              <div style={{width:60,height:60,background:'#FF653F',borderRadius:16,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:22,fontWeight:900,margin:'0 auto 20px'}}>MT</div>
+              <div style={{width:60,height:60,background:'#F06535',borderRadius:16,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:22,fontWeight:900,margin:'0 auto 20px'}}>MT</div>
               <h2 style={{fontSize:44,fontWeight:800,color:'#111',lineHeight:1.15,letterSpacing:'-1px'}}>
-                Study Coach for <span style={{color:'#FF653F'}}>Every Competitive Exam Goal</span>
+                Study Coach for <span style={{color:'#F06535'}}>Every Competitive Exam Goal</span>
               </h2>
               <p style={{fontSize:15,color:'#888',marginTop:14}}>India's first fully expert-crafted competitive exam platform · by Arkaserve</p>
             </div>
@@ -684,7 +684,7 @@ function LandingPage({ onNav, initialTab='home' }) {
 
               {/* LEFT — Why / About */}
               <div>
-                <h3 style={{fontSize:22,fontWeight:800,color:'#111',marginBottom:14,letterSpacing:'-0.3px'}}>Why <span style={{color:'#FF653F'}}>MockTest</span></h3>
+                <h3 style={{fontSize:22,fontWeight:800,color:'#111',marginBottom:14,letterSpacing:'-0.3px'}}>Why <span style={{color:'#F06535'}}>MockTest</span></h3>
                 <div style={{display:'flex',flexDirection:'column',gap:12}}>
                   {[{t:'Our Mission',d:'To make quality competitive exam preparation accessible to every student — free, with no repeated questions and expert-crafted personalisation that was previously only available in expensive coaching centres.'},{t:'How It Works',d:'Our platform crafts mathematically valid, exam-accurate questions for every session. Every test is completely new. Same student, same exam: zero repetition guaranteed.'},{t:'Exams Covered',d:'IBPS Clerk & PO (Prelims + Mains), SBI Clerk & PO (Prelims + Mains), RRB Office Assistant & Officer Scale-I, and Coal India MT. More exams being added continuously.'},{t:'What Makes Us Unique',d:'No other platform delivers freshly crafted questions for every session. Our adaptive system tracks per-topic accuracy and adjusts in real time.'}].map((it,i)=>(
                     <div key={i} style={{background:'#fafafa',border:'1.5px solid #e5e5e5',borderRadius:14,padding:18}}>
@@ -697,7 +697,7 @@ function LandingPage({ onNav, initialTab='home' }) {
 
               {/* RIGHT — mock tests */}
               <div>
-                <h3 style={{fontSize:22,fontWeight:800,color:'#111',marginBottom:14,letterSpacing:'-0.3px'}}>Expert-Crafted <span style={{color:'#FF653F'}}>Mock Tests</span></h3>
+                <h3 style={{fontSize:22,fontWeight:800,color:'#111',marginBottom:14,letterSpacing:'-0.3px'}}>Expert-Crafted <span style={{color:'#F06535'}}>Mock Tests</span></h3>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:12}}>
                   {[{icon:<IcInfinity s={22}/>,t:'Zero Repetition',d:'Every question is freshly crafted — no two sessions are ever the same.'},{icon:<IcBrain s={22}/>,t:'Adaptive Difficulty',d:'Starts easy, progresses to hard as your accuracy improves.'},{icon:<IcBarChart s={22}/>,t:'Real DI Charts',d:'Interactive bar, pie, line charts in exam and PDF.'},{icon:<IcTimer s={22}/>,t:'Section Timers',d:'Per-section 20-minute countdown — exact IBPS/SBI format.'},{icon:<IcDocument s={22}/>,t:'PDF Solutions',d:'Full solution PDF with charts and step-by-step working.'},{icon:<IcTarget s={22}/>,t:'Topic Practice',d:'35 topics. Practice 5–50 questions at any difficulty.'}].map((f,i)=>(
                     <div key={i} className="feat-card" style={{textAlign:'left',padding:18}}>
@@ -750,12 +750,12 @@ function LandingPage({ onNav, initialTab='home' }) {
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:18,marginBottom:36}}>
               {[
-                {icon:<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF653F" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,t:'Zero Repetition',d:'Every question is freshly crafted — no two sessions are ever the same.'},
-                {icon:<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF653F" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.07-4.15A3 3 0 0 1 4 11.5a3 3 0 0 1 1.5-2.6 2.5 2.5 0 0 1 4-2.9z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.07-4.15A3 3 0 0 0 20 11.5a3 3 0 0 0-1.5-2.6 2.5 2.5 0 0 0-4-2.9z"/></svg>,t:'Adaptive Difficulty',d:'Starts easy, progresses to hard as your accuracy improves.'},
-                {icon:<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF653F" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,t:'Real DI Charts',d:'Interactive bar, pie, line charts in exam and PDF.'},
-                {icon:<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF653F" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="13" r="8"/><polyline points="12 9 12 13 14 15"/><path d="M9 2h6M12 2v3"/></svg>,t:'Section Timers',d:'Per-section 20-minute countdown — exact IBPS/SBI format.'},
-                {icon:<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF653F" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,t:'PDF Solutions',d:'Full solution PDF with charts and step-by-step working.'},
-                {icon:<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF653F" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,t:'Topic Practice',d:'35 topics. Practice 5–50 questions at any difficulty.'},
+                {icon:<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F06535" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,t:'Zero Repetition',d:'Every question is freshly crafted — no two sessions are ever the same.'},
+                {icon:<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F06535" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.07-4.15A3 3 0 0 1 4 11.5a3 3 0 0 1 1.5-2.6 2.5 2.5 0 0 1 4-2.9z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.07-4.15A3 3 0 0 0 20 11.5a3 3 0 0 0-1.5-2.6 2.5 2.5 0 0 0-4-2.9z"/></svg>,t:'Adaptive Difficulty',d:'Starts easy, progresses to hard as your accuracy improves.'},
+                {icon:<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F06535" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,t:'Real DI Charts',d:'Interactive bar, pie, line charts in exam and PDF.'},
+                {icon:<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F06535" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="13" r="8"/><polyline points="12 9 12 13 14 15"/><path d="M9 2h6M12 2v3"/></svg>,t:'Section Timers',d:'Per-section 20-minute countdown — exact IBPS/SBI format.'},
+                {icon:<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F06535" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,t:'PDF Solutions',d:'Full solution PDF with charts and step-by-step working.'},
+                {icon:<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F06535" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,t:'Topic Practice',d:'35 topics. Practice 5–50 questions at any difficulty.'},
               ].map((f,i)=>(
                 <div key={i} className="feat-card" style={{textAlign:'left'}}>
                   <div style={{marginBottom:12}}>{f.icon}</div>
@@ -779,10 +779,10 @@ function LandingPage({ onNav, initialTab='home' }) {
             <p style={{fontSize:15,color:'#555',marginBottom:36}}>Comprehensive expert-led courses for every exam category</p>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:16}}>
               {[{icon:<IcBank s={28}/>,t:'Banking Courses',d:'IBPS, SBI, RRB — Prelims & Mains complete prep',status:'Live'},{icon:<IcClipboard s={28}/>,t:'SSC Courses',d:'CGL, CHSL, MTS — complete syllabus coverage',status:'Live'},{icon:<IcTrain s={28}/>,t:'Railway Courses',d:'NTPC, Group D, ALP — all zones covered',status:'Live'},{icon:<IcGear s={28}/>,t:'Engineering',d:'JEE Main, JEE Advanced, GATE — all streams',status:'Soon'}].map((c,i)=>(
-                <div key={i} style={{border:'2px solid',borderColor:c.status==='Live'?'#FF653F':'#e5e5e5',borderRadius:16,padding:22,background:'#fff',textAlign:'left',opacity:c.status==='Soon'?0.7:1}}>
+                <div key={i} style={{border:'2px solid',borderColor:c.status==='Live'?'#F06535':'#e5e5e5',borderRadius:16,padding:22,background:'#fff',textAlign:'left',opacity:c.status==='Soon'?0.7:1}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
                     <span style={{display:'inline-flex'}}>{c.icon}</span>
-                    <span style={{fontSize:11,fontWeight:700,background:c.status==='Live'?'#FFF3EE':'#f5f5f5',color:c.status==='Live'?'#FF653F':'#888',padding:'3px 10px',borderRadius:10}}>{c.status}</span>
+                    <span style={{fontSize:11,fontWeight:700,background:c.status==='Live'?'#FFF3EE':'#f5f5f5',color:c.status==='Live'?'#F06535':'#888',padding:'3px 10px',borderRadius:10}}>{c.status}</span>
                   </div>
                   <div style={{fontSize:16,fontWeight:700,color:'#111',marginBottom:7}}>{c.t}</div>
                   <div style={{fontSize:13,color:'#666',marginBottom:16}}>{c.d}</div>
@@ -825,9 +825,9 @@ function LandingPage({ onNav, initialTab='home' }) {
               <p style={{fontSize:15,color:'#555'}}>Students who cracked their exams with MockTest</p>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:18}}>
-              {[{n:'Priya S.',e:'IBPS Clerk 2024',t:'12 tests, zero repeated questions. The adaptive difficulty pushed me from easy to hard. Cleared cut-off in first attempt.',i:'PS',c:'#FF653F'},{n:'Rahul M.',e:'SBI PO 2024',t:'The section timers made the real exam feel very familiar. The DI charts look exactly like the actual SBI screen. Best free platform.',i:'RM',c:'#059669'},{n:'Deepa K.',e:'IBPS PO Mains',t:'The PDF solution is brilliant — actual bar charts with step-by-step working. I could identify every mistake before the real exam.',i:'DK',c:'#0891B2'},{n:'Amit S.',e:'RRB PO 2023',t:'I tried Adda247 and Oliveboard. MockTest questions are harder and more varied. It starts free — 7-day trial with full access.',i:'AS',c:'#D97706'},{n:'Neha V.',e:'SBI Clerk 2024',t:'Career Tan tips are gold. The 60-day plan kept me on track. The adaptive mode knew exactly when to push me harder.',i:'NV',c:'#7C3AED'},{n:'Kiran P.',e:'IBPS Clerk 2024',t:'The puzzle and syllogism questions are at actual IBPS level. This platform really prepares you for the hard questions.',i:'KP',c:'#059669'}].map((t,i)=>(
+              {[{n:'Priya S.',e:'IBPS Clerk 2024',t:'12 tests, zero repeated questions. The adaptive difficulty pushed me from easy to hard. Cleared cut-off in first attempt.',i:'PS',c:'#F06535'},{n:'Rahul M.',e:'SBI PO 2024',t:'The section timers made the real exam feel very familiar. The DI charts look exactly like the actual SBI screen. Best free platform.',i:'RM',c:'#059669'},{n:'Deepa K.',e:'IBPS PO Mains',t:'The PDF solution is brilliant — actual bar charts with step-by-step working. I could identify every mistake before the real exam.',i:'DK',c:'#0891B2'},{n:'Amit S.',e:'RRB PO 2023',t:'I tried Adda247 and Oliveboard. MockTest questions are harder and more varied. It starts free — 7-day trial with full access.',i:'AS',c:'#D97706'},{n:'Neha V.',e:'SBI Clerk 2024',t:'Career Tan tips are gold. The 60-day plan kept me on track. The adaptive mode knew exactly when to push me harder.',i:'NV',c:'#7C3AED'},{n:'Kiran P.',e:'IBPS Clerk 2024',t:'The puzzle and syllogism questions are at actual IBPS level. This platform really prepares you for the hard questions.',i:'KP',c:'#059669'}].map((t,i)=>(
                 <div key={i} className="feat-card">
-                  <div style={{color:'#FF653F',fontSize:15,letterSpacing:3,marginBottom:12}}>★★★★★</div>
+                  <div style={{color:'#F06535',fontSize:15,letterSpacing:3,marginBottom:12}}>★★★★★</div>
                   <p style={{fontSize:14,color:'#444',lineHeight:1.75,marginBottom:18}}>{t.t}</p>
                   <div style={{display:'flex',alignItems:'center',gap:12}}>
                     <div style={{width:38,height:38,borderRadius:'50%',background:t.c,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700}}>{t.i}</div>
@@ -855,7 +855,7 @@ function LandingPage({ onNav, initialTab='home' }) {
               <p style={{fontSize:15,color:'#555'}}>Study tips, exam updates and strategy guides</p>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:18}}>
-              {[{tag:'Strategy',t:'How to clear IBPS PO cut-off in Numerical Ability',d:'Section cut-offs are tougher than the overall cut-off. A topic-wise strategy that works.',date:'May 2026',c:'#FF653F'},{tag:'Exam Tips',t:'DI Sets: How to attempt 5 questions in under 4 minutes',d:'With the right approach, DI sets are free marks. Exactly how to tackle them.',date:'Apr 2026',c:'#059669'},{tag:'Smart Features',t:'How MockTest delivers unique questions every session',d:'Behind-the-scenes look at how MockTest ensures fresh, exam-accurate questions every time.',date:'Apr 2026',c:'#0891B2'},{tag:'Reasoning',t:'Floor puzzles solved: the 7-row table method',d:'Master floor puzzles in 10 minutes using this systematic approach.',date:'Mar 2026',c:'#D97706'},{tag:'GK',t:'RBI Monetary Policy 2026 — What you need to know',d:'Repo rate, reverse repo, CRR, SLR — complete update for IBPS Mains.',date:'Mar 2026',c:'#7C3AED'},{tag:'Career Tan',t:'60-day study plan for IBPS Clerk Prelims',d:'A day-by-day schedule with recommended question counts and revision checkpoints.',date:'Feb 2026',c:'#FF653F'}].map((p,i)=>(
+              {[{tag:'Strategy',t:'How to clear IBPS PO cut-off in Numerical Ability',d:'Section cut-offs are tougher than the overall cut-off. A topic-wise strategy that works.',date:'May 2026',c:'#F06535'},{tag:'Exam Tips',t:'DI Sets: How to attempt 5 questions in under 4 minutes',d:'With the right approach, DI sets are free marks. Exactly how to tackle them.',date:'Apr 2026',c:'#059669'},{tag:'Smart Features',t:'How MockTest delivers unique questions every session',d:'Behind-the-scenes look at how MockTest ensures fresh, exam-accurate questions every time.',date:'Apr 2026',c:'#0891B2'},{tag:'Reasoning',t:'Floor puzzles solved: the 7-row table method',d:'Master floor puzzles in 10 minutes using this systematic approach.',date:'Mar 2026',c:'#D97706'},{tag:'GK',t:'RBI Monetary Policy 2026 — What you need to know',d:'Repo rate, reverse repo, CRR, SLR — complete update for IBPS Mains.',date:'Mar 2026',c:'#7C3AED'},{tag:'Career Tan',t:'60-day study plan for IBPS Clerk Prelims',d:'A day-by-day schedule with recommended question counts and revision checkpoints.',date:'Feb 2026',c:'#F06535'}].map((p,i)=>(
                 <div key={i} style={{border:'1.5px solid #e5e5e5',borderRadius:14,overflow:'hidden',background:'#fff',transition:'transform .15s,box-shadow .15s'}}
                   onMouseOver={e=>{e.currentTarget.style.transform='translateY(-4px)';e.currentTarget.style.boxShadow='0 12px 32px rgba(0,0,0,.08)'}}
                   onMouseOut={e=>{e.currentTarget.style.transform='';e.currentTarget.style.boxShadow='none'}}>

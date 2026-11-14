@@ -1,11 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+﻿import { useState, useEffect, useRef, useCallback } from 'react'
 import { submitTest } from '../api.js'
 import QuestionContent from '../components/QuestionContent'
-// True when running inside a Capacitor native shell (Android/iOS).
-// window.Capacitor is injected by the native runtime before web code runs.
-const isNative = typeof window !== 'undefined' &&
-  typeof window.Capacitor !== 'undefined' &&
-  window.Capacitor.isNativePlatform?.() === true
+const isNative = import.meta.env.VITE_IS_NATIVE === 'true'
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
          XAxis, YAxis, CartesianGrid, Tooltip, Legend,
          ResponsiveContainer } from 'recharts'
@@ -121,7 +117,7 @@ function ChartBlock({ question }) {
   )
 }
 
-export default function ExamScreen({ testData, studentName, onResult, onExit }) {
+export default function ExamScreen({ testData, studentName, onResult, onExit, onExitToHistory, resumeState }) {
   // Flatten all questions into one list with section info
   const allQuestions = testData.sections
     ? Object.entries(testData.sections).flatMap(([sec, data]) =>
@@ -130,22 +126,45 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
     : []
 
   const totalQ          = allQuestions.length
-  const totalSecs       = (testData.total_time_mins || 60) * 60
+
+  // For Topic Practice and Diagnostic tests (single-section), derive the time
+  // directly from the actual question count (1 min/Q, min 5) so the timer is
+  // always accurate regardless of what the backend sends in total_time_mins.
+  // Section Practice and Full Mock still use the backend value.
+  const isTopicPractice = testData?.test_type === 'topic_diagnostic' ||
+    testData?.test_type === 'concept_mini' ||
+    (testData?.test_type === 'mini' && testData?.topic !== 'all')
+  const totalSecs = isTopicPractice
+    ? Math.max(5, totalQ) * 60
+    : (testData.total_time_mins || 60) * 60
+  const resumedSecsLeft = resumeState?.secsLeft != null ? Math.max(0, resumeState.secsLeft) : totalSecs
 
   // ── Section time limits ─────────────────────────────────────
   // Each section has its own 20-min countdown
   // When section timer hits 0 → auto-move to next section
   const getSectionSecs = (sec) => {
     const sData = testData.sections?.[sec]
+    if (isTopicPractice) {
+      // Derive from actual Q count so it matches the global timer
+      return Math.max(5, sData?.count || (sData?.questions || []).length) * 60
+    }
     return ((sData?.time_mins) || 20) * 60
   }
 
-  const [currentIdx,    setCurrentIdx]    = useState(0)
-  const [answers,       setAnswers]       = useState({})        // qnum -> 'A'|'B'|'C'|'D'
+  const [currentIdx,    setCurrentIdx]    = useState(() => {
+    if (!resumeState?.activeSection) return 0
+    const idx = allQuestions.findIndex(q => q.section === resumeState.activeSection)
+    return idx >= 0 ? idx : 0
+  })
+  const [answers,       setAnswers]       = useState(() => resumeState?.answers || {})
   const [timeSpent,     setTimeSpent]     = useState({})        // qnum -> ms
   const [marked,        setMarked]        = useState({})        // qnum -> bool
-  const [visited,       setVisited]       = useState({ 1: true })
-  const [secsLeft,      setSecsLeft]      = useState(totalSecs)
+  const [visited,       setVisited]       = useState(() => {
+    const v = { 1: true }
+    if (resumeState?.answers) Object.keys(resumeState.answers).forEach(qn => { v[Number(qn)] = true })
+    return v
+  })
+  const [secsLeft,      setSecsLeft]      = useState(resumedSecsLeft)
   const [secTimers,     setSecTimers]     = useState(() => {
     // Initialise per-section countdown from blueprint time_mins
     const t = {}
@@ -156,8 +175,12 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
   const [submitting,    setSubmitting]    = useState(false)
   const [submitError,   setSubmitError]   = useState('')
   const [isOffline,     setIsOffline]     = useState(!navigator.onLine)
-  const [showConfirm,   setShowConfirm]   = useState(false)
-  const [activeSection, setActiveSection] = useState(Object.keys(testData.sections || {})[0])
+  const [showConfirm,     setShowConfirm]     = useState(false)
+  const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [showPalette,     setShowPalette]     = useState(false)
+  const [activeSection,   setActiveSection]   = useState(
+    resumeState?.activeSection || Object.keys(testData.sections || {})[0]
+  )
 
   // ── Anti-cheating state ────────────────────────────────────────
   const [violations,   setViolations]   = useState(0)
@@ -167,6 +190,7 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
 
   const questionStartRef = useRef(Date.now())
   const timerRef         = useRef(null)
+  const submitLockRef    = useRef(false)   // prevents double-submit race between timer effects
   const currentQ         = allQuestions[currentIdx] || {}
   const qNum             = currentQ.question_number
 
@@ -176,7 +200,7 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
   // When the app resumes from background, the next interval tick automatically
   // calculates the correct remaining time using Date.now() - timerEpochRef.
   const timerEpochRef = useRef(Date.now())
-  const timerBaseRef  = useRef(totalSecs)
+  const timerBaseRef  = useRef(resumedSecsLeft)
 
   // Epoch for the currently-ticking section: { sec, base (secs), epoch (ms) }.
   // Set when a section becomes active; cleared on section change or unmount.
@@ -202,7 +226,7 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
   useEffect(() => {
     const grace = setTimeout(() => { examStartedRef.current = true }, 3000)
     timerEpochRef.current = Date.now()
-    timerBaseRef.current  = totalSecs
+    timerBaseRef.current  = resumedSecsLeft
     timerRef.current = setInterval(() => {
       const elapsed    = Math.floor((Date.now() - timerEpochRef.current) / 1000)
       const remaining  = Math.max(0, timerBaseRef.current - elapsed)
@@ -216,6 +240,46 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
   // Disabled for mini tests (Topic Practice / Section Test)
   // Only active for full mock tests with multiple sections
   const isMini = testData?.is_mini || testData?.test_type === "mini"
+  const isFullMock = !isTopicPractice && !isMini && Object.keys(testData.sections || {}).length > 1
+
+  // ── Full-mock resume persistence ─────────────────────────────
+  const answersRef      = useRef(answers)
+  const activeSectionRef = useRef(activeSection)
+  const secsLeftRef     = useRef(secsLeft)
+  useEffect(() => { answersRef.current = answers }, [answers])
+  useEffect(() => { activeSectionRef.current = activeSection }, [activeSection])
+  useEffect(() => { secsLeftRef.current = secsLeft }, [secsLeft])
+
+  // Save test metadata on mount
+  useEffect(() => {
+    if (!isFullMock) return
+    try { localStorage.setItem('mt-inprogress', JSON.stringify({ testData, savedAt: Date.now() })) } catch {}
+  }, []) // eslint-disable-line
+
+  // Save answers immediately when they change
+  useEffect(() => {
+    if (!isFullMock) return
+    try {
+      localStorage.setItem('mt-inprogress-state', JSON.stringify({
+        answers, activeSection, secsLeft: secsLeftRef.current, savedAt: Date.now(),
+      }))
+    } catch {}
+  }, [answers, activeSection]) // eslint-disable-line
+
+  // Periodic save of secsLeft every 20s
+  useEffect(() => {
+    if (!isFullMock) return
+    const id = setInterval(() => {
+      try {
+        localStorage.setItem('mt-inprogress-state', JSON.stringify({
+          answers: answersRef.current, activeSection: activeSectionRef.current,
+          secsLeft: secsLeftRef.current, savedAt: Date.now(),
+        }))
+      } catch {}
+    }, 20000)
+    return () => clearInterval(id)
+  }, []) // eslint-disable-line
+
   const sectionTimingOn = secTimerActive && !isMini && Object.keys(testData.sections || {}).length > 1
   const testTypeLabel = (() => {
     const t = testData?.test_type || 'full'
@@ -280,6 +344,13 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
       window.removeEventListener('offline', goOffline)
       window.removeEventListener('online',  goOnline)
     }
+  }, [])
+
+  // Android back button during exam → show exit confirmation instead of navigating away
+  useEffect(() => {
+    const onExamBack = () => setShowExitConfirm(true)
+    window.addEventListener('mt:exam-back', onExamBack)
+    return () => window.removeEventListener('mt:exam-back', onExamBack)
   }, [])
 
   // ── FEATURE 1: Fullscreen on exam start (desktop browser only) ──
@@ -410,6 +481,8 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
   }
 
   const handleSubmit = useCallback(async (autoSubmit = false) => {
+    if (submitLockRef.current) return
+    submitLockRef.current = true
     saveTimeForCurrent()
     clearInterval(timerRef.current)
     setSubmitting(true)
@@ -421,11 +494,13 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
       Object.entries(timeSpent).forEach(([k, v]) => { ts[String(k)] = v })
       const result = await submitTest(testData.test_id, ans, ts)
       result.integrity_violations = violationsRef.current
+      try { localStorage.removeItem('mt-inprogress'); localStorage.removeItem('mt-inprogress-state') } catch {}
       onResult(result)
     } catch (e) {
       const msg = e.friendlyMessage || 'Submission failed. Please try again.'
       setSubmitError(msg)
       setSubmitting(false)
+      submitLockRef.current = false   // allow retry on network error
     }
   }, [testData?.test_id, answers, timeSpent])
 
@@ -494,61 +569,63 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
   const sections      = Object.keys(testData.sections || {})
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
+    <div className="flex flex-col bg-gray-50" style={{height:'100dvh',overflow:'hidden'}}>
 
       {/* ── Top bar ── */}
-      <div className="flex-shrink-0 px-4 py-2 flex items-center justify-between gap-2" style={{background:'#111', minHeight:52}}>
+      <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3"
+        style={{background:'#111',minHeight:50,paddingTop:'calc(env(safe-area-inset-top,0px) + 6px)',paddingBottom:'6px'}}>
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{background:'#FF653F'}}>
-            <span className="text-white font-black text-xs">MT</span>
+          <div className="flex items-center justify-center rounded-lg flex-shrink-0" style={{width:28,height:28,background:'#F06535'}}>
+            <span className="font-black text-white" style={{fontSize:10}}>MT</span>
           </div>
-          <span className="font-bold text-sm truncate" style={{color:'#fff'}}>{testTypeLabel}</span>
+          <span className="font-bold truncate" style={{color:'#fff',fontSize:12,maxWidth:80}}>{testTypeLabel}</span>
           {violations > 0 && (
-            <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0" style={{background:'rgba(239,68,68,.2)',color:'#fca5a5'}}>
-              ⚠ {violations}
+            <span className="font-medium flex-shrink-0" style={{background:'rgba(239,68,68,.2)',color:'#fca5a5',fontSize:10,padding:'2px 7px',borderRadius:99}}>
+              ⚠{violations}
             </span>
           )}
         </div>
-        <div className={`flex flex-col items-center px-3 py-1.5 rounded-xl font-mono font-bold flex-shrink-0
-          ${isLow ? 'border border-red-400' : 'border'}`}
-          style={isLow ? {background:'rgba(239,68,68,.15)',color:'#fca5a5',borderColor:'rgba(239,68,68,.4)'} : {background:'rgba(255,101,63,.15)',color:'#FF653F',borderColor:'rgba(255,101,63,.3)'}}>
-          <span className="text-sm sm:text-base leading-tight">{formatTime(secsLeft)}</span>
-          {secTimers[activeSection] !== undefined && (
-            <span className={`text-[9px] leading-tight ${secTimers[activeSection] < 120 ? 'text-red-400' : ''}`}
-              style={secTimers[activeSection] >= 120 ? {color:'rgba(255,101,63,.7)'} : {}}>
+        <div className="flex flex-col items-center flex-shrink-0 font-mono font-bold"
+          style={{padding:'4px 10px',borderRadius:10,fontSize:14,lineHeight:1.15,
+            ...(isLow
+              ? {background:'rgba(239,68,68,.15)',color:'#fca5a5',border:'1px solid rgba(239,68,68,.4)'}
+              : {background:'rgba(232,90,44,.15)',color:'#F06535',border:'1px solid rgba(232,90,44,.3)'})}}>
+          {formatTime(secsLeft)}
+          {sectionTimingOn && secTimers[activeSection] !== undefined && (
+            <span style={{fontSize:9,lineHeight:1.2,color:secTimers[activeSection]<120?'#fca5a5':'rgba(232,90,44,.65)'}}>
               {getSectionLabel(activeSection)}: {formatTime(secTimers[activeSection])}
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {!navigator.onLine && (
-            <span className="text-xs px-2 py-1 rounded-lg" style={{background:'rgba(239,68,68,.15)',color:'#fca5a5'}}>Offline</span>
-          )}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <button onClick={() => setShowExitConfirm(true)}
+            className="flex items-center justify-center rounded-lg"
+            style={{width:30,height:30,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.15)',touchAction:'manipulation'}}>
+            <svg width="14" height="14" fill="none" stroke="#e2e8f0" strokeWidth="2.2" strokeLinecap="round" viewBox="0 0 24 24">
+              <path d="M19 12H5M12 5l-7 7 7 7"/>
+            </svg>
+          </button>
           <button onClick={() => setShowConfirm(true)}
-            className="text-xs sm:text-sm font-bold px-3 sm:px-4 py-1.5 rounded-lg text-white whitespace-nowrap transition-colors"
-            style={{background:'#FF653F'}}
-            onMouseOver={e=>e.currentTarget.style.background='#e5512f'}
-            onMouseOut={e=>e.currentTarget.style.background='#FF653F'}>
+            className="font-bold text-white rounded-lg whitespace-nowrap"
+            style={{background:'#F06535',fontSize:12,padding:'6px 12px',touchAction:'manipulation'}}>
             Submit
           </button>
         </div>
       </div>
 
       {/* ── Section tabs ── */}
-      <div className="bg-white border-b border-gray-200 px-2 flex gap-0.5 pt-1 overflow-x-auto scrollbar-hide"
-        style={{WebkitOverflowScrolling:'touch', touchAction:'pan-x'}}>
+      <div className="bg-white border-b border-gray-200 flex overflow-x-auto flex-shrink-0"
+        style={{WebkitOverflowScrolling:'touch',touchAction:'pan-x'}}>
         {sections.map(sec => {
-          const col          = SECTION_COLORS[sec] || SECTION_COLORS.english
-          const sectionData  = testData.sections[sec] || {}
-          const sectionQs    = sectionData.questions || []
-          const expectedCount = sectionData.expected_count || sectionQs.length
-          const secAnswered  = sectionQs.filter(q => answers[q.question_number]).length
-          const isShort      = sectionQs.length < expectedCount
-          const expired      = isSectionExpired(sec)
+          const col         = SECTION_COLORS[sec] || SECTION_COLORS.english
+          const sData       = testData.sections[sec] || {}
+          const sectionQs   = sData.questions || []
+          const expectedCount = sData.expected_count || sectionQs.length
+          const secAnswered = sectionQs.filter(q => answers[q.question_number]).length
+          const expired     = isSectionExpired(sec)
+          const isActive    = activeSection === sec
           return (
-            <button
-              key={sec}
-              disabled={expired}
+            <button key={sec} disabled={expired}
               onClick={() => {
                 if (expired) return
                 const firstQ = sectionQs[0]
@@ -558,242 +635,205 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
                 }
                 setActiveSection(sec)
               }}
-              title={expired ? 'Time over for this section' : undefined}
-              style={{touchAction:'manipulation'}}
-              className={`px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-t-lg border-b-2 transition-colors whitespace-nowrap
-                ${expired
-                  ? 'text-gray-300 border-transparent cursor-not-allowed'
-                  : activeSection === sec
-                    ? `${col.text} border-current bg-white`
-                    : 'text-gray-500 border-transparent hover:text-gray-700'}`}
-            >
+              style={{
+                touchAction:'manipulation',padding:'8px 14px',fontSize:12,fontWeight:isActive?700:500,
+                whiteSpace:'nowrap',flexShrink:0,background:'transparent',border:'none',
+                borderBottom:isActive?'2px solid #F06535':'2px solid transparent',
+                color:expired?'#d1d5db':isActive?'#111':'#6b7280',cursor:expired?'not-allowed':'pointer',
+              }}>
               {getSectionLabel(sec)} ({secAnswered}/{expectedCount})
             </button>
           )
         })}
       </div>
 
-      {/* ── Offline banner ── */}
-      {isOffline && (
-        <div className="bg-red-600 text-white text-center text-sm py-2 px-4 font-medium">
-          ⚠ You are offline. Your answers are saved locally. Reconnect to submit.
-        </div>
-      )}
+      {/* ── Alert banners ── */}
+      {isOffline && <div className="flex-shrink-0 bg-red-600 text-white text-center font-medium" style={{fontSize:12,padding:'6px 12px'}}>⚠ Offline — answers saved locally. Reconnect to submit.</div>}
+      {violationMsg && <div className="flex-shrink-0 bg-red-600 text-white text-center font-medium" style={{fontSize:12,padding:'6px 12px'}}>{violationMsg}</div>}
+      {submitError && <div className="flex-shrink-0 bg-red-50 border-b border-red-200 text-red-700 text-center" style={{fontSize:12,padding:'6px 12px'}}>{submitError} <button onClick={()=>setSubmitError('')} className="ml-2 underline">Dismiss</button></div>}
 
-      {/* ── FEATURE 5: Violation warning banner ── */}
-      {violationMsg && (
-        <div className="bg-red-600 text-white text-sm font-medium py-2.5 px-4 text-center flex items-center justify-center gap-2 animate-pulse">
-          <span>{violationMsg}</span>
-          {violations > 0 && (
-            <span className="bg-red-800 px-2 py-0.5 rounded-full text-xs">
-              {violations}/{MAX_VIOLATIONS} violations
-            </span>
-          )}
-        </div>
-      )}
+      {/* ── Question area (full-width, scrollable) ── */}
+      <div className="flex-1 overflow-y-auto" style={{WebkitOverflowScrolling:'touch'}}>
+        {(() => {
+          const qtext   = currentQ.question_text || ''
+          const isRC    = qtext.includes('[PASSAGE]')
+          const passage = isRC ? (qtext.split('[PASSAGE]')[1]?.split('[/PASSAGE]')[0]?.trim() || '') : ''
+          const qline   = isRC ? (qtext.split('[/PASSAGE]')[1]?.trim() || '') : qtext
 
-      {/* ── Submit error banner ── */}
-      {submitError && (
-        <div className="bg-red-50 border-b border-red-200 text-red-700 text-sm py-2 px-4 text-center">
-          {submitError}
-          <button onClick={() => setSubmitError('')} className="ml-3 underline text-xs">Dismiss</button>
-        </div>
-      )}
-
-      {/* ── Main area ── */}
-      <div className="flex flex-1 overflow-hidden flex-col sm:flex-row">
-
-        {/* Question panel */}
-        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-          <div className="flex-1 overflow-y-auto nice-scroll p-3 sm:p-6">
-          {(() => {
-            const qtext   = currentQ.question_text || ''
-            const isRC    = qtext.includes('[PASSAGE]')
-            const passage = isRC ? (qtext.split('[PASSAGE]')[1]?.split('[/PASSAGE]')[0]?.trim() || '') : ''
-            // A real DI table has >=2 lines that START with '|'. A stray '|'
-            // (e.g. the coded-inequality legend "'@' means '>' | '#' means '<'")
-            // must NOT blank the question text.
-            // For RC the question line is the text after the passage; otherwise the
-            // whole question_text (QuestionContent renders any DI table within it).
-            const qline   = isRC
-              ? (qtext.split('[/PASSAGE]')[1]?.trim() || '')
-              : qtext
-
-            const header = (
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-500">Question {currentIdx + 1} of {totalQ}</span>
-                  <span className={`badge ${SECTION_COLORS[currentQ.section]?.light || 'bg-gray-100'} ${SECTION_COLORS[currentQ.section]?.text || 'text-gray-600'}`}>
-                    {getSectionLabel(currentQ.section)}
-                  </span>
-                </div>
-                <button onClick={toggleMark}
-                  className={`text-sm px-3 py-1 rounded-lg border transition-colors ${marked[qNum] ? 'bg-yellow-50 border-yellow-300 text-yellow-700' : 'border-gray-300 text-gray-500 hover:bg-gray-50'}`}>
-                  {marked[qNum] ? 'Marked for review' : 'Mark for review'}
-                </button>
+          const qHeader = (
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span style={{fontSize:12,fontWeight:600,color:'#6b7280'}}>Q {currentIdx+1} of {totalQ}</span>
+                <span className={`${SECTION_COLORS[currentQ.section]?.light||'bg-gray-100'} ${SECTION_COLORS[currentQ.section]?.text||'text-gray-600'}`}
+                  style={{fontSize:11,fontWeight:700,padding:'2px 8px',borderRadius:99}}>
+                  {getSectionLabel(currentQ.section)}
+                </span>
               </div>
-            )
-
-            const options = (
-              <div className="space-y-2.5">
-                {['a','b','c','d','e'].map(opt => {
-                  const label  = opt.toUpperCase()
-                  const text   = currentQ[`option_${opt}`]
-                  if (!text) return null
-                  const chosen = answers[qNum] === label
-                  return (
-                    <button key={opt} onClick={() => selectAnswer(label)}
-                      className={`w-full text-left flex items-center gap-3 p-2.5 sm:p-3 rounded-xl border-2 transition-all min-h-[44px] ${chosen ? 'shadow-sm' : 'border-gray-200 bg-white'}`}
-                      style={chosen ? {borderColor:'#FF653F', background:'#FFF3EE', touchAction:'manipulation'} : {touchAction:'manipulation'}}
-                      onMouseOver={e => !chosen && (e.currentTarget.style.borderColor='#fec9b0')}
-                      onMouseOut={e => !chosen && (e.currentTarget.style.borderColor='#e5e7eb')}>
-                      <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0 ${chosen ? 'text-white' : 'bg-gray-100 text-gray-600'}`}
-                        style={chosen ? {background:'#FF653F'} : {}}>{label}</span>
-                      <span className={`text-sm ${chosen ? 'font-medium' : 'text-gray-700'}`} style={chosen ? {color:'#111'} : {}}>{text}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            )
-
-            // RC: passage left, question + options right (everything visible together)
-            if (isRC) return (
-              <div className="max-w-6xl mx-auto">
-                {header}
-                <div className="flex flex-col lg:flex-row gap-4 items-start">
-                  <div className="w-full lg:w-1/2 flex-shrink-0">
-                    <div className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">Read the passage carefully</div>
-                    <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-[13px] text-gray-700 leading-relaxed whitespace-pre-line lg:max-h-[70vh] lg:overflow-y-auto nice-scroll">
-                      {passage}
-                    </div>
-                  </div>
-                  <div className="w-full lg:flex-1 min-w-0">
-                    <QuestionContent text={qline} className="mb-3" />
-                    {options}
-                  </div>
-                </div>
-              </div>
-            )
-
-            // Non-RC: single column (chart / table / plain question)
-            return (
-              <div className="max-w-3xl mx-auto">
-                {header}
-                <div className="card p-4 sm:p-6 mb-4">
-                  <ChartBlock question={currentQ} />
-                  <QuestionContent text={qline} className="mt-2" />
-                </div>
-                {options}
-              </div>
-            )
-          })()}
-          </div>
-
-          {/* ── Sticky navigation footer — always visible ── */}
-          <div className="border-t border-gray-200 bg-white px-3 sm:px-6 py-3 flex-shrink-0">
-            <div className="max-w-3xl mx-auto flex items-center justify-between gap-2">
-              <button
-                onClick={() => currentIdx > 0 && goTo(currentIdx - 1)}
-                disabled={currentIdx === 0}
-                style={{touchAction:'manipulation'}}
-                className="btn-outline px-5 disabled:opacity-40"
-              >
-                Previous
-              </button>
-              <div className="flex gap-2">
-                {answers[qNum] && (
-                  <button
-                    onClick={() => setAnswers(a => { const n = {...a}; delete n[qNum]; return n })}
-                    style={{touchAction:'manipulation'}}
-                    className="btn text-sm border border-red-200 text-red-600 hover:bg-red-50"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-              <button
-                onClick={() => currentIdx < totalQ - 1 && goTo(currentIdx + 1)}
-                disabled={currentIdx === totalQ - 1}
-                style={{touchAction:'manipulation'}}
-                className="btn-primary px-5 disabled:opacity-40"
-              >
-                Next
+              <button onClick={toggleMark} style={{
+                fontSize:12,fontWeight:600,padding:'5px 12px',borderRadius:8,touchAction:'manipulation',cursor:'pointer',border:'1px solid',
+                borderColor:marked[qNum]?'#eab308':'#d1d5db',background:marked[qNum]?'#fefce8':'#fff',
+                color:marked[qNum]?'#a16207':'#6b7280'}}>
+                {marked[qNum] ? '★ Marked' : 'Mark for review'}
               </button>
             </div>
+          )
+
+          const optionEls = (
+            <div style={{display:'flex',flexDirection:'column',gap:9}}>
+              {['a','b','c','d','e'].map(opt => {
+                const label  = opt.toUpperCase()
+                const text   = currentQ[`option_${opt}`]
+                if (!text) return null
+                const chosen = answers[qNum] === label
+                return (
+                  <button key={opt} onClick={() => selectAnswer(label)}
+                    className="w-full text-left flex items-center gap-3"
+                    style={{
+                      padding:'11px 14px',minHeight:48,borderRadius:12,border:'2px solid',
+                      borderColor:chosen?'#F06535':'#e5e7eb',
+                      background:chosen?'#FFF3EE':'#fff',
+                      touchAction:'manipulation',transition:'border-color .1s'}}
+                    onMouseOver={e => !chosen && (e.currentTarget.style.borderColor='#fec9b0')}
+                    onMouseOut={e => !chosen && (e.currentTarget.style.borderColor='#e5e7eb')}>
+                    <span style={{
+                      width:28,height:28,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',
+                      fontSize:12,fontWeight:800,flexShrink:0,
+                      background:chosen?'#F06535':'#f3f4f6',color:chosen?'#fff':'#374151'}}>
+                      {label}
+                    </span>
+                    <span style={{fontSize:14,lineHeight:1.5,color:chosen?'#111':'#374151',fontWeight:chosen?500:400}}>
+                      {text}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )
+
+          if (isRC) return (
+            <div style={{padding:'16px 16px 8px',maxWidth:720,margin:'0 auto'}}>
+              {qHeader}
+              <div style={{fontSize:11,fontWeight:800,textTransform:'uppercase',letterSpacing:'.1em',color:'#3b82f6',marginBottom:8}}>
+                Read the passage carefully
+              </div>
+              <div style={{background:'#eff6ff',border:'1px solid #dbeafe',borderRadius:14,padding:'14px 16px',marginBottom:14,
+                fontSize:13.5,color:'#1e3a5f',lineHeight:1.75,maxHeight:'32vh',overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
+                {passage}
+              </div>
+              <div style={{background:'#fff',border:'1px solid #e5e7eb',borderRadius:14,padding:'14px 16px',marginBottom:14,boxShadow:'0 1px 3px rgba(0,0,0,.06)'}}>
+                <QuestionContent text={qline} />
+              </div>
+              {optionEls}
+            </div>
+          )
+
+          return (
+            <div style={{padding:'16px 16px 8px',maxWidth:720,margin:'0 auto'}}>
+              {qHeader}
+              <div style={{background:'#fff',border:'1px solid #e5e7eb',borderRadius:14,padding:'14px 16px',marginBottom:14,boxShadow:'0 1px 3px rgba(0,0,0,.06)'}}>
+                <ChartBlock question={currentQ} />
+                <QuestionContent text={qline} />
+              </div>
+              {optionEls}
+            </div>
+          )
+        })()}
+      </div>
+
+      {/* ── Bottom nav bar (always visible) ── */}
+      <div className="flex-shrink-0 bg-white border-t border-gray-200"
+        style={{paddingBottom:'calc(env(safe-area-inset-bottom,0px) + 2px)'}}>
+        <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+          <button onClick={() => currentIdx > 0 && goTo(currentIdx - 1)} disabled={currentIdx === 0}
+            style={{padding:'8px 18px',borderRadius:10,border:'1.5px solid #d1d5db',fontSize:13,fontWeight:700,
+              color:'#374151',background:'#fff',touchAction:'manipulation',opacity:currentIdx===0?.4:1,cursor:currentIdx===0?'not-allowed':'pointer'}}>
+            ← Prev
+          </button>
+          <div className="flex items-center gap-2">
+            {answers[qNum] && (
+              <button onClick={() => setAnswers(a => { const n={...a}; delete n[qNum]; return n })}
+                style={{padding:'6px 10px',borderRadius:9,border:'1.5px solid #fecaca',fontSize:12,fontWeight:600,
+                  color:'#dc2626',background:'#fff',touchAction:'manipulation'}}>
+                Clear
+              </button>
+            )}
+            <button onClick={() => setShowPalette(p => !p)}
+              style={{padding:'6px 11px',borderRadius:9,border:'1.5px solid #e5e7eb',fontSize:12,fontWeight:700,
+                color:'#374151',background:showPalette?'#f3f4f6':'#fff',touchAction:'manipulation'}}>
+              {answeredCount}/{totalQ} {showPalette ? '▾' : '▴'}
+            </button>
           </div>
+          <button onClick={() => currentIdx < totalQ - 1 && goTo(currentIdx + 1)} disabled={currentIdx === totalQ - 1}
+            style={{padding:'8px 18px',borderRadius:10,fontSize:13,fontWeight:700,color:'#fff',
+              background:'#F06535',border:'none',touchAction:'manipulation',
+              opacity:currentIdx===totalQ-1?.4:1,cursor:currentIdx===totalQ-1?'not-allowed':'pointer'}}>
+            Next →
+          </button>
         </div>
 
-        {/* ── Right sidebar — question palette ── */}
-        <div className="sm:w-64 w-full bg-white sm:border-l border-t border-gray-200 flex flex-col overflow-hidden sm:max-h-none max-h-40">
-          <div className="p-3 border-b border-gray-100">
-            <div className="text-sm font-semibold text-gray-700 mb-2">Question palette</div>
-            <div className="grid grid-cols-2 gap-1 text-xs">
+        {/* Collapsible question palette */}
+        {showPalette && (
+          <div className="border-t border-gray-100 overflow-y-auto" style={{maxHeight:'40vh',WebkitOverflowScrolling:'touch'}}>
+            {/* Legend */}
+            <div style={{padding:'10px 12px 6px',display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:'6px 4px'}}>
               {[
-                ['answered',        'bg-green-500',  'Answered'],
-                ['marked',          'bg-yellow-400', 'Marked'],
-                ['visited',         'bg-red-100  border border-red-300', 'Not answered'],
-                ['not-visited',     'bg-white border border-gray-300', 'Not visited'],
-              ].map(([, cls, label]) => (
-                <div key={label} className="flex items-center gap-1.5">
-                  <span className={`w-4 h-4 rounded-sm ${cls} flex-shrink-0`}></span>
-                  <span className="text-gray-500">{label}</span>
+                ['bg-green-500','Answered'],
+                ['bg-yellow-400','Marked'],
+                ['bg-red-100 border border-red-300','Not answered'],
+                ['bg-white border border-gray-300','Not visited'],
+              ].map(([cls, label]) => (
+                <div key={label} className="flex items-center gap-1">
+                  <span className={`flex-shrink-0 rounded-sm ${cls}`} style={{width:12,height:12}}></span>
+                  <span style={{fontSize:9.5,color:'#6b7280',lineHeight:1.2}}>{label}</span>
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Progress */}
-          <div className="px-3 py-2 border-b border-gray-100">
-            <div className="flex justify-between text-xs text-gray-500 mb-1">
-              <span>Answered: {answeredCount}</span>
-              <span>Remaining: {totalQ - answeredCount}</span>
+            {/* Progress bar */}
+            <div style={{padding:'0 12px 8px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                <span style={{fontSize:11,color:'#6b7280'}}>Answered: {answeredCount}</span>
+                <span style={{fontSize:11,color:'#6b7280'}}>Remaining: {totalQ - answeredCount}</span>
+              </div>
+              <div style={{height:3,background:'#f3f4f6',borderRadius:99}}>
+                <div style={{height:3,background:'#10b981',borderRadius:99,width:`${(answeredCount/totalQ)*100}%`,transition:'width .3s'}}></div>
+              </div>
             </div>
-            <div className="w-full bg-gray-100 rounded-full h-1.5">
-              <div className="bg-green-500 h-1.5 rounded-full transition-all"
-                style={{ width: `${(answeredCount / totalQ) * 100}%` }}></div>
+            {/* Question grid */}
+            <div style={{padding:'0 12px 10px'}}>
+              {sections.map(sec => {
+                const sqs = (testData.sections[sec]?.questions || []).sort((a,b)=>a.question_number-b.question_number)
+                return (
+                  <div key={sec} style={{marginBottom:12}}>
+                    <div className={`${SECTION_COLORS[sec]?.text || 'text-gray-600'}`} style={{fontSize:11,fontWeight:700,marginBottom:6}}>
+                      {SECTION_LABELS[sec]}
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(8,1fr)',gap:4}}>
+                      {sqs.map(q => {
+                        const status = getStatus(q)
+                        const qi = allQuestions.findIndex(aq => aq.question_number === q.question_number)
+                        return (
+                          <button key={q.question_number} onClick={() => { goTo(qi); setShowPalette(false) }}
+                            style={{touchAction:'manipulation',width:'100%',aspectRatio:'1',fontSize:11,fontWeight:600,borderRadius:6,border:'1px solid',cursor:'pointer'}}
+                            className={`${STATUS_STYLE[status]} ${currentIdx===qi?'ring-2 ring-blue-400 ring-offset-1':''}`}>
+                            {q.question_number}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            {/* Submit */}
+            <div style={{padding:'0 12px 12px'}}>
+              <button onClick={() => { setShowPalette(false); setShowConfirm(true) }}
+                className="w-full font-bold text-white rounded-xl"
+                style={{padding:'11px',fontSize:13,background:'#10b981',border:'none',touchAction:'manipulation',cursor:'pointer'}}>
+                Submit Test
+              </button>
             </div>
           </div>
-
-          {/* Palette grid */}
-          <div className="flex-1 overflow-y-auto p-2 sm:p-3">
-            {sections.map(sec => {
-              const sqs = (testData.sections[sec]?.questions || [])
-                .sort((a, b) => a.question_number - b.question_number)
-              return (
-                <div key={sec} className="mb-4">
-                  <div className={`text-xs font-semibold mb-2 ${SECTION_COLORS[sec]?.text || 'text-gray-600'}`}>
-                    {SECTION_LABELS[sec]}
-                  </div>
-                  <div className="grid grid-cols-5 gap-1">
-                    {sqs.map(q => {
-                      const status = getStatus(q)
-                      const idx = allQuestions.findIndex(aq => aq.question_number === q.question_number)
-                      return (
-                        <button
-                          key={q.question_number}
-                          onClick={() => goTo(idx)}
-                          style={{touchAction:'manipulation'}}
-                          className={`w-9 h-9 text-xs font-medium rounded border transition-all
-                            ${STATUS_STYLE[status]}
-                            ${currentIdx === idx ? 'ring-2 ring-blue-400 ring-offset-1' : ''}`}
-                        >
-                          {q.question_number}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-
-          <div className="p-3 border-t border-gray-100">
-            <button onClick={() => setShowConfirm(true)}
-              className="btn-success w-full text-sm py-2">
-              Submit Test
-            </button>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* ── Submit confirmation modal ── */}
@@ -814,6 +854,37 @@ export default function ExamScreen({ testData, studentName, onResult, onExit }) 
               <button onClick={() => handleSubmit(false)} disabled={submitting}
                 className="btn-success flex-1">
                 {submitting ? 'Submitting...' : 'Yes, submit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Exit confirmation modal (Home button / Android back) ── */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="card p-6 max-w-sm w-full">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Exit exam?</h3>
+            <div className="text-sm text-gray-600 mb-4 space-y-1">
+              <div>Answered: <b className="text-green-600">{answeredCount}</b> of {totalQ}</div>
+              <div>Unanswered: <b className="text-red-500">{totalQ - answeredCount}</b></div>
+            </div>
+            <p className="text-sm text-gray-500 mb-5">Exiting now will discard your progress. This test will not be saved.</p>
+            <div className="flex flex-col gap-2">
+              <button onClick={() => setShowExitConfirm(false)}
+                className="btn-success w-full">
+                Continue Exam
+              </button>
+              <button onClick={() => { setShowExitConfirm(false); handleSubmit(false) }}
+                disabled={submitting}
+                className="w-full text-sm font-semibold py-2 px-4 rounded-lg border transition-colors"
+                style={{borderColor:'#F06535',color:'#F06535',background:'transparent'}}>
+                {submitting ? 'Submitting...' : 'Submit & View Result'}
+              </button>
+              <button onClick={() => { setShowExitConfirm(false); if (onExitToHistory) onExitToHistory(); else if (onExit) onExit() }}
+                className="w-full text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                style={{color:'#6b7280',background:'#f3f4f6'}}>
+                Exit Without Submitting
               </button>
             </div>
           </div>

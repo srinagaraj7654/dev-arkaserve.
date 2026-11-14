@@ -1,4 +1,6 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
+
+const isNative = import.meta.env.VITE_IS_NATIVE === 'true'
 
 /* ─── SVG icons ─── */
 const _sv = (c) => ({fill:'none',stroke:c||'currentColor',strokeWidth:'1.5',strokeLinecap:'round',strokeLinejoin:'round'})
@@ -18,7 +20,7 @@ const PIcPuzzle  = ({s=28,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {
 /* ─── DATA ─────────────────────────────────────────────────── */
 
 const EXAM_GROUPS = [
-  { id:'ibps', label:'IBPS Exams', color:'#FF653F', exams:[
+  { id:'ibps', label:'IBPS Exams', color:'#F06535', exams:[
     { id:'bank_clerk_prelims', name:'Clerk Prelims', meta:'100Q · 60 min',  tag:'Popular' },
     { id:'bank_clerk_mains',   name:'Clerk Mains',   meta:'175Q · 160 min' },
     { id:'bank_po_prelims',    name:'PO Prelims',    meta:'100Q · 60 min',  tag:'Popular' },
@@ -124,7 +126,7 @@ const TAG = { Popular:'bg-amber-100 text-amber-700', New:'bg-emerald-100 text-em
 
 /* ─── MAIN COMPONENT ────────────────────────────────────────── */
 export default function PracticePage({ user, isAdmin = false, onStartTest, onLogout, onNav }) {
-  const [activeNav,    setActiveNav]    = useState('mock')
+  const [activeNav,    setActiveNav]    = useState(() => { try { const t=sessionStorage.getItem('mt-practice-tab'); if(t){sessionStorage.removeItem('mt-practice-tab');return t} } catch{} return 'mock' })
   const [mobileSide,   setMobileSide]   = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
 
@@ -141,13 +143,28 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
     ? user.user_metadata.selected_exams
     : (user?.user_metadata?.target_exam ? [user.user_metadata.target_exam] : [])
   const hasReg = registeredExamIds.length > 0
-  // Pro or not-yet-registered (skipped) users see everything so they can pick;
-  // a registered free user sees only the exam(s) they registered for.
-  const visibleGroups = (isPro || !hasReg)
-    ? EXAM_GROUPS
-    : EXAM_GROUPS
+  // Category filter — maps selected_categories to PracticePage group ids
+  const PRACTICE_CAT_TO_GROUP = {
+    banking: ['ibps','sbi','rrb','psu'],
+    engineering: ['eamcet'],
+  }
+  const _selCatsPrac = Array.isArray(user?.user_metadata?.selected_categories) ? user.user_metadata.selected_categories : []
+  const visibleGroups = (() => {
+    if (_selCatsPrac.length > 0) {
+      const allowed = new Set(_selCatsPrac.flatMap(c => PRACTICE_CAT_TO_GROUP[c] || []))
+      const filtered = EXAM_GROUPS.filter(g => allowed.has(g.id))
+      if (!filtered.length) return []
+      if (isPro || !hasReg) return filtered
+      return filtered
         .map(g => ({ ...g, exams: g.exams.filter(e => registeredExamIds.includes(e.id) || FREE_OPEN_EXAM_IDS.has(e.id)) }))
         .filter(g => g.exams.length > 0)
+    }
+    const base = EXAM_GROUPS
+    if (isPro || !hasReg) return base
+    return base
+      .map(g => ({ ...g, exams: g.exams.filter(e => registeredExamIds.includes(e.id) || FREE_OPEN_EXAM_IDS.has(e.id)) }))
+      .filter(g => g.exams.length > 0)
+  })()
 
   function handleNav(id) {
     setMobileSide(false)
@@ -168,14 +185,15 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
     <div className="h-screen overflow-hidden flex flex-col text-sm" style={{background:'#ffffff'}}>
 
       {/* ── TOPBAR ── */}
-      <header className="h-14 flex items-center px-4 gap-3 sticky top-0 z-50 shadow-md flex-shrink-0" style={{background:'#111'}}>
+      <header className="sticky top-0 z-50 shadow-md flex-shrink-0" style={{background:'#111', paddingTop:'env(safe-area-inset-top,0px)'}}>
+      <div className="h-14 flex items-center px-4 gap-3">
         <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:'#FF653F'}}>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:'#F06535'}}>
             <span className="text-white text-xs font-black">MT</span>
           </div>
           <div className="hidden sm:block leading-none">
             <div className="text-white font-bold text-sm">MockTest</div>
-            <div style={{fontSize:8.5,fontWeight:700,color:'#FF653F',letterSpacing:'.10em',textTransform:'uppercase',fontStyle:'italic',marginTop:3,lineHeight:1}}>Your World of Mock Tests</div>
+            <div style={{fontSize:8.5,fontWeight:700,color:'#F06535',letterSpacing:'.10em',textTransform:'uppercase',fontStyle:'italic',marginTop:3,lineHeight:1}}>Your World of Mock Tests</div>
           </div>
         </div>
         <div className="flex-1" />
@@ -190,7 +208,7 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
             <button
               onClick={()=>setUserMenuOpen(o=>!o)}
               style={{display:'flex',alignItems:'center',gap:7,background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.2)',borderRadius:999,padding:'4px 10px 4px 4px',cursor:'pointer',position:'relative',zIndex:50}}>
-              <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:900,color:'#fff',flexShrink:0}}>
+              <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,#F06535,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:900,color:'#fff',flexShrink:0}}>
                 {(uName[0]||'U').toUpperCase()}
               </div>
               <span style={{fontSize:12,fontWeight:700,color:'#fff',maxWidth:90,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
@@ -205,7 +223,7 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
               <div style={{position:'absolute',top:'calc(100% + 8px)',right:0,background:'#fff',border:'1px solid #e5e7eb',borderRadius:12,boxShadow:'0 8px 28px rgba(0,0,0,.15)',minWidth:210,zIndex:50,overflow:'hidden'}}>
                 <style>{`@keyframes dd-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}`}</style>
                 <div style={{padding:'12px 14px 10px',borderBottom:'1px solid #f5f5f5',display:'flex',alignItems:'center',gap:10,animation:'dd-in .15s ease-out'}}>
-                  <div style={{width:34,height:34,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:900,color:'#fff',flexShrink:0}}>
+                  <div style={{width:34,height:34,borderRadius:'50%',background:'linear-gradient(135deg,#F06535,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:900,color:'#fff',flexShrink:0}}>
                     {(uName[0]||'U').toUpperCase()}
                   </div>
                   <div style={{minWidth:0}}>
@@ -226,10 +244,11 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
 
           {/* Mobile: avatar only (taps open sidebar) */}
           <button onClick={()=>setMobileSide(true)} className="sm:hidden flex items-center justify-center rounded-full"
-            style={{width:34,height:34,background:'linear-gradient(135deg,#FF653F,#ff8a5f)',border:'none',cursor:'pointer',flexShrink:0}}>
+            style={{width:34,height:34,background:'linear-gradient(135deg,#F06535,#ff8a5f)',border:'none',cursor:'pointer',flexShrink:0}}>
             <span style={{color:'#fff',fontSize:12,fontWeight:900}}>{(uName[0]||'U').toUpperCase()}</span>
           </button>
         </div>
+      </div>
       </header>
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
@@ -247,7 +266,7 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
           `}>
 
             {/* Mobile close */}
-            <div className="flex items-center justify-between px-4 py-3 sm:hidden border-b border-gray-100">
+            <div className="flex items-center justify-between px-4 py-3 sm:hidden border-b border-gray-100" style={{paddingTop:'calc(env(safe-area-inset-top,0px) + 12px)'}}>
               <span className="text-gray-900 font-bold text-sm">Menu</span>
               <button onClick={()=>setMobileSide(false)} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>
             </div>
@@ -281,7 +300,7 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
                       className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all ${
                         active ? 'text-white font-bold shadow-sm' : 'text-gray-600 hover:bg-white hover:text-gray-900 font-medium'
                       }`}
-                      style={active ? {background:'#FF653F'} : {}}
+                      style={active ? {background:'#F06535'} : {}}
                     >
                       <span>{m.icon}</span>
                       <span className="text-sm">{m.label}</span>
@@ -315,7 +334,7 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
             {/* Bottom: compact user info + logout (mobile sidebar) */}
             <div className="border-t border-gray-100 p-3 sm:hidden">
               <div className="flex items-center gap-3 px-1 py-2 mb-1">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{background:'linear-gradient(135deg,#FF653F,#ff8a5f)'}}>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{background:'linear-gradient(135deg,#F06535,#ff8a5f)'}}>
                   <span className="text-white text-sm font-bold">{(uName[0]||'U').toUpperCase()}</span>
                 </div>
                 <div className="min-w-0">
@@ -336,7 +355,7 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
         </>
 
         {/* ── MAIN ── */}
-        <main className="flex-1 overflow-y-auto min-w-0">
+        <main className="flex-1 overflow-y-auto min-w-0" style={{paddingBottom:'env(safe-area-inset-bottom,0px)'}}>
 
           {/* Page header */}
           <div className="bg-white border-b border-gray-200 px-6 py-5 sticky top-0 z-10">
@@ -367,7 +386,16 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
                     </div>
                     <button onClick={()=>onNav?.('subscriptions')}
                       className="text-white text-xs font-bold px-5 py-2.5 rounded-xl flex-shrink-0"
-                      style={{background:'#FF653F'}}>⭐ Upgrade to Pro</button>
+                      style={{background:'#F06535'}}>⭐ Upgrade to Pro</button>
+                  </div>
+                )}
+                {visibleGroups.length === 0 && _selCatsPrac.length > 0 && (
+                  <div className="text-center py-16">
+                    <div style={{width:48,height:48,borderRadius:'50%',background:'#F3F4F6',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px'}}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    </div>
+                    <div className="text-sm font-semibold text-gray-500">No practice tests for your selected categories</div>
+                    <div className="text-xs text-gray-400 mt-1">Select Banking or Engineering to see available tests</div>
                   </div>
                 )}
                 {visibleGroups.map(g => (
@@ -389,9 +417,9 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
                           <button
                             onClick={()=>handleLaunch(e.id)}
                             className="mt-auto text-xs font-bold rounded-lg py-1.5 transition-all"
-                            style={{color:'#FF653F',border:'1px solid #fec9b0'}}
-                            onMouseOver={e=>{e.currentTarget.style.background='#FF653F';e.currentTarget.style.color='#fff'}}
-                            onMouseOut={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='#FF653F'}}
+                            style={{color:'#F06535',border:'1px solid #fec9b0'}}
+                            onMouseOver={e=>{e.currentTarget.style.background='#F06535';e.currentTarget.style.color='#fff'}}
+                            onMouseOut={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='#F06535'}}
                           >
                             Launch
                           </button>
@@ -406,6 +434,31 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
             {/* ── TOPIC PRACTICE ── */}
             {activeNav === 'topic' && (
               <div className="space-y-6">
+                {/* Exam context banner (native only) */}
+                {isNative && (() => {
+                  const targetId = user?.user_metadata?.target_exam || ''
+                  if (!targetId) return null
+                  const allGroups = [...EXAM_GROUPS, {id:'eamcet',label:'EAMCET Exams',color:'#7c3aed',exams:[{id:'ap_eamcet_engg',name:'AP EAMCET Engineering'},{id:'ts_eamcet_engg',name:'TS EAMCET Engineering'}]}]
+                  const grp = allGroups.find(g=>g.exams.some(e=>e.id===targetId))
+                  const examName = grp?.exams.find(e=>e.id===targetId)?.name || ''
+                  if (!examName) return null
+                  const isEngineering = targetId.includes('eamcet')
+                  return (
+                    <div className="rounded-xl p-3 flex items-center justify-between gap-3"
+                      style={{background:'#f8f9fa',border:'1px solid #e5e7eb'}}>
+                      <div>
+                        <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-0.5">Preparing for</div>
+                        <div className="text-sm font-bold text-gray-900">{examName}</div>
+                        {isEngineering && <div className="text-xs text-amber-600 mt-0.5">Banking topics shown — EAMCET-specific topics coming soon</div>}
+                      </div>
+                      <button onClick={()=>handleNav('mock')}
+                        className="text-xs font-bold px-4 py-2 rounded-lg flex-shrink-0"
+                        style={{background:'#F06535',color:'#fff'}}>
+                        Full Mock →
+                      </button>
+                    </div>
+                  )
+                })()}
                 {TOPICS.map(sec => (
                   <div key={sec.section}>
                     <div className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold border mb-3 ${sec.bg} ${sec.color} ${sec.border}`}>
@@ -417,7 +470,7 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
                           key={t.topic}
                           onClick={()=>handleTopic(t.topic)}
                           className="text-left px-3 py-2.5 bg-white rounded-lg border border-gray-200 text-gray-700 font-medium transition-all"
-                          onMouseOver={e=>{e.currentTarget.style.borderColor='#FF653F';e.currentTarget.style.background='#FFF3EE';e.currentTarget.style.color='#FF653F'}}
+                          onMouseOver={e=>{e.currentTarget.style.borderColor='#F06535';e.currentTarget.style.background='#FFF3EE';e.currentTarget.style.color='#F06535'}}
                           onMouseOut={e=>{e.currentTarget.style.borderColor='#e5e7eb';e.currentTarget.style.background='#fff';e.currentTarget.style.color='#374151'}}
                         >
                           {t.label}

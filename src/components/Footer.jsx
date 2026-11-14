@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import api from '../api.js'
 
 /* ── Category icons for the explore grid ── */
@@ -113,11 +113,36 @@ const LINK_STYLE = {
   transition: 'color .12s', textAlign: 'left', display: 'block', marginBottom: 10,
 }
 
+/* ── Per-category colors for mobile Explore cards ── */
+const CAT_COLORS = {
+  Banking:     { c:'#F06535', bg:'rgba(232,90,44,.1)'  },
+  RBI:         { c:'#0a84ff', bg:'rgba(10,132,255,.1)' },
+  LIC:         { c:'#5856D6', bg:'rgba(88,86,214,.1)'  },
+  NABARD:      { c:'#34c759', bg:'rgba(52,199,89,.1)'  },
+  SSC:         { c:'#ff9500', bg:'rgba(255,149,0,.1)'  },
+  Railway:     { c:'#5856D6', bg:'rgba(88,86,214,.1)'  },
+  Engineering: { c:'#636366', bg:'rgba(99,99,102,.1)'  },
+  Medical:     { c:'#636366', bg:'rgba(99,99,102,.1)'  },
+  'US Exams':  { c:'#f59e0b', bg:'rgba(245,158,11,.1)' },
+}
+
+/* ── Section icons for mobile accordion ── */
+const IcPerson  = () => <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+const IcBook    = () => <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+const IcShieldSm= () => <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+
+const MOB_SECTIONS = [
+  { id:'company',   label:'Company',   Icon:IcPerson,   links:COMPANY_LINKS },
+  { id:'resources', label:'Resources', Icon:IcBook,     links:RESOURCE_LINKS },
+  { id:'legal',     label:'Legal',     Icon:IcShieldSm, links:LEGAL_LINKS },
+]
+
 /* ── Main Footer ── */
 export default function Footer({ onNav, compact = false }) {
   const nav = (id) => id && onNav(id)
   const [visitorCount, setVisitorCount] = useState(null)
   const [openCat, setOpenCat] = useState(null)
+  const [openMobSection, setOpenMobSection] = useState(null)
   const [email, setEmail] = useState('')
   const [subState, setSubState] = useState('idle') // idle | done
 
@@ -141,6 +166,7 @@ export default function Footer({ onNav, compact = false }) {
         }
         .ft-explore-mobile { display: none; }
         .ft-link-chevron { display: none; }
+        .ft-mob-sections { display: none; }
 
         /* ── Bottom band grid: brand | company | resources | legal | stay-updated ── */
         .ft-bottom-grid {
@@ -175,12 +201,10 @@ export default function Footer({ onNav, compact = false }) {
           .ft-brand-col { grid-column: 1 / -1 !important; border-top: none !important; margin-top: 0 !important; padding-top: 0 !important; padding-bottom: 24px !important; }
           /* Social icons: larger touch targets */
           .ft-social-btn { width: 44px !important; height: 44px !important; border-radius: 10px !important; }
-          /* Company + Resources: side-by-side with top divider */
-          .ft-company-col { border-top: 1px solid rgba(255,255,255,.08) !important; padding-top: 22px !important; padding-bottom: 20px !important; padding-right: 14px !important; }
-          .ft-resources-col { border-top: 1px solid rgba(255,255,255,.08) !important; padding-top: 22px !important; padding-bottom: 20px !important; padding-left: 14px !important; }
-          /* Legal: full-width section */
-          .ft-legal-col { grid-column: 1 / -1 !important; border-top: 1px solid rgba(255,255,255,.08) !important; padding-top: 22px !important; padding-bottom: 4px !important; }
-          .ft-legal-links { display: flex !important; flex-direction: column !important; }
+          /* Hide desktop link columns — replaced by mobile accordion */
+          .ft-company-col, .ft-resources-col, .ft-legal-col { display: none !important; }
+          /* Mobile accordion: full-width */
+          .ft-mob-sections { display: block !important; grid-column: 1 / -1 !important; border-top: 1px solid rgba(255,255,255,.08); padding-top: 4px !important; }
           /* Stay Updated: hidden on mobile */
           .ft-stay-updated { display: none !important; }
           /* Nav links: white text, flex row with chevron, per-item divider */
@@ -211,7 +235,7 @@ export default function Footer({ onNav, compact = false }) {
             <div style={{ textAlign: 'center', marginBottom: 44 }}>
               <h3 style={{ fontSize: 24, fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.4px' }}>
                 Explore All{' '}
-                <span style={{ color: '#FF653F' }}>Mock Tests</span>
+                <span style={{ color: '#F06535' }}>Mock Tests</span>
               </h3>
               <p style={{ fontSize: 13.5, color: '#64748b', margin: '8px 0 0', letterSpacing: '.01em' }}>
                 Banking, SSC &amp; Railway are live — more will be coming soon
@@ -241,11 +265,11 @@ export default function Footer({ onNav, compact = false }) {
                       style={{
                         display: 'block', width: '100%', background: 'none', border: 'none',
                         padding: '4px 0', fontSize: 12.5, fontWeight: 500, textAlign: 'left',
-                        color: exam.soon ? '#1e293b' : '#FF653F',
+                        color: exam.soon ? '#1e293b' : '#F06535',
                         cursor: exam.soon ? 'default' : 'pointer', transition: 'color .12s',
                       }}
                       onMouseOver={e => { if (!exam.soon) e.currentTarget.style.color = '#ffa07a' }}
-                      onMouseOut={e => { if (!exam.soon) e.currentTarget.style.color = '#FF653F' }}>
+                      onMouseOut={e => { if (!exam.soon) e.currentTarget.style.color = '#F06535' }}>
                       {exam.label}
                     </button>
                   ))}
@@ -253,38 +277,48 @@ export default function Footer({ onNav, compact = false }) {
               ))}
             </div>
 
-            {/* Mobile: accordion */}
+            {/* Mobile: colored category cards */}
             <div className="ft-explore-mobile">
               {FLAT_GRID.map(cat => {
                 const isOpen = openCat === cat.cat
+                const color = CAT_COLORS[cat.cat] || { c:'#F06535', bg:'rgba(232,90,44,.1)' }
+                const liveCount = cat.exams.filter(e => !e.soon).length
                 return (
-                  <div key={cat.cat} style={{ borderBottom: '1px solid rgba(255,255,255,.07)' }}>
+                  <div key={cat.cat} style={{ marginBottom: 8 }}>
                     <button
                       onClick={() => setOpenCat(isOpen ? null : cat.cat)}
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        width: '100%', padding: '14px 4px', background: 'none', border: 'none',
+                        width: '100%', padding: '11px 14px', borderRadius: 12,
+                        background: isOpen ? color.bg : 'rgba(255,255,255,.04)',
+                        border: `1px solid ${isOpen ? color.c + '55' : 'rgba(255,255,255,.08)'}`,
                         cursor: 'pointer', textAlign: 'left',
+                        transition: 'background .15s, border-color .15s',
                       }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ color: cat.soon ? '#374151' : '#64748b', display: 'flex' }}>{cat.icon}</span>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: cat.soon ? '#374151' : isOpen ? '#FF653F' : '#fff' }}>{cat.cat}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ width: 34, height: 34, borderRadius: 9, background: isOpen ? color.bg : 'rgba(255,255,255,.07)', border: `1px solid ${isOpen ? color.c + '40' : 'rgba(255,255,255,.06)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <span style={{ color: cat.soon ? '#374151' : isOpen ? color.c : '#64748b', display: 'flex' }}>{cat.icon}</span>
+                        </span>
+                        <span>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: cat.soon ? '#374151' : isOpen ? color.c : '#e2e8f0', display: 'block', lineHeight: 1.2 }}>{cat.cat}</span>
+                          <span style={{ fontSize: 11, color: '#64748b', marginTop: 2, display: 'block' }}>
+                            {cat.soon ? 'Coming Soon' : liveCount > 0 ? `${liveCount}+ Exams` : 'Exams'}
+                          </span>
+                        </span>
                       </span>
-                      <span style={{ fontSize: 18, color: isOpen ? '#FF653F' : 'rgba(255,255,255,.35)', lineHeight: 1 }}>{isOpen ? '−' : '+'}</span>
+                      <span style={{ width: 24, height: 24, borderRadius: 6, background: isOpen ? color.c : 'rgba(255,255,255,.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s, background .15s' }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                      </span>
                     </button>
                     {isOpen && (
-                      <div style={{ paddingBottom: 12 }}>
+                      <div style={{ marginTop: 4 }}>
                         {cat.exams.map(exam => (
                           <button key={exam.label}
                             onClick={() => !exam.soon && cat.dest && nav(cat.dest)}
                             disabled={!!exam.soon}
-                            style={{
-                              display: 'block', width: '100%', background: 'none', border: 'none',
-                              padding: '7px 4px', fontSize: 13.5, fontWeight: 500, textAlign: 'left',
-                              color: exam.soon ? '#1e293b' : '#FF653F', cursor: exam.soon ? 'default' : 'pointer',
-                            }}>
-                            {exam.label}
-                            {exam.soon && <span style={{ fontSize: 10, color: '#f59e0b', marginLeft: 6 }}>Soon</span>}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,.05)', padding: '9px 14px', fontSize: 13.5, fontWeight: 500, textAlign: 'left', color: exam.soon ? '#374151' : color.c, cursor: exam.soon ? 'default' : 'pointer' }}>
+                            <span>{exam.label}</span>
+                            {exam.soon && <span style={{ fontSize: 10, color: '#f59e0b', background: 'rgba(245,158,11,.12)', padding: '2px 7px', borderRadius: 20, fontWeight: 700 }}>Soon</span>}
                           </button>
                         ))}
                       </div>
@@ -317,16 +351,16 @@ export default function Footer({ onNav, compact = false }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 14 }}>
                 <div style={{
                   width: 42, height: 42, flexShrink: 0,
-                  background: 'linear-gradient(135deg,#FF653F,#e5512f)',
+                  background: 'linear-gradient(135deg,#F06535,#e5512f)',
                   borderRadius: 10,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 2px 10px rgba(255,101,63,.35)',
+                  boxShadow: '0 2px 10px rgba(232,90,44,.35)',
                 }}>
                   <span style={{ color: '#fff', fontSize: 13, fontWeight: 900, letterSpacing: '-0.5px' }}>MT</span>
                 </div>
                 <div>
                   <div style={{ fontSize: 17, fontWeight: 800, color: '#fff', lineHeight: 1.1, letterSpacing: '-0.3px' }}>MockTest</div>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: '#FF653F', fontStyle: 'italic', letterSpacing: '.09em', textTransform: 'uppercase', marginTop: 3, lineHeight: 1 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: '#F06535', fontStyle: 'italic', letterSpacing: '.09em', textTransform: 'uppercase', marginTop: 3, lineHeight: 1 }}>
                     Your World of Mock Tests
                   </div>
                 </div>
@@ -334,7 +368,7 @@ export default function Footer({ onNav, compact = false }) {
 
               <a href="https://www.arkaserve.com" target="_blank" rel="noopener noreferrer"
                 style={{ fontSize: 12, color: '#64748b', textDecoration: 'none', display: 'inline-block', marginBottom: 18, transition: 'color .12s' }}
-                onMouseOver={e => e.currentTarget.style.color = '#FF653F'}
+                onMouseOver={e => e.currentTarget.style.color = '#F06535'}
                 onMouseOut={e => e.currentTarget.style.color = '#64748b'}>
                 by Arkaserve ↗
               </a>
@@ -344,7 +378,7 @@ export default function Footer({ onNav, compact = false }) {
                   <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
                     className="ft-social-btn"
                     style={{ width: 38, height: 38, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', transition: 'background .15s,color .15s', textDecoration: 'none' }}
-                    onMouseOver={e => { e.currentTarget.style.background = '#FF653F'; e.currentTarget.style.color = '#fff' }}
+                    onMouseOver={e => { e.currentTarget.style.background = '#F06535'; e.currentTarget.style.color = '#fff' }}
                     onMouseOut={e => { e.currentTarget.style.background = 'rgba(255,255,255,.06)'; e.currentTarget.style.color = '#94a3b8' }}>
                     <Icon />
                   </a>
@@ -354,8 +388,8 @@ export default function Footer({ onNav, compact = false }) {
               <div className="ft-contact-row" style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                 {CONTACT.map(({ num }) => (
                   <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <span style={{ color: '#FF653F' }}><IconPhone /></span>
-                    <span style={{ fontSize: 13, color: '#FF653F', fontWeight: 600 }}>{num}</span>
+                    <span style={{ color: '#F06535' }}><IconPhone /></span>
+                    <span style={{ fontSize: 13, color: '#F06535', fontWeight: 600 }}>{num}</span>
                   </div>
                 ))}
               </div>
@@ -369,12 +403,12 @@ export default function Footer({ onNav, compact = false }) {
                   ? <a key={label} href={href} target="_blank" rel="noopener noreferrer"
                       className="ft-nav-link"
                       style={{ ...LINK_STYLE, textDecoration: 'none' }}
-                      onMouseOver={e => e.currentTarget.style.color = '#FF653F'}
+                      onMouseOver={e => e.currentTarget.style.color = '#F06535'}
                       onMouseOut={e => e.currentTarget.style.color = '#94a3b8'}>
                       <span>{label}</span><span className="ft-link-chevron"><IcChevRight /></span>
                     </a>
                   : <button key={label} onClick={() => nav(dest)} className="ft-nav-link" style={LINK_STYLE}
-                      onMouseOver={e => e.currentTarget.style.color = '#FF653F'}
+                      onMouseOver={e => e.currentTarget.style.color = '#F06535'}
                       onMouseOut={e => e.currentTarget.style.color = '#94a3b8'}>
                       <span>{label}</span><span className="ft-link-chevron"><IcChevRight /></span>
                     </button>
@@ -386,7 +420,7 @@ export default function Footer({ onNav, compact = false }) {
               <div className="ft-link-heading" style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 18 }}>Resources</div>
               {RESOURCE_LINKS.map(([label, dest]) => (
                 <button key={label} onClick={() => nav(dest)} className="ft-nav-link" style={LINK_STYLE}
-                  onMouseOver={e => e.currentTarget.style.color = '#FF653F'}
+                  onMouseOver={e => e.currentTarget.style.color = '#F06535'}
                   onMouseOut={e => e.currentTarget.style.color = '#94a3b8'}>
                   <span>{label}</span><span className="ft-link-chevron"><IcChevRight /></span>
                 </button>
@@ -399,12 +433,49 @@ export default function Footer({ onNav, compact = false }) {
               <div className="ft-legal-links">
                 {LEGAL_LINKS.map(([label, dest]) => (
                   <button key={label} onClick={() => nav(dest)} className="ft-nav-link" style={LINK_STYLE}
-                    onMouseOver={e => e.currentTarget.style.color = '#FF653F'}
+                    onMouseOver={e => e.currentTarget.style.color = '#F06535'}
                     onMouseOut={e => e.currentTarget.style.color = '#94a3b8'}>
                     <span>{label}</span><span className="ft-link-chevron"><IcChevRight /></span>
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* ── Mobile-only accordion: Company / Resources / Legal ── */}
+            <div className="ft-mob-sections">
+              {MOB_SECTIONS.map(sec => {
+                const isOpen = openMobSection === sec.id
+                return (
+                  <div key={sec.id} style={{ borderBottom: '1px solid rgba(255,255,255,.07)' }}>
+                    <button
+                      onClick={() => setOpenMobSection(isOpen ? null : sec.id)}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '15px 0', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                        <span style={{ color: isOpen ? '#F06535' : '#64748b', display: 'flex' }}><sec.Icon /></span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: isOpen ? '#F06535' : '#e2e8f0', textTransform: 'uppercase', letterSpacing: '.09em' }}>{sec.label}</span>
+                      </span>
+                      <span style={{ width: 22, height: 22, borderRadius: 6, background: isOpen ? 'rgba(232,90,44,.15)' : 'rgba(255,255,255,.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s, background .15s' }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={isOpen ? '#F06535' : '#94a3b8'} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <div style={{ paddingBottom: 8 }}>
+                        {sec.links.map(([label, dest, href]) => (
+                          href
+                            ? <a key={label} href={href} target="_blank" rel="noopener noreferrer"
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', fontSize: 13.5, color: '#94a3b8', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,.05)' }}>
+                                <span>{label}</span><span style={{ color: 'rgba(255,255,255,.3)', display:'flex' }}><IcChevRight /></span>
+                              </a>
+                            : <button key={label} onClick={() => nav(dest)}
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '9px 0', fontSize: 13.5, color: '#94a3b8', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,.05)', cursor: 'pointer', textAlign: 'left' }}>
+                                <span>{label}</span><span style={{ color: 'rgba(255,255,255,.3)', display:'flex' }}><IcChevRight /></span>
+                              </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
 
             {/* ── Stay Updated ── */}
@@ -414,7 +485,7 @@ export default function Footer({ onNav, compact = false }) {
                 Get latest exam updates, mock tests and preparation tips.
               </p>
               {subState === 'done' ? (
-                <div style={{ padding: '14px 18px', background: 'rgba(255,101,63,.1)', border: '1px solid rgba(255,101,63,.3)', borderRadius: 10, color: '#FF653F', fontSize: 13.5, fontWeight: 600 }}>
+                <div style={{ padding: '14px 18px', background: 'rgba(232,90,44,.1)', border: '1px solid rgba(232,90,44,.3)', borderRadius: 10, color: '#F06535', fontSize: 13.5, fontWeight: 600 }}>
                   ✓ You're subscribed! Watch your inbox.
                 </div>
               ) : (
@@ -436,17 +507,17 @@ export default function Footer({ onNav, compact = false }) {
                         borderRadius: 10, color: '#e2e8f0', fontSize: 13.5, outline: 'none',
                         transition: 'border-color .15s',
                       }}
-                      onFocus={e => e.target.style.borderColor = 'rgba(255,101,63,.5)'}
+                      onFocus={e => e.target.style.borderColor = 'rgba(232,90,44,.5)'}
                       onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,.1)'}
                     />
                   </div>
                   <button onClick={handleSubscribe} style={{
-                    width: '100%', padding: '12px', background: '#FF653F',
+                    width: '100%', padding: '12px', background: '#F06535',
                     color: '#fff', border: 'none', borderRadius: 10,
                     fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'background .15s',
                   }}
                   onMouseOver={e => e.currentTarget.style.background = '#e5512f'}
-                  onMouseOut={e => e.currentTarget.style.background = '#FF653F'}>
+                  onMouseOut={e => e.currentTarget.style.background = '#F06535'}>
                     Subscribe →
                   </button>
                 </>
@@ -467,7 +538,7 @@ export default function Footer({ onNav, compact = false }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                   {String(visitorCount).padStart(6, '0').split('').map((d, i) => (
                     <div key={i} style={{ width: 20, height: 26, background: 'rgba(255,255,255,.05)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,.09)' }}>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: '#FF653F', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{d}</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: '#F06535', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{d}</span>
                     </div>
                   ))}
                   <span style={{ fontSize: 11, color: '#475569', marginLeft: 6 }}>total visitors</span>
@@ -478,7 +549,7 @@ export default function Footer({ onNav, compact = false }) {
               {[['privacy', 'Privacy'], ['terms', 'Terms'], ['contact', 'Contact']].map(([id, label]) => (
                 <button key={id} onClick={() => nav(id)}
                   style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, color: '#475569', cursor: 'pointer', transition: 'color .12s' }}
-                  onMouseOver={e => e.currentTarget.style.color = '#FF653F'}
+                  onMouseOver={e => e.currentTarget.style.color = '#F06535'}
                   onMouseOut={e => e.currentTarget.style.color = '#475569'}>
                   {label}
                 </button>

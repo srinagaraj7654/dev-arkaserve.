@@ -1,4 +1,4 @@
-export default function PrivacyPage() {
+﻿export default function PrivacyPage() {
   const updated='25 May 2026'
   const S={page:{fontFamily:"'Inter','Segoe UI',system-ui,sans-serif",background:'#fff',color:'#111'},inner:{maxWidth:760,margin:'0 auto',padding:'0 24px'}}
   const sections=[
@@ -32,12 +32,12 @@ export default function PrivacyPage() {
               {sec.body&&<p style={{fontSize:14,color:'#555',lineHeight:1.75}}>{sec.body}</p>}
               {sec.list&&<div style={{display:'flex',flexDirection:'column',gap:8}}>{sec.list.map(item=>(
                 <div key={item} style={{display:'flex',gap:10,fontSize:13,color:'#555',lineHeight:1.6}}>
-                  <span style={{color:'#FF653F',marginTop:3,flexShrink:0}}>—</span>{item}
+                  <span style={{color:'#F06535',marginTop:3,flexShrink:0}}>—</span>{item}
                 </div>
               ))}</div>}
               {sec.contact&&<div style={{background:'#F8F8F8',border:'1px solid #EBEBEB',borderRadius:11,padding:18,fontSize:13,color:'#555',display:'flex',flexDirection:'column',gap:6}}>
                 <div><strong>Data Protection Officer:</strong> Arkaserve Team</div>
-                <div><strong>Email:</strong> <a href="mailto:support@arkaserve.com" style={{color:'#FF653F'}}>support@arkaserve.com</a></div>
+                <div><strong>Email:</strong> <a href="mailto:support@arkaserve.com" style={{color:'#F06535'}}>support@arkaserve.com</a></div>
                 <div><strong>Website:</strong> www.arkaserve.com</div>
                 <div><strong>Platform:</strong> prep.arkaserve.com</div>
                 <div><strong>Response time:</strong> Within 30 working days</div>

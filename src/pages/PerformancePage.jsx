@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+﻿import { useState, useMemo } from 'react'
 import {
   AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -41,7 +41,7 @@ function ScoreTooltip({ active, payload, label }) {
   )
 }
 
-export default function PerformancePage({ history = [], user, darkMode = false, onNav }) {
+export default function PerformancePage({ history = [], user, darkMode = false, onNav, onOpenResult = null }) {
   const [rangeIdx, setRangeIdx] = useState(2)
 
   const filteredHistory = useMemo(() => {
@@ -122,7 +122,7 @@ export default function PerformancePage({ history = [], user, darkMode = false, 
   const border = dark ? 'rgba(255,255,255,.07)' : '#e2e8f0'
   const txt    = dark ? '#e8edf5' : '#0d1117'
   const muted  = dark ? '#8899b4' : '#64748b'
-  const accent = '#FF653F'
+  const accent = '#F06535'
   const hasData = filteredHistory.length > 0
   const impDir  = stats.improvement > 0 ? '▲' : stats.improvement < 0 ? '▼' : '—'
   const impColor= stats.improvement > 0 ? '#10b981' : stats.improvement < 0 ? '#ef4444' : muted
@@ -140,8 +140,8 @@ export default function PerformancePage({ history = [], user, darkMode = false, 
     },
     {
       label:'Avg Score', value: hasData ? `${stats.avgScore}%` : '—',
-      icon:<IcStar s={20} c='#fff'/>, gradient:'linear-gradient(135deg,#FF653F,#ff9a6c)',
-      sub:'across all tests', glow:'rgba(255,101,63,.25)'
+      icon:<IcStar s={20} c='#fff'/>, gradient:'linear-gradient(135deg,#F06535,#ff9a6c)',
+      sub:'across all tests', glow:'rgba(232,90,44,.25)'
     },
     {
       label:'Accuracy', value: hasData ? `${stats.accuracy}%` : '—',
@@ -156,12 +156,14 @@ export default function PerformancePage({ history = [], user, darkMode = false, 
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
         .pp-card{background:${card};border:1px solid ${border};border-radius:20px;padding:24px;box-shadow:0 1px 0 rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,${dark?.1:.05}),0 16px 40px rgba(0,0,0,${dark?.08:.03})}
         .pp-range-pill{padding:7px 18px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid ${border};background:transparent;color:${muted};transition:all .15s;font-family:inherit;letter-spacing:.03em}
-        .pp-range-pill.active{background:${accent};color:#fff;border-color:${accent};box-shadow:0 4px 16px rgba(255,101,63,.3)}
+        .pp-range-pill.active{background:${accent};color:#fff;border-color:${accent};box-shadow:0 4px 16px rgba(232,90,44,.3)}
         .pp-range-pill:not(.active):hover{border-color:${accent};color:${accent}}
         .pp-sec-track{height:8px;border-radius:99px;background:${dark?'rgba(255,255,255,.06)':'#eef2f7'};position:relative;overflow:visible;margin:6px 0 4px}
         .pp-sec-fill{height:8px;border-radius:99px;transition:width .8s cubic-bezier(.4,0,.2,1)}
         .pp-hist-row{display:flex;align-items:center;gap:12px;padding:13px 18px;border-radius:14px;margin-bottom:6px;transition:all .15s;border:1px solid transparent;cursor:default}
         .pp-hist-row:hover{background:${card2};border-color:${border}}
+        .pp-view-btn{padding:5px 14px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid ${border};background:transparent;color:${muted};transition:all .12s;font-family:inherit;white-space:nowrap;flex-shrink:0}
+        .pp-view-btn:hover{border-color:${accent};color:${accent}}
         .pp-kpi-card{border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:14px;position:relative;overflow:hidden}
         @media(max-width:640px){
           .pp-kpi-grid{grid-template-columns:1fr 1fr!important}
@@ -180,40 +182,35 @@ export default function PerformancePage({ history = [], user, darkMode = false, 
           boxShadow:'0 8px 40px rgba(0,0,0,.28)',
         }}>
           {/* decorative orbs */}
-          <div style={{ position:'absolute',right:-60,top:-60,width:300,height:300,background:'radial-gradient(circle,rgba(255,101,63,.12) 0%,transparent 65%)',pointerEvents:'none' }}/>
+          <div style={{ position:'absolute',right:-60,top:-60,width:300,height:300,background:'radial-gradient(circle,rgba(232,90,44,.12) 0%,transparent 65%)',pointerEvents:'none' }}/>
           <div style={{ position:'absolute',left:100,bottom:-80,width:240,height:240,background:'radial-gradient(circle,rgba(99,102,241,.08) 0%,transparent 65%)',pointerEvents:'none' }}/>
 
           <div style={{ position:'relative', zIndex:1, padding:'28px 32px 24px' }}>
             {/* top row */}
-            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:16, marginBottom:28 }}>
-              <div>
-                <div style={{ fontSize:11, fontWeight:800, color:'rgba(255,101,63,.8)', letterSpacing:'.16em', textTransform:'uppercase', marginBottom:8 }}>Analytics Dashboard</div>
-                <h1 style={{ fontSize:26, fontWeight:900, margin:0, letterSpacing:'-.03em', color:'#fff', lineHeight:1.1 }}>My Performance</h1>
-                <p style={{ margin:'6px 0 0', fontSize:13, color:'rgba(255,255,255,.4)', letterSpacing:'.01em' }}>Cutoff-aware section tracking &amp; trend analysis</p>
-              </div>
-              <div style={{ display:'flex', gap:6, alignSelf:'flex-start', marginTop:6 }}>
-                {RANGE_OPTIONS.map((o,i) => (
-                  <button key={o.label} className={`pp-range-pill${rangeIdx===i?' active':''}`} onClick={()=>setRangeIdx(i)}>
-                    {o.label}
-                  </button>
-                ))}
-              </div>
+            <div style={{ marginBottom:28 }}>
+              <div style={{ fontSize:11, fontWeight:800, color:'rgba(232,90,44,.8)', letterSpacing:'.16em', textTransform:'uppercase', marginBottom:8 }}>Analytics Dashboard</div>
+              <h1 style={{ fontSize:26, fontWeight:900, margin:0, letterSpacing:'-.03em', color:'#fff', lineHeight:1.1 }}>My Performance</h1>
+              <p style={{ margin:'6px 0 0', fontSize:13, color:'rgba(255,255,255,.4)', letterSpacing:'.01em' }}>Cutoff-aware section tracking &amp; trend analysis</p>
             </div>
 
             {/* KPI tiles */}
-            <div className="pp-kpi-grid" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14 }}>
+            <div className="pp-kpi-grid" style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:12 }}>
               {kpis.map(k => (
-                <div key={k.label} className="pp-kpi-card" style={{ background:'rgba(255,255,255,.05)', border:'1px solid rgba(255,255,255,.08)' }}>
+                <div key={k.label} className="pp-kpi-card" style={{ background:'rgba(255,255,255,.05)', border:'1px solid rgba(255,255,255,.08)', padding:'16px 18px', gap:0 }}>
                   <div style={{ position:'absolute', inset:0, background:k.gradient, opacity:.08, pointerEvents:'none' }}/>
                   <div style={{ position:'relative', zIndex:1 }}>
-                    <div style={{ width:38, height:38, borderRadius:12, background:k.gradient, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:14, boxShadow:`0 4px 16px ${k.glow}` }}>
-                      {k.icon}
+                    {/* icon + value on same row */}
+                    <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:10 }}>
+                      <div style={{ width:36, height:36, borderRadius:11, background:k.gradient, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:`0 4px 14px ${k.glow}` }}>
+                        {k.icon}
+                      </div>
+                      <div style={{ fontSize:28, fontWeight:900, color:'#fff', letterSpacing:'-.04em', lineHeight:1 }}>
+                        {k.value}
+                      </div>
                     </div>
-                    <div style={{ fontSize:30, fontWeight:900, color:'#fff', letterSpacing:'-.04em', lineHeight:1, marginBottom:4 }}>
-                      {k.value}
-                    </div>
-                    <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,.5)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:2 }}>{k.label}</div>
-                    <div style={{ fontSize:10.5, color:'rgba(255,255,255,.28)' }}>{k.sub}</div>
+                    {/* label + sub below */}
+                    <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,.55)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:2 }}>{k.label}</div>
+                    <div style={{ fontSize:10.5, color:'rgba(255,255,255,.3)' }}>{k.sub}</div>
                   </div>
                 </div>
               ))}
@@ -242,7 +239,7 @@ export default function PerformancePage({ history = [], user, darkMode = false, 
           {/* Narrative banner */}
           <div style={{
             background: dark
-              ? 'linear-gradient(135deg,rgba(255,101,63,.15) 0%,rgba(99,102,241,.09) 100%)'
+              ? 'linear-gradient(135deg,rgba(232,90,44,.15) 0%,rgba(99,102,241,.09) 100%)'
               : 'linear-gradient(135deg,#fff8f5 0%,#f5f7ff 100%)',
             padding:'20px 24px 18px',
             borderBottom:`1px solid ${border}`,
@@ -282,7 +279,7 @@ export default function PerformancePage({ history = [], user, darkMode = false, 
                 <div style={{ display:'flex', gap:10, flexShrink:0, flexWrap:'wrap' }}>
                   {[
                     { label:'First Test', val:`${scoreTrend[0].score}%`, c:muted, bg:dark?'rgba(255,255,255,.06)':'rgba(100,116,139,.08)' },
-                    { label:'Latest', val:`${scoreTrend[scoreTrend.length-1].score}%`, c:accent, bg:dark?'rgba(255,101,63,.14)':'rgba(255,101,63,.09)' },
+                    { label:'Latest', val:`${scoreTrend[scoreTrend.length-1].score}%`, c:accent, bg:dark?'rgba(232,90,44,.14)':'rgba(232,90,44,.09)' },
                     { label:'Best Score', val:`${stats.bestScore}%`, c:'#10b981', bg:dark?'rgba(16,185,129,.14)':'rgba(16,185,129,.09)' },
                   ].map(m => (
                     <div key={m.label} style={{ textAlign:'center', background:m.bg, borderRadius:14, padding:'10px 18px', minWidth:82 }}>
@@ -306,12 +303,12 @@ export default function PerformancePage({ history = [], user, darkMode = false, 
                     return <>
                   <defs>
                     <linearGradient id="scoreAreaFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#FF653F" stopOpacity={dark ? 0.45 : 0.28}/>
-                      <stop offset="85%" stopColor="#FF653F" stopOpacity={dark ? 0.06 : 0.03}/>
-                      <stop offset="100%" stopColor="#FF653F" stopOpacity={0}/>
+                      <stop offset="0%" stopColor="#F06535" stopOpacity={dark ? 0.45 : 0.28}/>
+                      <stop offset="85%" stopColor="#F06535" stopOpacity={dark ? 0.06 : 0.03}/>
+                      <stop offset="100%" stopColor="#F06535" stopOpacity={0}/>
                     </linearGradient>
                     <linearGradient id="scoreLineFill" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#FF653F"/>
+                      <stop offset="0%" stopColor="#F06535"/>
                       <stop offset="100%" stopColor="#ff9a6c"/>
                     </linearGradient>
                   </defs>
@@ -330,7 +327,7 @@ export default function PerformancePage({ history = [], user, darkMode = false, 
                 <div style={{ display:'flex', alignItems:'flex-end', gap:12, height:100 }}>
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
                     <div style={{ fontSize:14, fontWeight:700, color:accent }}>{scoreTrend[0].score}%</div>
-                    <div style={{ width:44, borderRadius:'6px 6px 0 0', background:'linear-gradient(180deg,#FF653F,#ff9a6c)', height:`${scoreTrend[0].score}px` }}/>
+                    <div style={{ width:44, borderRadius:'6px 6px 0 0', background:'linear-gradient(180deg,#F06535,#ff9a6c)', height:`${scoreTrend[0].score}px` }}/>
                     <div style={{ fontSize:11, color:muted }}>You</div>
                   </div>
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
@@ -481,7 +478,7 @@ export default function PerformancePage({ history = [], user, darkMode = false, 
           </div>
           <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:dark?'rgba(11,15,26,.78)':'rgba(244,246,250,.82)', backdropFilter:'blur(4px)' }}>
             <div style={{ textAlign:'center', background:card, borderRadius:18, padding:'20px 32px', border:`1px solid ${border}`, boxShadow:'0 8px 32px rgba(0,0,0,.1)' }}>
-              <div style={{ width:44, height:44, borderRadius:14, background:dark?'rgba(255,101,63,.12)':'#fff8f5', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 12px' }}>
+              <div style={{ width:44, height:44, borderRadius:14, background:dark?'rgba(232,90,44,.12)':'#fff8f5', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 12px' }}>
                 <IcZap s={22} c={accent}/>
               </div>
               <div style={{ fontSize:14, fontWeight:800, color:txt, marginBottom:4 }}>Confidence tagging coming soon</div>
@@ -508,9 +505,10 @@ export default function PerformancePage({ history = [], user, darkMode = false, 
                   <span style={{ fontSize:10.5, fontWeight:700, color:'#10b981', textTransform:'uppercase', letterSpacing:'.07em', minWidth:32, textAlign:'right' }}>Cor</span>
                   <span style={{ fontSize:10.5, fontWeight:700, color:'#ef4444', textTransform:'uppercase', letterSpacing:'.07em', minWidth:32, textAlign:'right' }}>Wrg</span>
                   <span style={{ fontSize:10.5, fontWeight:700, color:muted, textTransform:'uppercase', letterSpacing:'.07em', minWidth:36, textAlign:'right' }}>Acc</span>
+                  {onOpenResult && <span style={{ fontSize:10.5, fontWeight:700, color:muted, textTransform:'uppercase', letterSpacing:'.07em', minWidth:44, textAlign:'right' }}></span>}
                 </div>
               </div>
-              {historyRows.slice(0,15).map((r,i) => {
+              {historyRows.map((r,i) => {
                 const acc = (r.correct_count||0)+(r.wrong_count||0) > 0
                   ? Math.round(r.correct_count/(r.correct_count+r.wrong_count)*100) : 0
                 const pctColor = r.pct>=70 ? '#10b981' : r.pct>=50 ? '#f59e0b' : '#ef4444'
@@ -528,15 +526,13 @@ export default function PerformancePage({ history = [], user, darkMode = false, 
                       <span style={{ color:'#10b981', fontWeight:700, fontSize:12, minWidth:32, textAlign:'right' }}>{r.correct_count||0}</span>
                       <span style={{ color:'#ef4444', fontWeight:700, fontSize:12, minWidth:32, textAlign:'right' }}>{r.wrong_count||0}</span>
                       <span style={{ color:muted, fontSize:12, minWidth:36, textAlign:'right' }}>{acc}%</span>
+                      {onOpenResult && (
+                        <button className="pp-view-btn" onClick={() => onOpenResult(r)}>View</button>
+                      )}
                     </div>
                   </div>
                 )
               })}
-              {historyRows.length > 15 && (
-                <div style={{ textAlign:'center', marginTop:16, fontSize:12, color:muted, paddingTop:12, borderTop:`1px solid ${border}` }}>
-                  Showing 15 of {historyRows.length} tests
-                </div>
-              )}
             </div>
           ) : (
             <div style={{ padding:'60px 0', textAlign:'center' }}>
@@ -546,7 +542,7 @@ export default function PerformancePage({ history = [], user, darkMode = false, 
               <div style={{ fontSize:16, fontWeight:800, color:txt, marginBottom:6 }}>No tests yet</div>
               <div style={{ fontSize:13, color:muted }}>Complete your first test to unlock performance analytics</div>
               {onNav && (
-                <button onClick={()=>onNav('explore')} style={{ marginTop:20, background:accent, color:'#fff', border:'none', borderRadius:12, padding:'11px 24px', fontWeight:700, fontSize:13, cursor:'pointer', boxShadow:'0 4px 16px rgba(255,101,63,.3)' }}>
+                <button onClick={()=>onNav('explore')} style={{ marginTop:20, background:accent, color:'#fff', border:'none', borderRadius:12, padding:'11px 24px', fontWeight:700, fontSize:13, cursor:'pointer', boxShadow:'0 4px 16px rgba(232,90,44,.3)' }}>
                   Start a Test →
                 </button>
               )}

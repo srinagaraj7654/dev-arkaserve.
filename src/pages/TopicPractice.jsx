@@ -1,9 +1,10 @@
-// TopicPractice.jsx  v3.0  — Full Tailwind, matches Dashboard style
+﻿// TopicPractice.jsx  v4.0
 // Props:
 //   onStartTest(mode, engineKey, options)
 //   onBack()
 //   studentScores  { topic_id: { best, last, sessions } }
 //   defaultExam    string
+//   isNative       bool — use single-column mobile layout
 
 import { useState, useMemo } from 'react'
 
@@ -12,6 +13,7 @@ const TOPIC_CATALOG = [
   {
     section: 'Numerical Ability',
     sectionKey: 'numerical_ability',
+    color: '#3b82f6',
     dot: 'bg-blue-500',
     badge: 'bg-blue-100 text-blue-700',
     topics: [
@@ -39,6 +41,7 @@ const TOPIC_CATALOG = [
   {
     section: 'Reasoning Ability',
     sectionKey: 'reasoning',
+    color: '#7c3aed',
     dot: 'bg-violet-500',
     badge: 'bg-violet-100 text-violet-700',
     topics: [
@@ -57,6 +60,7 @@ const TOPIC_CATALOG = [
   {
     section: 'English Language',
     sectionKey: 'english',
+    color: '#0891b2',
     dot: 'bg-cyan-500',
     badge: 'bg-cyan-100 text-cyan-700',
     topics: [
@@ -72,11 +76,11 @@ const TOPIC_CATALOG = [
 ]
 
 const DIFFICULTIES = [
-  { id: 'easy',     label: 'Easy',     desc: 'Clerk Prelims level — build confidence'     },
-  { id: 'medium',   label: 'Medium',   desc: 'PO Prelims level — exam-realistic'          },
-  { id: 'hard',     label: 'Hard',     desc: 'PO Mains level — challenge yourself'        },
-  { id: 'mixed',    label: 'Mixed',    desc: 'All sub-types cycling — see full range'     },
-  { id: 'adaptive', label: 'Adaptive', desc: 'Based on your past score performance'       },
+  { id: 'easy',     label: 'Easy',     desc: 'Clerk Prelims level — build confidence',        color: '#16a34a' },
+  { id: 'medium',   label: 'Medium',   desc: 'PO Prelims level — exam-realistic',             color: '#d97706' },
+  { id: 'hard',     label: 'Hard',     desc: 'PO Mains level — challenge yourself',           color: '#dc2626' },
+  { id: 'mixed',    label: 'Mixed',    desc: 'All sub-types cycling — see full range',        color: '#2563eb' },
+  { id: 'adaptive', label: 'Adaptive', desc: 'Based on your past score performance',          color: '#7c3aed' },
 ]
 
 const Q_COUNTS = [5, 10, 15, 20, 25, 30]
@@ -86,9 +90,17 @@ function Toggle({ value, onChange }) {
   return (
     <button
       onClick={() => onChange(!value)}
-      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${value ? 'bg-blue-600' : 'bg-gray-300'}`}
+      style={{
+        position: 'relative', display: 'inline-flex', height: 26, width: 46,
+        flexShrink: 0, cursor: 'pointer', borderRadius: 13, border: 'none',
+        background: value ? '#F06535' : '#d1d5db', transition: 'background .2s', padding: 0,
+      }}
     >
-      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${value ? 'translate-x-5' : 'translate-x-0'}`} />
+      <span style={{
+        position: 'absolute', top: 3, left: value ? 22 : 3,
+        width: 20, height: 20, borderRadius: '50%', background: '#fff',
+        boxShadow: '0 1px 4px rgba(0,0,0,.25)', transition: 'left .2s',
+      }} />
     </button>
   )
 }
@@ -99,6 +111,7 @@ export default function TopicPractice({
   onBack,
   studentScores = {},
   defaultExam = 'bank_clerk_prelims',
+  isNative = false,
 }) {
   const [search,     setSearch]     = useState('')
   const [selected,   setSelected]   = useState(null)
@@ -141,14 +154,355 @@ export default function TopicPractice({
     }
   }
 
-  // Quick-start topics shown on empty state
+  const pickTopic = (t) => { setSelected(t); setDifficulty('easy'); setQCount(10) }
+
+  // ════════════════════════════════════════════════════════════════════
+  // NATIVE MOBILE LAYOUT
+  // ════════════════════════════════════════════════════════════════════
+  if (isNative) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#f0f2f5', display: 'flex', flexDirection: 'column' }}>
+
+        {/* ── Dark header ── */}
+        <div style={{
+          background: '#111', padding: '14px 16px 14px', flexShrink: 0,
+          display: 'flex', alignItems: 'center', gap: 12,
+        }}>
+          <button
+            onClick={selected ? () => setSelected(null) : onBack}
+            style={{ background: 'rgba(255,255,255,.1)', border: 'none', borderRadius: 10, width: 36, height: 36, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 17, fontWeight: 900, color: '#fff', lineHeight: 1.15, letterSpacing: '-.01em' }}>
+              {selected ? selected.name : 'Topic Practice'}
+            </div>
+            {!selected && (
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>
+                35 topics · unique questions every session
+              </div>
+            )}
+            {selected && (
+              <div style={{ fontSize: 11, color: '#F06535', marginTop: 2, fontWeight: 700 }}>
+                {selectedSection?.section}
+              </div>
+            )}
+          </div>
+          {!selected && (
+            <div style={{
+              width: 36, height: 36, borderRadius: 11, flexShrink: 0,
+              background: 'linear-gradient(135deg,#F06535,#ff8c42)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+              boxShadow: '0 4px 12px #F0653560',
+            }}>
+              🎯
+            </div>
+          )}
+          {selected && (
+            <div style={{
+              width: 38, height: 38, borderRadius: 12, flexShrink: 0,
+              background: selectedSection?.color,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+              boxShadow: `0 4px 12px ${selectedSection?.color}70`,
+            }}>
+              {selected.icon}
+            </div>
+          )}
+        </div>
+
+        {/* ══════════════════════════════
+            TOPIC LIST VIEW
+        ══════════════════════════════ */}
+        {!selected && (
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+
+            {/* Search bar */}
+            <div style={{ background: '#fff', padding: '10px 14px 10px', borderBottom: '1px solid #e8eaed' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 9,
+                background: '#f5f6f7', borderRadius: 14, padding: '10px 14px',
+              }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search topics…"
+                  style={{ flex: 1, border: 'none', background: 'none', fontSize: 13, outline: 'none', color: '#111' }}
+                />
+                {search && (
+                  <button onClick={() => setSearch('')}
+                    style={{ background: '#dee2e6', border: 'none', color: '#6b7280', cursor: 'pointer', width: 18, height: 18, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, lineHeight: 1, padding: 0 }}>
+                    ×
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Topic sections */}
+            {filtered.length === 0 ? (
+              <div style={{ padding: '48px 20px', textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>
+                No topics match &ldquo;{search}&rdquo;
+              </div>
+            ) : filtered.map(sec => (
+              <div key={sec.sectionKey} style={{ marginBottom: 4 }}>
+
+                {/* Section header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 16px 10px' }}>
+                  <div style={{ width: 4, height: 20, borderRadius: 2, background: sec.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, fontWeight: 900, color: '#1f2937', letterSpacing: '.03em' }}>{sec.section}</span>
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, color: sec.color,
+                    background: sec.color + '18', borderRadius: 8, padding: '2px 8px', marginLeft: 'auto',
+                  }}>{sec.topics.length} topics</span>
+                </div>
+
+                {/* 2-col card grid — vertical card layout */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 14px 6px' }}>
+                  {sec.topics.map(t => {
+                    const score = studentScores[t.id]
+                    const attempted = !!score?.best
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => pickTopic(t)}
+                        style={{
+                          background: '#fff',
+                          borderRadius: 18,
+                          padding: '16px 12px 14px',
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                          border: 'none',
+                          boxShadow: '0 2px 10px rgba(0,0,0,.07)',
+                          cursor: 'pointer', touchAction: 'manipulation', textAlign: 'center',
+                          position: 'relative', overflow: 'hidden',
+                        }}
+                      >
+                        {/* Subtle top accent */}
+                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: sec.color, borderRadius: '18px 18px 0 0', opacity: .7 }} />
+
+                        {/* Icon */}
+                        <div style={{
+                          width: 50, height: 50, borderRadius: 14,
+                          background: sec.color,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
+                          boxShadow: `0 6px 16px ${sec.color}55`,
+                          flexShrink: 0,
+                        }}>
+                          {t.icon}
+                        </div>
+
+                        {/* Name */}
+                        <div style={{
+                          fontSize: 12, fontWeight: 800, color: '#111', lineHeight: 1.35,
+                          width: '100%',
+                          overflow: 'hidden', display: '-webkit-box',
+                          WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                          minHeight: 32,
+                        }}>
+                          {t.name}
+                        </div>
+
+                        {/* Score badge or "new" */}
+                        {attempted ? (
+                          <div style={{
+                            fontSize: 10, fontWeight: 800, color: '#fff',
+                            background: '#16a34a', borderRadius: 8, padding: '3px 9px',
+                          }}>
+                            Best: {score.best}
+                          </div>
+                        ) : (
+                          <div style={{
+                            fontSize: 10, fontWeight: 700, color: sec.color,
+                            background: sec.color + '15', borderRadius: 8, padding: '3px 9px',
+                          }}>
+                            Start
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+            <div style={{ height: 28 }} />
+          </div>
+        )}
+
+        {/* ══════════════════════════════
+            CONFIG VIEW (topic selected)
+        ══════════════════════════════ */}
+        {selected && (
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+
+            {/* Gradient hero banner */}
+            <div style={{
+              background: `linear-gradient(150deg, ${selectedSection?.color} 0%, ${selectedSection?.color}bb 100%)`,
+              padding: '20px 18px 28px', position: 'relative', overflow: 'hidden',
+            }}>
+              {/* Decorative circle */}
+              <div style={{
+                position: 'absolute', right: -30, top: -30, width: 120, height: 120,
+                borderRadius: '50%', background: 'rgba(255,255,255,.1)',
+              }} />
+              <div style={{
+                position: 'absolute', right: 20, bottom: -40, width: 80, height: 80,
+                borderRadius: '50%', background: 'rgba(255,255,255,.07)',
+              }} />
+
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.7)', marginBottom: 6, position: 'relative' }}>
+                {selectedSection?.section}
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1.2, marginBottom: 4, position: 'relative', letterSpacing: '-.02em' }}>
+                {selected.name}
+              </div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,.65)', marginBottom: 18, position: 'relative' }}>
+                {selected.exam}
+              </div>
+
+              {/* Stats row in hero */}
+              <div style={{ display: 'flex', gap: 10, position: 'relative' }}>
+                {[
+                  { label: 'Best Score', value: sc?.best || '—' },
+                  { label: 'Last Attempt', value: sc?.last || '—' },
+                  { label: 'Sessions', value: sc?.sessions ?? 0 },
+                ].map(s => (
+                  <div key={s.label} style={{
+                    flex: 1, background: 'rgba(255,255,255,.18)', borderRadius: 14,
+                    padding: '10px 6px', textAlign: 'center',
+                    backdropFilter: 'blur(8px)',
+                    border: '1px solid rgba(255,255,255,.25)',
+                  }}>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{s.value}</div>
+                    <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,.7)', marginTop: 3, fontWeight: 600 }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ padding: '14px 14px 28px' }}>
+
+              {/* Difficulty */}
+              <div style={{ background: '#fff', borderRadius: 18, padding: '16px', marginBottom: 12, boxShadow: '0 2px 10px rgba(0,0,0,.06)' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
+                  <div style={{ fontSize: 13, fontWeight: 900, color: '#111' }}>Difficulty</div>
+                  <div style={{ fontSize: 11, color: '#9ca3af', flex: 1 }}>{diffObj?.desc}</div>
+                </div>
+                <div style={{ overflowX: 'auto', paddingBottom: 2 }}>
+                  <div style={{ display: 'flex', gap: 8, minWidth: 'max-content' }}>
+                    {DIFFICULTIES.map(d => {
+                      const active = difficulty === d.id
+                      return (
+                        <button key={d.id} onClick={() => setDifficulty(d.id)}
+                          style={{
+                            padding: '10px 20px', borderRadius: 24, cursor: 'pointer', whiteSpace: 'nowrap',
+                            border: active ? 'none' : `1.5px solid ${d.color}35`,
+                            background: active ? d.color : d.color + '0d',
+                            color: active ? '#fff' : d.color,
+                            fontSize: 12.5, fontWeight: 800,
+                            boxShadow: active ? `0 4px 14px ${d.color}55` : 'none',
+                            transition: 'all .15s', touchAction: 'manipulation',
+                          }}>
+                          {d.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Question count */}
+              <div style={{ background: '#fff', borderRadius: 18, padding: '16px', marginBottom: 12, boxShadow: '0 2px 10px rgba(0,0,0,.06)' }}>
+                <div style={{ fontSize: 13, fontWeight: 900, color: '#111', marginBottom: 12 }}>
+                  Questions &nbsp;<span style={{ color: '#F06535', fontSize: 16, fontWeight: 900 }}>{qCount}</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 8 }}>
+                  {Q_COUNTS.map(n => (
+                    <button key={n} onClick={() => setQCount(n)}
+                      style={{
+                        padding: '12px 0', borderRadius: 12, cursor: 'pointer',
+                        border: 'none',
+                        background: qCount === n ? '#F06535' : '#f5f6f7',
+                        color: qCount === n ? '#fff' : '#6b7280',
+                        fontSize: 14, fontWeight: 800,
+                        boxShadow: qCount === n ? '0 4px 12px #F0653550' : 'none',
+                        transition: 'all .15s', touchAction: 'manipulation',
+                      }}>
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Session options */}
+              <div style={{ background: '#fff', borderRadius: 18, marginBottom: 18, boxShadow: '0 2px 10px rgba(0,0,0,.06)', overflow: 'hidden' }}>
+                <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid #f3f4f6' }}>
+                  <div style={{ fontSize: 13, fontWeight: 900, color: '#111' }}>Session Options</div>
+                </div>
+                {[
+                  { label: 'Timed mode',          sub: '60 seconds per question',                   val: timed,    set: setTimed    },
+                  { label: 'Show explanations',   sub: 'Immediate feedback after each answer',      val: showExpl, set: setShowExpl },
+                  { label: 'Negative marking',    sub: '−0.25 per wrong answer (IBPS pattern)',     val: negMark,  set: setNegMark  },
+                ].map((opt, i) => (
+                  <div key={opt.label}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '14px 16px',
+                      borderBottom: i < 2 ? '1px solid #f9fafb' : 'none',
+                    }}>
+                    <div style={{ flex: 1, paddingRight: 16 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>{opt.label}</div>
+                      <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{opt.sub}</div>
+                    </div>
+                    <Toggle value={opt.val} onChange={opt.set} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Start button */}
+              <button
+                onClick={handleStart}
+                disabled={launching}
+                style={{
+                  width: '100%', padding: '18px', borderRadius: 18, border: 'none',
+                  cursor: launching ? 'not-allowed' : 'pointer',
+                  background: launching
+                    ? '#fca5a5'
+                    : 'linear-gradient(135deg, #F06535 0%, #ff8c42 100%)',
+                  color: '#fff', fontSize: 16, fontWeight: 900,
+                  boxShadow: launching ? 'none' : '0 8px 24px #F0653555',
+                  transition: 'all .15s', touchAction: 'manipulation',
+                  letterSpacing: '.01em',
+                }}>
+                {launching
+                  ? '⏳ Preparing questions…'
+                  : `▶  Start Practice — ${qCount} Questions`
+                }
+              </button>
+
+              <p style={{ fontSize: 11, color: '#9ca3af', textAlign: 'center', marginTop: 10, lineHeight: 1.5 }}>
+                {diffObj?.label} difficulty · Fresh questions, no repeats
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // ════════════════════════════════════════════════════════════════════
+  // DESKTOP SPLIT-PANE LAYOUT (web, unchanged)
+  // ════════════════════════════════════════════════════════════════════
+
   const quickTopics = [
-    TOPIC_CATALOG[0].topics[0],  // Simplification
-    TOPIC_CATALOG[0].topics[1],  // Number Series
-    TOPIC_CATALOG[0].topics[2],  // Data Interpretation
-    TOPIC_CATALOG[1].topics[0],  // Seating Arrangement
-    TOPIC_CATALOG[2].topics[0],  // Reading Comprehension
-    TOPIC_CATALOG[0].topics[4],  // Profit & Loss
+    TOPIC_CATALOG[0].topics[0],
+    TOPIC_CATALOG[0].topics[1],
+    TOPIC_CATALOG[0].topics[2],
+    TOPIC_CATALOG[1].topics[0],
+    TOPIC_CATALOG[2].topics[0],
+    TOPIC_CATALOG[0].topics[4],
   ]
 
   return (
@@ -195,7 +549,6 @@ export default function TopicPractice({
             </div>
           ) : filtered.map(sec => (
             <div key={sec.sectionKey}>
-              {/* Section header */}
               <div className="flex items-center gap-2 px-4 pt-3 pb-1.5">
                 <span className={`w-2 h-2 rounded-full flex-shrink-0 ${sec.dot}`} />
                 <span className="text-xs font-black text-gray-500 uppercase tracking-wider">{sec.section}</span>
@@ -209,7 +562,7 @@ export default function TopicPractice({
                 return (
                   <button
                     key={t.id}
-                    onClick={() => { setSelected(t); setDifficulty('easy'); setQCount(10) }}
+                    onClick={() => pickTopic(t)}
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl text-left transition-all ${
                       isActive
                         ? 'bg-blue-50 border border-blue-300'
@@ -245,7 +598,6 @@ export default function TopicPractice({
         {/* ── Empty state ── */}
         {!selected && (
           <div className="flex flex-col items-center justify-center min-h-full px-8 py-16">
-            {/* Hero */}
             <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-violet-600 rounded-3xl flex items-center justify-center text-4xl mb-6 shadow-lg">
               📚
             </div>
@@ -254,7 +606,6 @@ export default function TopicPractice({
               Pick any topic from the left panel to configure difficulty, question count, and session options.
             </p>
 
-            {/* Quick-start chips */}
             <div className="w-full max-w-xl">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 text-center">Quick start</p>
               <div className="grid grid-cols-3 gap-3">
@@ -269,12 +620,11 @@ export default function TopicPractice({
               </div>
             </div>
 
-            {/* Stats banner */}
             <div className="mt-10 grid grid-cols-3 gap-4 w-full max-w-xl">
               {[
-                { icon: '🔢', label: '35 Topics',         sub: 'All IBPS/SBI syllabus'  },
-                { icon: '⚡', label: 'Fresh Every Time',   sub: 'Zero repetition'         },
-                { icon: '🎯', label: '5 Difficulty levels', sub: 'Easy to Adaptive'      },
+                { icon: '🔢', label: '35 Topics',          sub: 'All IBPS/SBI syllabus' },
+                { icon: '⚡', label: 'Fresh Every Time',    sub: 'Zero repetition'        },
+                { icon: '🎯', label: '5 Difficulty levels', sub: 'Easy to Adaptive'       },
               ].map(s => (
                 <div key={s.label} className="bg-white border border-gray-200 rounded-2xl p-4 text-center">
                   <div className="text-2xl mb-1">{s.icon}</div>
@@ -290,7 +640,6 @@ export default function TopicPractice({
         {selected && (
           <div className="max-w-2xl mx-auto px-6 py-7">
 
-            {/* Breadcrumb */}
             <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-5">
               <span>Topic Practice</span>
               <span>›</span>
@@ -301,7 +650,6 @@ export default function TopicPractice({
               <span className="text-gray-700 font-semibold">{selected.name}</span>
             </div>
 
-            {/* ── Topic hero card ── */}
             <div className={`rounded-2xl p-5 mb-6 border ${
               selectedSection?.sectionKey === 'numerical_ability' ? 'bg-blue-50 border-blue-100' :
               selectedSection?.sectionKey === 'reasoning'         ? 'bg-violet-50 border-violet-100' :
@@ -325,7 +673,6 @@ export default function TopicPractice({
               </div>
             </div>
 
-            {/* ── Stat cards ── */}
             <div className="grid grid-cols-3 gap-3 mb-5">
               <div className="bg-white border border-gray-200 rounded-2xl p-4 text-center">
                 <div className="text-xs text-gray-400 mb-1">Best score</div>
@@ -343,7 +690,6 @@ export default function TopicPractice({
               </div>
             </div>
 
-            {/* ── Difficulty ── */}
             <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-sm font-black text-gray-900">Difficulty</div>
@@ -353,11 +699,11 @@ export default function TopicPractice({
                 {DIFFICULTIES.map(d => {
                   const active = difficulty === d.id
                   const colors = {
-                    easy:     active ? 'bg-green-500  border-green-500  text-white'          : 'bg-white text-gray-500 border-gray-200 hover:border-green-400  hover:text-green-600',
-                    medium:   active ? 'bg-amber-500  border-amber-500  text-white'          : 'bg-white text-gray-500 border-gray-200 hover:border-amber-400  hover:text-amber-600',
-                    hard:     active ? 'bg-red-500    border-red-500    text-white'          : 'bg-white text-gray-500 border-gray-200 hover:border-red-400    hover:text-red-600',
-                    mixed:    active ? 'bg-blue-600   border-blue-600   text-white'          : 'bg-white text-gray-500 border-gray-200 hover:border-blue-400   hover:text-blue-600',
-                    adaptive: active ? 'bg-violet-600 border-violet-600 text-white'          : 'bg-white text-gray-500 border-gray-200 hover:border-violet-400 hover:text-violet-600',
+                    easy:     active ? 'bg-green-500  border-green-500  text-white' : 'bg-white text-gray-500 border-gray-200 hover:border-green-400  hover:text-green-600',
+                    medium:   active ? 'bg-amber-500  border-amber-500  text-white' : 'bg-white text-gray-500 border-gray-200 hover:border-amber-400  hover:text-amber-600',
+                    hard:     active ? 'bg-red-500    border-red-500    text-white' : 'bg-white text-gray-500 border-gray-200 hover:border-red-400    hover:text-red-600',
+                    mixed:    active ? 'bg-blue-600   border-blue-600   text-white' : 'bg-white text-gray-500 border-gray-200 hover:border-blue-400   hover:text-blue-600',
+                    adaptive: active ? 'bg-violet-600 border-violet-600 text-white' : 'bg-white text-gray-500 border-gray-200 hover:border-violet-400 hover:text-violet-600',
                   }[d.id]
                   return (
                     <button key={d.id} onClick={() => setDifficulty(d.id)}
@@ -369,7 +715,6 @@ export default function TopicPractice({
               </div>
             </div>
 
-            {/* ── Question count ── */}
             <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-4">
               <div className="text-sm font-black text-gray-900 mb-3">Number of questions</div>
               <div className="flex gap-2">
@@ -386,14 +731,13 @@ export default function TopicPractice({
               </div>
             </div>
 
-            {/* ── Session options ── */}
             <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-6">
               <div className="px-5 py-3.5 border-b border-gray-100">
                 <div className="text-sm font-black text-gray-900">Session options</div>
               </div>
               {[
-                { label: 'Timed mode',                     sub: '60 seconds per question',              val: timed,    set: setTimed    },
-                { label: 'Show explanations after answer', sub: 'Immediate feedback on each question',  val: showExpl, set: setShowExpl },
+                { label: 'Timed mode',                     sub: '60 seconds per question',                val: timed,    set: setTimed    },
+                { label: 'Show explanations after answer', sub: 'Immediate feedback on each question',    val: showExpl, set: setShowExpl },
                 { label: 'Negative marking',               sub: '−0.25 for wrong answers (IBPS pattern)', val: negMark,  set: setNegMark  },
               ].map((opt, i) => (
                 <div key={opt.label}
@@ -407,7 +751,6 @@ export default function TopicPractice({
               ))}
             </div>
 
-            {/* ── Start button ── */}
             <button
               onClick={handleStart}
               disabled={launching}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 const _sv = (c) => ({fill:'none',stroke:c||'currentColor',strokeWidth:'1.5',strokeLinecap:'round',strokeLinejoin:'round'})
 const BIcBank   = ({s=20,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M3 21h18M3 10h18M3 10l9-7 9 7"/><line x1="6" y1="10" x2="6" y2="21"/><line x1="10" y1="10" x2="10" y2="21"/><line x1="14" y1="10" x2="14" y2="21"/><line x1="18" y1="10" x2="18" y2="21"/></svg>
 const BIcShield = ({s=20,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -701,7 +701,7 @@ function ArticleCard({ article, onOpen }) {
       onClick={() => onOpen(article.id)}
     >
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background:'#FFF3EE', color:'#FF653F' }}>
+        <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background:'#FFF3EE', color:'#F06535' }}>
           {article.category}
         </span>
         <span className="text-xs text-gray-400">{article.readTime}</span>
@@ -710,7 +710,7 @@ function ArticleCard({ article, onOpen }) {
       </div>
       <h2 className="text-lg font-black text-gray-900 mb-2 leading-snug">{article.title}</h2>
       <p className="text-gray-500 text-sm leading-relaxed">{article.excerpt}</p>
-      <button className="mt-4 text-sm font-bold" style={{ color:'#FF653F' }}>Read full article →</button>
+      <button className="mt-4 text-sm font-bold" style={{ color:'#F06535' }}>Read full article →</button>
     </article>
   )
 }
@@ -759,7 +759,7 @@ function ArticleView({ article, onBack }) {
         ← Back to all articles
       </button>
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background:'#FFF3EE', color:'#FF653F' }}>
+        <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background:'#FFF3EE', color:'#F06535' }}>
           {article.category}
         </span>
         <span className="text-xs text-gray-400">{article.readTime}</span>
@@ -769,7 +769,7 @@ function ArticleView({ article, onBack }) {
         </span>
       </div>
       <h1 className="text-2xl sm:text-3xl font-black text-gray-900 mb-4 leading-tight">{article.title}</h1>
-      <p className="text-gray-500 mb-6 text-sm leading-relaxed border-l-4 pl-4 italic" style={{ borderColor:'#FF653F' }}>
+      <p className="text-gray-500 mb-6 text-sm leading-relaxed border-l-4 pl-4 italic" style={{ borderColor:'#F06535' }}>
         {article.excerpt}
       </p>
       <div className="prose-sm">
@@ -781,7 +781,7 @@ function ArticleView({ article, onBack }) {
           Free mock tests with AI-powered analysis. No payment required.
         </p>
         <button onClick={onBack}
-          className="text-white text-sm font-bold px-6 py-3 rounded-xl" style={{ background:'#FF653F' }}>
+          className="text-white text-sm font-bold px-6 py-3 rounded-xl" style={{ background:'#F06535' }}>
           Browse All Mock Tests →
         </button>
       </div>
@@ -824,7 +824,7 @@ export default function BlogPage({ onNav }) {
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
           <h1 className="text-3xl sm:text-4xl font-black text-gray-900 mb-2">
-            Exam Prep <span style={{color:'#FF653F'}}>Blog</span>
+            Exam Prep <span style={{color:'#F06535'}}>Blog</span>
           </h1>
           <p className="text-gray-500 text-sm">
             Strategy guides, syllabus breakdowns and study plans for banking and government exams — updated for 2025.
@@ -835,7 +835,7 @@ export default function BlogPage({ onNav }) {
             {categories.map(c => (
               <button key={c} onClick={() => setFilter(c)}
                 className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${filter === c ? 'text-white' : 'text-gray-600 bg-gray-100 hover:bg-gray-200'}`}
-                style={filter === c ? { background:'#FF653F' } : {}}>
+                style={filter === c ? { background:'#F06535' } : {}}>
                 {c}
               </button>
             ))}

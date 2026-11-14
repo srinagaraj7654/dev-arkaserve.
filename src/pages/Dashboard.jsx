@@ -1,5 +1,6 @@
-﻿import { useState, useEffect, useRef, lazy, Suspense } from 'react'
+﻿import { useState, useEffect, useRef, useCallback, lazy, Suspense, memo } from 'react'
 import { Capacitor } from '@capacitor/core'
+import { getPrefs as getNotifPrefs, savePrefs as saveNotifPrefs, scheduleAll, cancelAll as cancelAllNotifs } from '../notifications.js'
 import { supabase } from '../supabase.js'
 import { startCheckout } from '../payments.js'
 import { toast } from '../toast.js'
@@ -7,6 +8,9 @@ import { getExamBlueprint } from '../api.js'
 import { EXAMS as CUTOFF_EXAMS } from './CutoffsPage.jsx'
 import PerformancePage from './PerformancePage.jsx'
 import PredictionPage from './PredictionPage.jsx'
+const DashHelpTab          = lazy(() => import('./DashHelpTab.jsx'))
+const DashSubscriptionsTab = lazy(() => import('./DashSubscriptionsTab.jsx'))
+const DashBillingTab       = lazy(() => import('./DashBillingTab.jsx'))
 import {
   LineChart, Line, BarChart, Bar, RadarChart, Radar,
   PolarGrid, PolarAngleAxis, XAxis, YAxis, CartesianGrid,
@@ -39,7 +43,7 @@ const DIcEdit    = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {
 export const EXAM_GROUPS = [
   {
     id: 'ibps', label: 'IBPS Exams',
-    color: 'from-orange-500 to-orange-600', hex: '#FF653F',
+    color: 'from-orange-500 to-orange-600', hex: '#F06535',
     exams: [
       { id: 'bank_clerk_prelims', name: 'Clerk Prelims', sub: '100Q · 60 min',  tag: 'Popular', tagColor: 'bg-amber-100 text-amber-700' },
       { id: 'bank_clerk_mains',   name: 'Clerk Mains',   sub: '175Q · 160 min', tag: null },
@@ -49,7 +53,7 @@ export const EXAM_GROUPS = [
   },
   {
     id: 'sbi', label: 'SBI Exams',
-    color: 'from-gray-800 to-gray-900', hex: '#111',
+    color: 'from-blue-700 to-blue-900', hex: '#1d4ed8',
     exams: [
       { id: 'sbi_clerk_prelims', name: 'Clerk Prelims', sub: '100Q · 60 min',  tag: null },
       { id: 'sbi_clerk_mains',   name: 'Clerk Mains',   sub: '170Q · 160 min', tag: null },
@@ -278,6 +282,51 @@ const SAT_TOPIC_GROUPS = [
   { section:'AP English & Economics',       color:'#d97706', topics:['Rhetorical Analysis','Argumentation','Close Reading','Literary Devices','Supply & Demand','Market Structures','Fiscal Policy','Monetary Policy'] },
 ]
 
+/* Map exam_id → relevant TOPIC_GROUPS sections for the Study Planner.
+   Keeps plans focused on sections that actually appear in the target exam. */
+function getExamTopicGroups(examId) {
+  const id = (examId || '').toLowerCase()
+  if (!id) return TOPIC_GROUPS
+  // Insurance exams (LIC, NICL, NIACL, UIIC, OICL) need Insurance Awareness section
+  if (id.startsWith('lic_') || id.includes('niacl') || id.includes('nicl_') || id.includes('uiic') || id.includes('oicl'))
+    return TOPIC_GROUPS
+  // Banking Prelims (Clerk/PO pre): English + Numerical + Reasoning only (no GK/Insurance)
+  if (/^(bank_|sbi_|rbi_|nabard_|ippb_|rrb_)/.test(id) && (id.includes('pre') || id.includes('cbt1') || id.includes('scale1_pre')))
+    return TOPIC_GROUPS.filter(g => ['Quantitative Aptitude','Reasoning Ability','English Language'].includes(g.section))
+  // Banking Mains and other banking: add General Awareness but no Insurance
+  if (/^(bank_|sbi_|rbi_|nabard_|ippb_|rrb_)/.test(id))
+    return TOPIC_GROUPS.filter(g => g.section !== 'Insurance Awareness')
+  // SSC, PSU: GK + Reasoning + English + Quant (no Insurance)
+  if (/^(ssc_|coal_)/.test(id))
+    return TOPIC_GROUPS.filter(g => g.section !== 'Insurance Awareness')
+  return TOPIC_GROUPS
+}
+
+/* Isolated countdown — has its own 1-second ticker so it never causes
+   the full Dashboard to re-render and flash the Android status bar.    */
+const ExamCountdown = memo(function ExamCountdown({ examDate, accent, muted, dark }) {
+  const [now, setNow] = useState(Date.now)
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  const msLeft = Math.max(0, new Date(examDate) - now)
+  const dL = Math.floor(msLeft / 86400000)
+  const hL = Math.floor((msLeft % 86400000) / 3600000)
+  const mL = Math.floor((msLeft % 3600000) / 60000)
+  const sL = Math.floor((msLeft % 60000) / 1000)
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 5 }}>
+      {[{v:dL,l:'Days'},{v:hL,l:'Hours'},{v:mL,l:'Mins'},{v:sL,l:'Secs'}].map(({ v, l }) => (
+        <div key={l} style={{ textAlign:'center', background: dark ? 'rgba(255,255,255,.05)' : '#f9fafb', borderRadius: 8, padding: '8px 3px' }}>
+          <div style={{ fontSize:20, fontWeight:900, color:accent, lineHeight:1, fontVariantNumeric:'tabular-nums' }}>{String(v).padStart(2,'0')}</div>
+          <div style={{ fontSize:9, color:muted, marginTop:3, fontWeight:600 }}>{l}</div>
+        </div>
+      ))}
+    </div>
+  )
+})
+
 const WEEKDAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
 const WEEK_DISPLAY = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']  // grid display order
 
@@ -441,7 +490,7 @@ function TodayPlanCard({ savedPlan, onViewPlan }) {
   const icon = display.type==='mock' ? <DIcDoc s={22} c='#fff'/> : display.type==='revision' ? <DIcRepeat s={22} c='#fff'/> : <DIcBook s={22} c='#fff'/>
   const label = todayPlan ? "TODAY'S PLAN — Day "+display.day : "NEXT UP — Day "+display.day
   return (
-    <div className="rounded-2xl p-5 mb-6 flex items-center justify-between gap-4" style={{background:'#FF653F'}}>
+    <div className="rounded-2xl p-5 mb-6 flex items-center justify-between gap-4" style={{background:'#F06535'}}>
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{background:'rgba(255,255,255,.2)'}}>
           {icon}
@@ -455,7 +504,7 @@ function TodayPlanCard({ savedPlan, onViewPlan }) {
       <button
         onClick={onViewPlan}
         className="flex-shrink-0 text-xs font-black px-4 py-2 rounded-full hover:shadow-lg transition-all whitespace-nowrap"
-        style={{background:'#fff',color:'#FF653F'}}>
+        style={{background:'#fff',color:'#F06535'}}>
         View Full Plan →
       </button>
     </div>
@@ -469,291 +518,232 @@ function TodayPlanCard({ savedPlan, onViewPlan }) {
 ───────────────────────────────────────────── */
 /* ── type colours used in the calendar ── */
 const TYPE_CFG = {
-  mock:     { label:'Mock Test',   bg:'#fff4ef', border:'#FF653F', text:'#FF653F', dot:'#FF653F' },
+  mock:     { label:'Mock Test',   bg:'#fff4ef', border:'#F06535', text:'#F06535', dot:'#F06535' },
   revision: { label:'Revision',    bg:'#f0fdf4', border:'#16a34a', text:'#16a34a', dot:'#16a34a' },
   study:    { label:'Study',       bg:'#f5f3ff', border:'#7c3aed', text:'#7c3aed', dot:'#7c3aed' },
   catchup:  { label:'Buffer',      bg:'#f9fafb', border:'#9ca3af', text:'#6b7280', dot:'#9ca3af' },
 }
 const CAL_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
 
-function PlanScheduleView({ plan, onStartTest, onTopicPractice, onRebuild, todayStr }) {
-  const days   = plan?.days || []
-  const [doneDays,   setDoneDays]   = useState({})
-  const [selectedDay, setSelectedDay] = useState(null)
+function PlanScheduleView({ plan, onStartTest, onTopicPractice, onRebuild, completedTasks = {}, onToggleDone }) {
+  const days = plan?.days || []
+  const [done, setDone] = useState(completedTasks)
+  useEffect(() => { setDone(completedTasks) }, [completedTasks])
+  const [selectedIso, setSelectedIso] = useState(null)
+  const todayISO = new Date().toISOString().split('T')[0]
 
   if (!days.length) return (
-    <div className="bg-blue-50 border border-blue-200 rounded-2xl p-8 text-center">
-      <div className="mb-3 flex justify-center"><DIcCal s={32} c='#1d4ed8'/></div>
-      <div className="text-sm font-bold text-blue-800 mb-1">No schedule data found</div>
-      <button onClick={onRebuild} className="text-xs text-blue-600 font-semibold underline">Create a plan</button>
+    <div style={{background:'#fff0eb',border:'1px solid #fdd0b5',borderRadius:16,padding:32,textAlign:'center'}}>
+      <div style={{fontSize:14,fontWeight:700,color:'#c84b11',marginBottom:8}}>No study plan found</div>
+      <button onClick={onRebuild} style={{fontSize:13,fontWeight:700,color:'#F06535',background:'none',border:'none',cursor:'pointer',textDecoration:'underline',touchAction:'manipulation'}}>Create a plan →</button>
     </div>
   )
 
-  const totalDone = Object.values(doneDays).filter(Boolean).length
-  const totalDays = days.length
-  const pctDone   = totalDays ? Math.round((totalDone / totalDays) * 100) : 0
-  const todayISO  = new Date().toISOString().split('T')[0]
+  const isDayDone = (pd) => pd && pd.topics.every((_, i) => done[`${pd.isoDate}_${i}`])
 
-  /* Build calendar grid from isoDate if available, else fall back to list */
-  const hasISO = days.some(d => d.isoDate)
-
-  /* Build week grid */
-  const calWeeks = (() => {
-    if (!hasISO) return null
-    const dayMap = {}
-    days.forEach(d => { if (d.isoDate) dayMap[d.isoDate] = d })
-    const sorted = days.filter(d => d.isoDate).map(d => d.isoDate).sort()
-    if (!sorted.length) return null
-    const firstDate = new Date(sorted[0])
-    const lastDate  = new Date(sorted[sorted.length - 1])
-    // Anchor to Monday of the first week
-    const anchor = new Date(firstDate)
-    const dow0 = anchor.getDay()
-    anchor.setDate(anchor.getDate() - (dow0 === 0 ? 6 : dow0 - 1))
-    const weeks = []
-    const cur = new Date(anchor)
-    while (cur <= lastDate) {
-      const week = []
-      for (let c = 0; c < 7; c++) {
-        const iso = cur.toISOString().split('T')[0]
-        week.push({ iso, dayNum: cur.getDate(), planDay: dayMap[iso] || null })
-        cur.setDate(cur.getDate() + 1)
-      }
-      weeks.push(week)
-    }
-    return weeks
+  // Build 14-day window centred on today so user can see upcoming days
+  const dayWindow = (() => {
+    const now = new Date(todayISO)
+    const dow = now.getDay()
+    const monday = new Date(now)
+    monday.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1))
+    return Array.from({length:14}, (_, i) => {
+      const d = new Date(monday); d.setDate(monday.getDate() + i)
+      const iso = d.toISOString().split('T')[0]
+      return { iso, num: d.getDate(), label:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d.getDay()===0?6:d.getDay()-1], planDay: days.find(pd => pd.isoDate === iso) || null }
+    })
   })()
 
-  const getAction = (dayType, topics) => {
-    if (dayType === 'mock')
-      return { label:'Launch Mock Test', onClick: () => onStartTest('mock') }
-    if (dayType === 'revision')
-      return { label:'Review Topics', onClick: () => onTopicPractice(topics[0] || '') }
-    if (dayType === 'catchup')
-      return { label:'Practice Weak Topics', onClick: () => onTopicPractice(topics[0] || '') }
-    return { label:'Practice Questions', onClick: () => onTopicPractice(topics[0] || '') }
-  }
+  const streak = (() => {
+    let s = 0; const cur = new Date(todayISO)
+    while (s < 365) {
+      const iso = cur.toISOString().split('T')[0]
+      const pd = days.find(d => d.isoDate === iso)
+      if (!pd || !isDayDone(pd)) break
+      s++; cur.setDate(cur.getDate() - 1)
+    }
+    return s
+  })()
 
-  const selDay = selectedDay ? days.find(d => d.isoDate === selectedDay || d.day === selectedDay) : null
+  const totalDays = days.length
+  const totalDone = days.filter(d => isDayDone(d)).length
+  const pct = totalDays ? Math.round((totalDone / totalDays) * 100) : 0
+
+  // Exam countdown
+  const examDate = plan?.exam_date ? new Date(plan.exam_date) : null
+  const daysLeft = examDate ? Math.max(0, Math.ceil((examDate - new Date()) / 86400000)) : null
+
+  const selDay   = selectedIso ? days.find(d => d.isoDate === selectedIso) : null
+  const todayDay = days.find(d => d.isoDate === todayISO)
+  const viewDay  = selDay || todayDay
+
+  // Subject colours for task cards
+  const SUBJ_COLS = ['#6366f1','#0891b2','#16a34a','#d97706','#e11d48','#7c3aed','#0ea5e9','#f59e0b']
+  const getSubjCol = (i) => SUBJ_COLS[i % SUBJ_COLS.length]
+
+  // Circular SVG arc helper (r=28, cx/cy=32)
+  const arc = (fraction) => {
+    const r=28, cx=32, cy=32, circ=2*Math.PI*r
+    const offset = circ * (1 - Math.min(fraction, 1))
+    return { circ, offset }
+  }
+  const { circ, offset } = arc(pct / 100)
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-xl font-black text-gray-900">My Study Plan</h2>
-          <div className="flex items-center gap-3 mt-1 flex-wrap">
-            {[
-              { label:'Study',   val:plan.studyDays||0,    color:'#7c3aed' },
-              { label:'Mock',    val:plan.mockDays||0,     color:'#FF653F' },
-              { label:'Revision',val:plan.revisionDays||0, color:'#16a34a' },
-              ...(plan.catchupDays ? [{ label:'Buffer', val:plan.catchupDays, color:'#6b7280' }] : []),
-            ].map(s => (
-              <span key={s.label} className="flex items-center gap-1 text-xs font-semibold" style={{color:s.color}}>
-                <span style={{width:8,height:8,borderRadius:'50%',background:s.color,display:'inline-block'}}/>
-                {s.val} {s.label}
-              </span>
-            ))}
+      {/* ══ INSTAGRAM-STYLE FULL-BLEED DARK HEADER ══ */}
+      <div style={{margin:'0 -14px',background:'#000',padding:'18px 18px 22px',borderRadius:'0 0 28px 28px',position:'relative',overflow:'hidden',marginBottom:16}}>
+        {/* Subtle gradient wash */}
+        <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse at 80% 0%,rgba(232,90,44,.18) 0%,transparent 60%)',pointerEvents:'none'}}/>
+        {/* Top row: label + edit */}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+          <span style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,.45)',letterSpacing:'.1em',textTransform:'uppercase'}}>Study Plan</span>
+          <button onClick={onRebuild}
+            style={{padding:'5px 13px',borderRadius:20,background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',color:'rgba(255,255,255,.7)',fontSize:11.5,fontWeight:700,cursor:'pointer',touchAction:'manipulation'}}>
+            Edit
+          </button>
+        </div>
+        {/* Main row: ring + info */}
+        <div style={{display:'flex',alignItems:'center',gap:18}}>
+          {/* Instagram-style story ring */}
+          <div style={{flexShrink:0,position:'relative',width:72,height:72}}>
+            {/* Outer gradient ring (like IG story ring) */}
+            <svg width="72" height="72" viewBox="0 0 72 72" style={{position:'absolute',inset:0}}>
+              <defs>
+                <linearGradient id="igRing" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#F06535"/>
+                  <stop offset="100%" stopColor="#f59e0b"/>
+                </linearGradient>
+              </defs>
+              <circle cx="36" cy="36" r="32" fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="4"/>
+              <circle cx="36" cy="36" r="32" fill="none" stroke="url(#igRing)" strokeWidth="4"
+                strokeDasharray={circ * (72/64)} strokeDashoffset={(circ * (72/64)) * (1 - Math.min(pct/100, 1))}
+                strokeLinecap="round" transform="rotate(-90 36 36)"/>
+            </svg>
+            {/* Avatar circle inside */}
+            <div style={{position:'absolute',inset:7,borderRadius:'50%',background:'#1a1a1a',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column'}}>
+              <span style={{fontSize:15,fontWeight:900,color:'#fff',lineHeight:1}}>{pct}%</span>
+              <span style={{fontSize:8,color:'rgba(255,255,255,.45)',fontWeight:600,marginTop:1}}>done</span>
+            </div>
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:18,fontWeight:800,color:'#fff',lineHeight:1.15,marginBottom:6,letterSpacing:'-.01em'}}>{plan?.exam_name || 'Exam Prep'}</div>
+            <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+              <span style={{fontSize:12,color:'rgba(255,255,255,.55)',fontWeight:600}}>{totalDone}/{totalDays} days</span>
+              {daysLeft !== null && (
+                <span style={{fontSize:11.5,fontWeight:800,padding:'3px 10px',borderRadius:99,background:'rgba(232,90,44,.3)',color:'#FF8F6A',letterSpacing:'.02em'}}>{daysLeft}d left</span>
+              )}
+              {streak > 0 && (
+                <span style={{fontSize:11.5,fontWeight:800,padding:'3px 10px',borderRadius:99,background:'rgba(245,158,11,.2)',color:'#fbbf24'}}>🔥 {streak}</span>
+              )}
+            </div>
           </div>
         </div>
-        <button onClick={onRebuild}
-          className="text-xs text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 font-semibold flex-shrink-0">
-          ↺ Rebuild
-        </button>
+        {/* Thin progress bar */}
+        <div style={{marginTop:16,height:3,borderRadius:99,background:'rgba(255,255,255,.1)',overflow:'hidden'}}>
+          <div style={{height:'100%',width:`${pct}%`,borderRadius:99,background:'linear-gradient(90deg,#F06535,#f59e0b)',transition:'width .5s'}}/>
+        </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-4 mb-5">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-bold text-gray-900">Overall Progress</span>
-          <span className="text-sm font-black" style={{color:'#6366f1'}}>{pctDone}%</span>
-        </div>
-        <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden mb-3">
-          <div className="h-full rounded-full transition-all duration-500"
-            style={{width:`${pctDone}%`,background:'linear-gradient(90deg,#6366f1,#FF653F)'}}/>
-        </div>
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <div>
-            <div className="text-base font-black text-green-600">{totalDone}</div>
-            <div className="text-xs text-gray-400">Done</div>
-          </div>
-          <div>
-            <div className="text-base font-black" style={{color:'#6366f1'}}>{totalDays - totalDone}</div>
-            <div className="text-xs text-gray-400">Remaining</div>
-          </div>
-          <div>
-            <div className="text-base font-black text-gray-700">{totalDays}</div>
-            <div className="text-xs text-gray-400">Total</div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Calendar grid ── */}
-      {calWeeks ? (
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-5">
-          {/* Legend */}
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-4 flex-wrap">
-            {Object.entries(TYPE_CFG).map(([k,v]) => (
-              <span key={k} className="flex items-center gap-1.5 text-xs font-semibold" style={{color:v.text}}>
-                <span style={{width:10,height:10,borderRadius:3,background:v.bg,border:`1.5px solid ${v.border}`,display:'inline-block'}}/>
-                {v.label}
-              </span>
-            ))}
-            <span className="ml-auto text-xs text-gray-400">Click a day to see details</span>
-          </div>
-
-          {/* Day-of-week header */}
-          <div style={{overflowX:'auto',scrollbarWidth:'none'}}>
-            <div style={{minWidth:420}}>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',borderBottom:'1px solid #f3f4f6'}}>
-                {CAL_DAYS.map(d => (
-                  <div key={d} style={{padding:'8px 4px',textAlign:'center',fontSize:11,fontWeight:700,
-                    color:'#9ca3af',letterSpacing:'.04em',textTransform:'uppercase'}}>
-                    {d}
+      {/* ── Horizontal day timeline (Instagram Stories row feel) ── */}
+      <div style={{marginBottom:16}}>
+        <div style={{fontSize:11,fontWeight:700,color:'#9ca3af',letterSpacing:'.07em',marginBottom:10,textTransform:'uppercase'}}>This Week</div>
+        <div style={{display:'flex',gap:10,overflowX:'auto',scrollbarWidth:'none',paddingBottom:2,WebkitOverflowScrolling:'touch'}}>
+          {dayWindow.map(d => {
+            const isToday  = d.iso === todayISO
+            const isSel    = (selectedIso || todayISO) === d.iso
+            const hasPlan  = !!d.planDay
+            const dayDone  = hasPlan && isDayDone(d.planDay)
+            const isPast   = d.iso < todayISO
+            return (
+              <button key={d.iso}
+                onClick={() => hasPlan && setSelectedIso(isSel && !isToday ? null : d.iso)}
+                disabled={!hasPlan}
+                style={{flexShrink:0,display:'flex',flexDirection:'column',alignItems:'center',gap:5,background:'none',border:'none',cursor: hasPlan?'pointer':'default',padding:'2px 4px',touchAction:'manipulation',opacity: isPast && !hasPlan ? .3 : 1}}>
+                {/* Story-ring avatar */}
+                <div style={{width:46,height:46,borderRadius:'50%',padding:2,
+                  background: isToday ? 'linear-gradient(135deg,#F06535,#f59e0b)' : isSel && hasPlan ? 'linear-gradient(135deg,#F06535,#f59e0b)' : hasPlan ? (dayDone ? 'linear-gradient(135deg,#22c55e,#16a34a)' : 'rgba(0,0,0,.06)') : 'transparent',
+                  boxSizing:'border-box'}}>
+                  <div style={{width:'100%',height:'100%',borderRadius:'50%',background: isToday||isSel ? '#fff' : '#f9fafb',display:'flex',alignItems:'center',justifyContent:'center',border: hasPlan ? '2px solid #fff' : 'none'}}>
+                    {dayDone
+                      ? <svg width="14" height="14" fill="none" stroke="#22c55e" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                      : <span style={{fontSize:14,fontWeight:800,color: isToday ? '#F06535' : hasPlan ? '#374151' : '#d1d5db'}}>{d.num}</span>}
                   </div>
-                ))}
-              </div>
-
-              {/* Week rows */}
-              {calWeeks.map((week, wIdx) => (
-                <div key={wIdx} style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',
-                  borderBottom: wIdx < calWeeks.length-1 ? '1px solid #f3f4f6' : 'none'}}>
-                  {week.map(cell => {
-                    const pd      = cell.planDay
-                    const isDone  = pd ? !!doneDays[pd.day] : false
-                    const isToday = cell.iso === todayISO
-                    const isSel   = selectedDay === cell.iso
-                    const cfg     = pd ? TYPE_CFG[pd.type] || TYPE_CFG.study : null
-                    return (
-                      <div key={cell.iso}
-                        onClick={() => pd && setSelectedDay(isSel ? null : cell.iso)}
-                        style={{
-                          minHeight:72,
-                          padding:'6px 5px',
-                          cursor: pd ? 'pointer' : 'default',
-                          background: isDone ? '#f0fdf4'
-                            : isSel ? '#faf5ff'
-                            : isToday && pd ? '#fff9f7'
-                            : pd ? cfg.bg : '#fafafa',
-                          border: isSel ? '2px solid #7c3aed'
-                            : isToday && pd ? `2px solid ${cfg?.border||'#e5e7eb'}`
-                            : '2px solid transparent',
-                          borderRadius: 8,
-                          margin: 3,
-                          transition:'all .1s',
-                          position:'relative',
-                        }}>
-                        {/* Date number */}
-                        <div style={{fontSize:12,fontWeight:800,
-                          color: isDone ? '#16a34a' : isToday ? cfg?.text||'#374151' : pd ? cfg?.text||'#374151' : '#d1d5db',
-                          marginBottom:3}}>
-                          {cell.dayNum}
-                          {isToday && pd && <span style={{fontSize:8,fontWeight:700,marginLeft:3,
-                            background:cfg?.border,color:'#fff',borderRadius:3,padding:'1px 3px'}}>NOW</span>}
-                        </div>
-                        {pd && (
-                          <>
-                            {/* Type badge */}
-                            <div style={{fontSize:9,fontWeight:800,textTransform:'uppercase',
-                              letterSpacing:'.06em',color: isDone ? '#16a34a' : cfg.text,
-                              marginBottom:3}}>
-                              {isDone ? '✓ Done' : cfg.label}
-                            </div>
-                            {/* Topic snippet */}
-                            <div style={{fontSize:9,color: isDone ? '#6b7280' : '#6b7280',
-                              lineHeight:1.3,overflow:'hidden',
-                              display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',
-                              textDecoration: isDone ? 'line-through' : 'none',opacity: isDone ? 0.6 : 1}}>
-                              {pd.topics[0]}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )
-                  })}
                 </div>
-              ))}
-            </div>
-          </div>
+                <span style={{fontSize:9,fontWeight:700,color: isToday ? '#F06535' : '#9ca3af',letterSpacing:'.03em'}}>{d.label}</span>
+              </button>
+            )
+          })}
         </div>
-      ) : (
-        /* Fallback: old list if no isoDate (legacy saved plans) */
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-xs text-amber-700 font-semibold">
-          ↺ Rebuild your plan to enable the new calendar view.
-        </div>
-      )}
+      </div>
 
-      {/* Day detail panel — shows when a calendar cell is clicked */}
-      {selDay && (
-        <div className="bg-white border-2 rounded-2xl p-5 mb-5 transition-all"
-          style={{borderColor: TYPE_CFG[selDay.type]?.border || '#e5e7eb'}}>
-          <div className="flex items-start justify-between mb-3">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span style={{
-                  fontSize:10,fontWeight:800,textTransform:'uppercase',letterSpacing:'.07em',
-                  padding:'2px 8px',borderRadius:99,
-                  background: TYPE_CFG[selDay.type]?.bg,
-                  color: TYPE_CFG[selDay.type]?.text,
-                  border:`1px solid ${TYPE_CFG[selDay.type]?.border}`,
-                }}>
-                  {TYPE_CFG[selDay.type]?.label}
-                </span>
-                <span className="text-xs text-gray-400 font-semibold">Day {selDay.day} · {selDay.date} · {selDay.duration}</span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {selDay.topics.map(t => (
-                  <span key={t} className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                    style={{background:TYPE_CFG[selDay.type]?.bg, color:TYPE_CFG[selDay.type]?.text,
-                      border:`1px solid ${TYPE_CFG[selDay.type]?.border}40`}}>
-                    {t}
-                  </span>
-                ))}
-              </div>
+      {/* ── Today / selected tasks ── */}
+      <div style={{background:'#fff',borderRadius:20,overflow:'hidden',boxShadow:'0 2px 12px rgba(0,0,0,.06)',marginBottom:14}}>
+        <div style={{padding:'14px 16px 10px',display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid #f3f4f6'}}>
+          <div>
+            <div style={{fontSize:15,fontWeight:800,color:'#111'}}>
+              {selDay && selDay.isoDate !== todayISO ? `Day ${selDay.day}` : "Today's Plan"}
             </div>
-            <button onClick={()=>setSelectedDay(null)}
-              style={{color:'#9ca3af',fontSize:18,background:'none',border:'none',cursor:'pointer',padding:4,lineHeight:1}}>
-              ×
-            </button>
+            {viewDay && <div style={{fontSize:11,color:'#9ca3af',marginTop:1}}>{viewDay.topics?.length || 0} topics</div>}
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            {!doneDays[selDay.day] && selDay.type !== 'catchup' && (() => {
-              const act = getAction(selDay.type, selDay.topics)
+          {viewDay?.type === 'mock' && (
+            <span style={{fontSize:10.5,fontWeight:800,padding:'4px 10px',borderRadius:99,background:'rgba(232,90,44,.1)',color:'#F06535'}}>MOCK DAY</span>
+          )}
+        </div>
+
+        {viewDay ? (
+          <>
+            {viewDay.topics.map((topic, i) => {
+              const key = `${viewDay.isoDate}_${i}`
+              const taskDone = !!done[key]
+              const accentCol = getSubjCol(i)
               return (
-                <button onClick={act.onClick}
-                  style={{padding:'8px 18px',borderRadius:99,fontSize:12,fontWeight:800,
-                    border:'none',cursor:'pointer',color:'#fff',
-                    background: selDay.type==='mock' ? '#FF653F'
-                      : selDay.type==='revision' ? '#16a34a' : '#7c3aed'}}>
-                  {act.label} →
-                </button>
+                <div key={i}
+                  style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderBottom: i < viewDay.topics.length - 1 ? '1px solid #f8f9fa' : 'none',background: taskDone ? '#fafafa' : '#fff',transition:'background .15s'}}>
+                  <div style={{width:3,height:36,borderRadius:99,background:taskDone?'#d1d5db':accentCol,flexShrink:0,transition:'background .2s'}}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13.5,fontWeight:600,color:taskDone?'#9ca3af':'#1f2937',textDecoration:taskDone?'line-through':'none',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{topic}</div>
+                    {!taskDone && <div style={{fontSize:11,color:accentCol,fontWeight:600,marginTop:2}}>Study</div>}
+                  </div>
+                  <button onClick={() => { const nv = !done[key]; setDone(p => ({...p, [key]: nv})); onToggleDone?.(key, nv) }}
+                    style={{width:30,height:30,borderRadius:'50%',border:`2.5px solid ${taskDone?'#F06535':'#e5e7eb'}`,background:taskDone?'#F06535':'#fff',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0,padding:0,touchAction:'manipulation',transition:'all .15s'}}>
+                    {taskDone
+                      ? <svg width="12" height="12" fill="none" stroke="#fff" strokeWidth="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                      : <div style={{width:8,height:8,borderRadius:'50%',background:'#e5e7eb'}}/>}
+                  </button>
+                </div>
               )
-            })()}
-            <button onClick={()=>setDoneDays(p=>({...p,[selDay.day]:!doneDays[selDay.day]}))}
-              style={{padding:'8px 18px',borderRadius:99,fontSize:12,fontWeight:700,cursor:'pointer',
-                border:`1.5px solid ${doneDays[selDay.day]?'#d1d5db':'#e5e7eb'}`,
-                background: doneDays[selDay.day] ? '#f3f4f6' : '#fff',
-                color: doneDays[selDay.day] ? '#6b7280' : '#374151'}}>
-              {doneDays[selDay.day] ? '✓ Completed — Undo' : 'Mark as done'}
+            })}
+            {viewDay.type === 'mock' && (
+              <div style={{padding:'12px 16px 14px'}}>
+                <button onClick={() => onStartTest('mock')}
+                  style={{width:'100%',padding:'13px',borderRadius:14,background:'linear-gradient(135deg,#F06535,#e5512f)',color:'#fff',fontSize:14,fontWeight:800,border:'none',cursor:'pointer',boxShadow:'0 4px 14px rgba(232,90,44,.4)',touchAction:'manipulation'}}>
+                  🚀 Launch Full Mock Test
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{padding:'28px 16px',textAlign:'center'}}>
+            <div style={{fontSize:24,marginBottom:8}}>📅</div>
+            <div style={{fontSize:13,fontWeight:600,color:'#6b7280',marginBottom:14}}>No tasks for this day</div>
+            <button onClick={() => onStartTest('mock')}
+              style={{padding:'10px 24px',borderRadius:99,background:'#F06535',color:'#fff',fontSize:13,fontWeight:800,border:'none',cursor:'pointer',touchAction:'manipulation'}}>
+              Take a Mock Test →
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Bottom motivation banner */}
-      <div className="bg-gradient-to-r from-violet-600 to-orange-500 rounded-2xl p-5 text-white flex items-center justify-between">
-        <div>
-          <div className="text-sm font-black mb-1">
-            {pctDone === 0 && "Your journey starts today — Day 1 awaits!"}
-            {pctDone > 0 && pctDone < 50 && `Great start! ${totalDone} days done — keep the momentum!`}
-            {pctDone >= 50 && pctDone < 100 && "More than halfway there — you're on track!"}
-            {pctDone === 100 && "🏆 Plan complete — you're exam ready!"}
-          </div>
-          <div className="text-xs" style={{color:'rgba(255,255,255,.75)'}}>{totalDays - totalDone} study days remaining</div>
-        </div>
+      {/* ══ INSTAGRAM-STYLE FULL-BLEED DARK FOOTER ══ */}
+      <div style={{margin:'0 -14px -14px',background:'#000',borderRadius:'28px 28px 0 0',padding:'18px 18px 22px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
         <button onClick={() => onStartTest('mock')}
-          className="flex-shrink-0 bg-white text-violet-700 text-xs font-black px-5 py-2.5 rounded-full hover:shadow-lg transition-all whitespace-nowrap ml-4">
-          Take a Mock Test →
+          style={{padding:'14px 10px',borderRadius:14,background:'linear-gradient(135deg,#F06535,#e5401d)',color:'#fff',fontSize:13,fontWeight:800,border:'none',cursor:'pointer',touchAction:'manipulation',boxShadow:'0 3px 12px rgba(232,90,44,.4)'}}>
+          📝 Mock Test
+        </button>
+        <button onClick={onRebuild}
+          style={{padding:'14px 10px',borderRadius:14,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.12)',color:'rgba(255,255,255,.75)',fontSize:13,fontWeight:700,cursor:'pointer',touchAction:'manipulation'}}>
+          ↺ Rebuild
         </button>
       </div>
     </div>
@@ -761,17 +751,72 @@ function PlanScheduleView({ plan, onStartTest, onTopicPractice, onRebuild, today
 }
 
 
-export default function Dashboard({ user, isAdmin = false, planData, onStartTest, onLogout, onNav, onOpenResult, initialTab = 'home', examRegion = 'in' }) {
+export default function Dashboard({ user, isAdmin = false, planData, onStartTest, onLogout, onNav, onOpenResult, initialTab = 'home', examRegion = 'in', onTabChange, onResumeTest }) {
 
   /* ── existing state ── */
+  const [inProgressTest, setInProgressTest] = useState(() => {
+    try {
+      const base = localStorage.getItem('mt-inprogress')
+      if (!base) return null
+      const state = localStorage.getItem('mt-inprogress-state')
+      return { ...JSON.parse(base), ...(state ? JSON.parse(state) : {}) }
+    } catch { return null }
+  })
   const [history,    setHistory]   = useState([])
   const [panelOpen,  setPanelOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
 
   /* ── new sidebar state ── */
-  const [activeTab,  setActiveTab] = useState(initialTab)
+  const [activeTab,  setActiveTab_raw] = useState(initialTab)
+  const [showNativeMenu, setShowNativeMenu] = useState(false)
+
+  // Stack-based tab history — each forward navigation pushes, back pops.
+  // Seed with 'home' so there's always a base; if starting at a non-home tab, add it on top.
+  const tabHistoryRef = useRef(initialTab === 'home' ? ['home'] : ['home', initialTab])
+  const mainScrollRef = useRef(null)
+  const setActiveTab = (t) => {
+    tabHistoryRef.current.push(t)
+    window.__mt_active_tab = t
+    setActiveTab_raw(t)
+    onTabChange?.(t)
+  }
+
+  /* Reset scroll to top whenever the active tab changes */
+  useEffect(() => {
+    if (mainScrollRef.current) {
+      mainScrollRef.current.scrollTop = 0
+      // fallback for WebViews that don't honour scrollTop assignment synchronously
+      window.scrollTo(0, 0)
+    }
+  }, [activeTab])
+  const goBackRef = useRef(null)
+  useEffect(() => {
+    window.__mt_active_tab = initialTab
+    const h  = () => {
+      tabHistoryRef.current = ['home']
+      window.__mt_active_tab = 'home'
+      setActiveTab_raw('home')
+      onTabChange?.('home')
+    }
+    const st = (e) => {
+      const t = e.detail?.tab
+      if (t) {
+        tabHistoryRef.current.push(t)
+        window.__mt_active_tab = t
+        setActiveTab_raw(t)
+        onTabChange?.(t)
+      }
+    }
+    const gb = () => goBackRef.current?.()
+    window.addEventListener('mt:go-home', h)
+    window.addEventListener('mt:switch-tab', st)
+    window.addEventListener('mt:go-back', gb)
+    return () => { window.removeEventListener('mt:go-home', h); window.removeEventListener('mt:switch-tab', st); window.removeEventListener('mt:go-back', gb) }
+  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
   const [exploreExam, setExploreExam] = useState(null)   // selected exam in Explore view
   const [activeExploreGroup, setActiveExploreGroup] = useState(null)  // category tab in Explore
+  const [exploreSearch, setExploreSearch] = useState('')
+  const exploreSearchRef = useRef(null)
   const [exploreTab,  setExploreTab]  = useState('overview')
   const [blueprint,   setBlueprint]   = useState(null)
   const [bpLoading,   setBpLoading]   = useState(false)
@@ -829,6 +874,10 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
   const [showPlanBuilder,setShowPlanBuilder]= useState(false)
   const [completedDays,  setCompletedDays] = useState({})
   const [planLoading,    setPlanLoading]   = useState(true)   // true until Supabase responds
+  const [completedTasks, setCompletedTasks] = useState(planData?.completed_tasks || {})
+  const completedTasksRef = useRef(planData?.completed_tasks || {})
+  const savedPlanRef      = useRef(planData || null)
+  const debounceSaveRef   = useRef(null)
 
   /* ── profile state ── */
   const [profileEdit,     setProfileEdit]     = useState(false)
@@ -851,13 +900,51 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
   const [confirmPwd,setConfirmPwd]= useState('')
   const [pwdSaving, setPwdSaving] = useState(false)
   const [pwdMsg,    setPwdMsg]    = useState('')
-  // notification preferences
+  const [privacyView,  setPrivacyView]  = useState(false)
+  const [showNewPwd,   setShowNewPwd]   = useState(false)
+  const [showConfPwd,  setShowConfPwd]  = useState(false)
+  const [deleteModal,  setDeleteModal]  = useState(false)
+  const [deleting,     setDeleting]     = useState(false)
+  const [signOutAllMsg,setSignOutAllMsg]= useState('')
+  // notification preferences (email)
   const [notifNoSubs,  setNotifNoSubs]  = useState(!!user?.user_metadata?.notif_off_subs)
   const [notifNoPromo, setNotifNoPromo] = useState(!!user?.user_metadata?.notif_off_promo)
   const [notifSaving,  setNotifSaving]  = useState(false)
+  // local push notification prefs (native only)
+  const [notifPrefs, setNotifPrefs] = useState(() => isNative ? getNotifPrefs() : null)
+  // in-app notification inbox
+  const [showNotifPanel, setShowNotifPanel] = useState(false)
+  const [notifInbox, setNotifInbox] = useState(() => { try { return JSON.parse(localStorage.getItem('mt_inbox_v2') || '[]') } catch { return [] } })
   const [avatarUrl,       setAvatarUrl]       = useState(user?.user_metadata?.avatar_url || '')
   const [avatarUploading, setAvatarUploading] = useState(false)
   const avatarInputRef = useRef(null)
+  // Pop the tab history stack and navigate to the previous tab.
+  // Dispatches mt:at-root when we're already at the stack base (exits the app on Android).
+  const goBackTab = useCallback(() => {
+    const hist = tabHistoryRef.current
+    if (hist.length > 1) {
+      hist.pop()
+      const prev = hist[hist.length - 1]
+      window.__mt_active_tab = prev
+      setActiveTab_raw(prev)
+      onTabChange?.(prev)
+    } else {
+      window.dispatchEvent(new CustomEvent('mt:at-root'))
+    }
+  }, [onTabChange])
+
+  // Keep goBackRef.current updated so the stable mt:go-back listener always sees latest state.
+  // Priority: close overlays/sub-views first, then pop tab history.
+  useEffect(() => {
+    goBackRef.current = () => {
+      if (showNotifPanel)  { setShowNotifPanel(false);  return }
+      if (privacyView)     { setPrivacyView(false);     return }
+      if (profileEdit)     { setProfileEdit(false);     return }
+      if (showPlanBuilder) { setShowPlanBuilder(false); return }
+      if (exploreExam)     { setExploreExam(null);      return }
+      goBackTab()
+    }
+  }, [showNotifPanel, profileEdit, privacyView, showPlanBuilder, exploreExam, goBackTab])
 
   /* ── selected / target exam state ── */
   const [selectedExamId, setSelectedExamId] = useState(
@@ -870,17 +957,31 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
   const [examSaving,     setExamSaving]     = useState(false)
   const [waFilter,       setWaFilter]       = useState('all')   // weak-areas section filter
   const [topicTab,       setTopicTab]       = useState('weak')  // dashboard topic tab: 'weak' | 'strong'
-  const [clockNow,       setClockNow]       = useState(Date.now)
-
-  // Live countdown ticker — 1-second interval, cleaned up on unmount
-  useEffect(() => {
-    const t = setInterval(() => setClockNow(Date.now()), 1000)
-    return () => clearInterval(t)
-  }, [])
+  const [dailyGoal,      setDailyGoal]      = useState(()=>{try{return parseInt(localStorage.getItem('mt_dailyGoal')||'3',10)||3}catch{return 3}})
+  const [showGoalEditor, setShowGoalEditor] = useState(false)
+  const [goalEditVal,    setGoalEditVal]    = useState(3)
+  // clockNow removed — isolated into <ExamCountdown> so the ticker doesn't re-render the whole Dashboard
 
   /* show all exam groups regardless of region so users see their full history */
   const ACTIVE_GROUPS       = [...EXAM_GROUPS, ...SAT_EXAM_GROUPS]
   const ACTIVE_TOPIC_GROUPS = examRegion === 'us' ? SAT_TOPIC_GROUPS : TOPIC_GROUPS
+
+  /* category-based visibility filter — only affects practice & explore tabs */
+  const CATEGORY_TO_GROUP_IDS = {
+    banking: ['ibps','sbi','rbi','nabard','lic','insurance','indiapost','psu'],
+    railway: ['rrb'],
+    ssc: ['ssc'],
+    engineering: ['eamcet'],
+  }
+  const _selCats = (() => {
+    const fromMeta = user?.user_metadata?.selected_categories
+    if (fromMeta && fromMeta.length) return fromMeta
+    try { const raw = localStorage.getItem('mt-pending-cats'); return raw ? JSON.parse(raw) : [] } catch { return [] }
+  })()
+  const _visibleRaw = _selCats.length > 0
+    ? ACTIVE_GROUPS.filter(g => _selCats.flatMap(c => CATEGORY_TO_GROUP_IDS[c] || []).includes(g.id))
+    : ACTIVE_GROUPS
+  const VISIBLE_GROUPS = _visibleRaw.length > 0 ? _visibleRaw : ACTIVE_GROUPS
 
   /* flatten all exams + find the selected one and its group */
   const ALL_EXAMS_FLAT = ACTIVE_GROUPS.flatMap(g => g.exams.map(e => ({ ...e, groupId: g.id, groupLabel: g.label, groupColor: g.color })))
@@ -924,7 +1025,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
   const _b = cd ? '#232c3a' : '#efefef'
   const _t = cd ? '#f1f5f9' : '#111827'
   const _m = cd ? '#94a3b8' : '#6b7280'
-  const _a = '#FF653F'
+  const _a = '#F06535'
 
   /* subscription tier — free users can only prepare for one exam group */
   const plan  = (user?.user_metadata?.plan || user?.user_metadata?.subscription || 'free').toLowerCase()
@@ -1002,6 +1103,51 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
     if (startMax && startDate && startDate > startMax) setStartDate(startMax)
     if (maxEnd && endDate && endDate > maxEnd) setEndDate(maxEnd)
   }, [startMax, maxEnd, startDate, endDate])
+
+  /* ── in-app notification inbox builder ── */
+  useEffect(() => {
+    if (!user) return
+    const existing = (() => { try { return JSON.parse(localStorage.getItem('mt_inbox_v2') || '[]') } catch { return [] } })()
+    const existingIds = new Set(existing.map(n => n.id))
+    const newItems = []
+    const pushIfNew = item => { if (!existingIds.has(item.id)) newItems.push(item) }
+
+    pushIfNew({ id: `welcome-${user.id.slice(0,8)}`, type: 'system', icon: '👋', title: 'Welcome to MockTest', body: 'Take a mock test to start tracking your progress and score higher.', ts: new Date(user.created_at || Date.now()).getTime(), read: false, action: null })
+
+    const _plan  = (user?.user_metadata?.plan || user?.user_metadata?.subscription || 'free').toLowerCase()
+    const _isPro = !['free','','none'].includes(_plan)
+    if (!_isPro) {
+      const _created = user.created_at ? new Date(user.created_at) : new Date()
+      const _trialEnd = new Date(_created.getTime() + 7 * 86400000)
+      const _daysLeft = Math.max(0, Math.ceil((_trialEnd - new Date()) / 86400000))
+      const _trialEndStr = _trialEnd.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
+      if (_daysLeft > 0 && _daysLeft <= 3) {
+        pushIfNew({ id: `trial-warn-${_daysLeft}d`, type: 'subscription', icon: '⚡', title: `${_daysLeft} day${_daysLeft===1?'':'s'} left in free trial`, body: `Your trial ends ${_trialEndStr}. Upgrade to keep full access.`, ts: Date.now() - 500, read: false, action: 'subscriptions' })
+      }
+      if (_daysLeft === 0) {
+        pushIfNew({ id: `trial-expired-${user.id.slice(0,8)}`, type: 'subscription', icon: '🔒', title: 'Free trial ended', body: 'Upgrade to unlock all mock tests, analytics and study tools.', ts: Date.now() - 1000, read: false, action: 'subscriptions' })
+      }
+    }
+
+    if (newItems.length > 0) {
+      const merged = [...newItems, ...existing].slice(0, 50)
+      try { localStorage.setItem('mt_inbox_v2', JSON.stringify(merged)) } catch {}
+      setNotifInbox(merged)
+    }
+  }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* add result notifications when history loads */
+  useEffect(() => {
+    if (!history.length) return
+    const r = history[0]
+    const rid = `result-${r.id || r.created_at}`
+    const existing = (() => { try { return JSON.parse(localStorage.getItem('mt_inbox_v2') || '[]') } catch { return [] } })()
+    if (existing.some(n => n.id === rid)) return
+    const item = { id: rid, type: 'result', icon: '📊', title: 'Mock test completed', body: `You scored ${(r.percentage||0).toFixed(1)}% on your latest test. Keep practicing!`, ts: new Date(r.created_at || Date.now()).getTime(), read: false, action: 'performance' }
+    const merged = [item, ...existing].slice(0, 50)
+    try { localStorage.setItem('mt_inbox_v2', JSON.stringify(merged)) } catch {}
+    setNotifInbox(merged)
+  }, [history.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── load recent results + saved plan ── */
   const planFetchedRef = useRef(false)
@@ -1089,6 +1235,29 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
     return null
   }
 
+  // Keep refs in sync so debounced handler always reads fresh values
+  useEffect(() => { savedPlanRef.current = savedPlan }, [savedPlan])
+  // When savedPlan changes (new plan created or loaded), sync completedTasks from it
+  useEffect(() => {
+    const ct = savedPlan?.completed_tasks || {}
+    setCompletedTasks(ct)
+    completedTasksRef.current = ct
+  }, [savedPlan])
+
+  const handleToggleDone = (key, val) => {
+    const updated = { ...completedTasksRef.current, [key]: val }
+    completedTasksRef.current = updated
+    setCompletedTasks(updated)
+    clearTimeout(debounceSaveRef.current)
+    debounceSaveRef.current = setTimeout(async () => {
+      if (!user?.id || !savedPlanRef.current) return
+      const { exam_id, exam_date, hours_per_day, weak_topics, created_at, completed_tasks: _ct, ...planContent } = savedPlanRef.current
+      await supabase.from('study_plans')
+        .update({ plan_json: { ...planContent, completed_tasks: completedTasksRef.current } })
+        .eq('user_id', user.id)
+    }, 800)
+  }
+
   // Create Plan now generates AND saves in one click (no separate Save step).
   const handleGeneratePlan = async () => {
     if (!startDate || !endDate || !studyDays.length) return
@@ -1097,7 +1266,8 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
     if (!isPro && trialActive && new Date(endDate) > trialEnd) {
       toast(`Your free trial ends on ${trialEndStr}. Pick an end date within your trial, or upgrade for longer plans.`, 'error'); return
     }
-    const plan = generatePlan({ startDate, endDate, studyDays, hoursPerDay, dayHours, weakTopics, topicGroups: ACTIVE_TOPIC_GROUPS, blockedDates, catchupEvery: catchupEnabled ? catchupEvery : 0 })
+    const examTGs = examRegion === 'us' ? SAT_TOPIC_GROUPS : getExamTopicGroups(planExam || selectedExamId)
+    const plan = generatePlan({ startDate, endDate, studyDays, hoursPerDay, dayHours, weakTopics, topicGroups: examTGs, blockedDates, catchupEvery: catchupEnabled ? catchupEvery : 0 })
     if (!plan) return
     setGeneratedPlan(plan)
     await handleSavePlan(plan)
@@ -1152,6 +1322,13 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
 
     // Reflect the chosen exam on the dashboard immediately
     setSelectedExamId(planExam); setExamChosen(true)
+
+    // Update exam countdown notifications with the new exam date
+    if (isNative && endDate) {
+      const examObj = CUTOFF_EXAMS.find(e => e.id === planExam)
+      const examLabel = examObj?.name || 'Your Exam'
+      scheduleAll(getNotifPrefs(), endDate, examLabel).catch(() => {})
+    }
 
     // Use the normalized plan so PlanScheduleView always gets .days at root
     const normalized = normalizePlan(inserted || plan)
@@ -1225,6 +1402,30 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
     setTimeout(() => setPwdMsg(''), 3000)
   }
 
+  const handleSignOutAllDevices = async () => {
+    setSignOutAllMsg('')
+    try {
+      await supabase.auth.signOut({ scope: 'global' })
+      onLogout()
+    } catch (e) {
+      setSignOutAllMsg(e?.message || 'Failed to sign out all devices.')
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true)
+    try {
+      // Delete user data from results/profiles before signing out
+      await supabase.from('results').delete().eq('student_id', user.id)
+      await supabase.from('profiles').delete().eq('id', user.id)
+      await supabase.auth.signOut()
+      onLogout()
+    } catch (e) {
+      setDeleting(false)
+      setDeleteModal(false)
+    }
+  }
+
   const handleSaveNotif = async (subs, promo) => {
     setNotifNoSubs(subs); setNotifNoPromo(promo); setNotifSaving(true)
     await supabase.auth.updateUser({ data: { notif_off_subs: subs, notif_off_promo: promo } })
@@ -1232,7 +1433,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
   }
 
   /* ── type colour helpers ── */
-  const typeColor = t => t==='mock'?'#FF653F':t==='revision'?'#16a34a':'#FF653F'
+  const typeColor = t => t==='mock'?'#F06535':t==='revision'?'#16a34a':'#F06535'
   const typeBg    = t => t==='mock'?'#FFF3EE':t==='revision'?'#dcfce7':'#FFF3EE'
 
   /* ══════════════════════════════════════════
@@ -1257,58 +1458,88 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
         .na main{-webkit-overflow-scrolling:touch}
         .na .hero-illus{display:none!important}
         .na .ht-hero-illus{display:none!important}
+        .na .sp-card{background:${cd?'#1c1c1e':'#fff'}!important;border:none!important;border-radius:18px!important;box-shadow:${cd?'0 2px 14px rgba(0,0,0,.4),0 0 0 .5px rgba(255,255,255,.05)':'0 2px 10px rgba(0,0,0,.06),0 0 0 .5px rgba(0,0,0,.04)'}!important;width:100%!important;box-sizing:border-box!important}
+        .na .sp-header{background:${cd?'#1c1c1e':'#fff'}!important;border-bottom:1px solid ${cd?'rgba(255,255,255,.06)':'#f3f4f6'}!important}
+        .na .sp-form{width:100%!important;max-width:100%!important;box-sizing:border-box!important;min-width:0!important}
+        .na .sp-grid{display:flex!important;flex-direction:column!important;gap:0!important;align-items:stretch!important;width:100%!important;min-width:0!important;box-sizing:border-box!important}
+        .na .sp-grid>div{width:100%!important;min-width:0!important;box-sizing:border-box!important}
       `}</style>}
 
       {/* ══ NATIVE APP TOP BAR — per-tab header, Capacitor only ══ */}
       {isNative && (() => {
         const isPrimary = ['home','explore','performance','studyplan','profile'].includes(activeTab)
-        const TITLES = {home:'Home',explore:'Explore Exams',performance:'My Progress',studyplan:'Study Planner',profile:'Profile',weakareas:'Weak Areas',prediction:'AI Prediction',subscriptions:'Subscriptions',billing:'Billing',settings:'Settings'}
+        const TITLES = {home:'Home',explore:'Explore Exams',performance:'My Progress',studyplan:'Study Planner',profile:'Profile',weakareas:'Weak Areas',prediction:'AI Prediction',subscriptions:'Subscriptions',billing:'Billing',settings:'Settings',help:'Help & Support'}
         return (
-          <div style={{background:_s,paddingTop:'env(safe-area-inset-top,0px)',position:'sticky',top:0,zIndex:100,borderBottom:`1px solid ${_b}`,boxShadow:cd?'none':'0 1px 0 rgba(0,0,0,.05)'}}>
-            <div style={{height:54,display:'flex',alignItems:'center',padding:'0 14px',gap:10}}>
+          <div style={{background:'#111',paddingTop:'env(safe-area-inset-top,0px)',position:'sticky',top:0,zIndex:100,borderBottom:'1px solid rgba(255,255,255,.08)',boxShadow:'0 2px 8px rgba(0,0,0,.3)'}}>
+            <div style={{height:54,display:'flex',alignItems:'center',padding:'0 16px',gap:10}}>
               {/* Left: back arrow for secondary tabs, MT logo for primary */}
               {!isPrimary ? (
-                <button onClick={()=>setActiveTab('home')} style={{width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',border:'none',background:cd?'rgba(255,255,255,.09)':'rgba(0,0,0,.06)',borderRadius:11,cursor:'pointer',flexShrink:0}}>
-                  <svg width="18" height="18" fill="none" stroke={_t} strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                <button onClick={goBackTab} style={{width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',border:'none',background:'rgba(255,255,255,.1)',borderRadius:11,cursor:'pointer',flexShrink:0,touchAction:'manipulation'}}>
+                  <svg width="18" height="18" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
                 </button>
               ) : (
-                <div style={{width:34,height:34,background:'#FF653F',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                <div style={{width:34,height:34,background:'#F06535',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                   <span style={{color:'#fff',fontWeight:900,fontSize:11}}>MT</span>
                 </div>
               )}
               {/* Title */}
               <div style={{flex:1,minWidth:0}}>
                 {activeTab==='home' ? (
-                  <div style={{fontSize:16,fontWeight:800,color:_t,letterSpacing:'-.02em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                    Hi, {(userName||'Student').split(' ')[0]} 👋
+                  <div style={{fontSize:16,fontWeight:800,color:'#fff',letterSpacing:'-.02em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                    Home
                   </div>
                 ) : (
-                  <div style={{fontSize:17,fontWeight:800,color:_t,letterSpacing:'-.02em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                  <div style={{fontSize:17,fontWeight:800,color:'#fff',letterSpacing:'-.02em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                     {TITLES[activeTab]||activeTab}
                   </div>
                 )}
               </div>
-              {/* Context action */}
-              {(activeTab==='home'||activeTab==='explore') && (
-                <button style={{width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',border:'none',background:cd?'rgba(255,255,255,.07)':'rgba(0,0,0,.05)',borderRadius:11,cursor:'pointer',flexShrink:0}}>
-                  {activeTab==='home'
-                    ? <svg width="17" height="17" fill="none" stroke={_m} strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                    : <svg width="17" height="17" fill="none" stroke={_m} strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>}
+              {/* Bell + three-dots for all primary tabs; explore also gets search */}
+              {isPrimary && (<>
+                {activeTab==='explore' && (
+                  <button onClick={()=>{ setTimeout(()=>exploreSearchRef.current?.focus(),50) }} style={{width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',border:'none',background:'rgba(255,255,255,.1)',borderRadius:11,cursor:'pointer',flexShrink:0,touchAction:'manipulation'}}>
+                    <svg width="17" height="17" fill="none" stroke="rgba(255,255,255,.85)" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  </button>
+                )}
+                <button onClick={()=>setShowNotifPanel(true)} style={{width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',border:'none',background:'rgba(255,255,255,.1)',borderRadius:11,cursor:'pointer',flexShrink:0,touchAction:'manipulation',position:'relative'}}>
+                  <svg width="18" height="18" fill="none" stroke="rgba(255,255,255,.75)" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                  {notifInbox.some(n=>!n.read) && <span style={{position:'absolute',top:5,right:5,width:8,height:8,background:'#ff3b30',borderRadius:'50%',border:'1.5px solid #111'}}/>}
                 </button>
+                <button onClick={()=>setShowNativeMenu(v=>!v)} style={{width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',border:'none',background:'rgba(255,255,255,.1)',borderRadius:11,cursor:'pointer',flexShrink:0,touchAction:'manipulation'}}>
+                  <svg width="4" height="18" viewBox="0 0 4 20" fill="rgba(255,255,255,.75)"><circle cx="2" cy="2" r="2"/><circle cx="2" cy="10" r="2"/><circle cx="2" cy="18" r="2"/></svg>
+                </button>
+              </>)}
+              {/* Three-dots dropdown */}
+              {showNativeMenu && (
+                <>
+                  <div onClick={()=>setShowNativeMenu(false)} style={{position:'fixed',inset:0,zIndex:199}}/>
+                  <div style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 58px)',right:14,zIndex:200,background:'#1c1c1e',borderRadius:14,boxShadow:'0 8px 32px rgba(0,0,0,.6)',overflow:'hidden',minWidth:180}}>
+                    <button onClick={()=>{setShowNativeMenu(false);setActiveTab('help')}} style={{width:'100%',padding:'14px 18px',display:'flex',alignItems:'center',gap:12,background:'none',border:'none',color:'#fff',fontSize:14,fontWeight:600,cursor:'pointer',textAlign:'left',touchAction:'manipulation'}}>
+                      <svg width="16" height="16" fill="none" stroke="rgba(255,255,255,.6)" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                      Help & Support
+                    </button>
+                    <div style={{height:1,background:'rgba(255,255,255,.08)',margin:'0 18px'}}/>
+                    <button onClick={()=>{setShowNativeMenu(false);setActiveTab('settings')}} style={{width:'100%',padding:'14px 18px',display:'flex',alignItems:'center',gap:12,background:'none',border:'none',color:'#fff',fontSize:14,fontWeight:600,cursor:'pointer',textAlign:'left',touchAction:'manipulation'}}>
+                      <svg width="16" height="16" fill="none" stroke="rgba(255,255,255,.6)" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                      Settings
+                    </button>
+                    <div style={{height:1,background:'rgba(255,255,255,.08)',margin:'0 18px'}}/>
+                    <button onClick={()=>{setShowNativeMenu(false);onLogout?.()}} style={{width:'100%',padding:'14px 18px',display:'flex',alignItems:'center',gap:12,background:'none',border:'none',color:'#ff4444',fontSize:14,fontWeight:600,cursor:'pointer',textAlign:'left',touchAction:'manipulation'}}>
+                      <svg width="16" height="16" fill="none" stroke="#ff4444" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                      Sign Out
+                    </button>
+                  </div>
+                </>
               )}
-              {/* Three-dot More */}
-              <button onClick={()=>setPanelOpen(true)} style={{width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',border:'none',background:'transparent',cursor:'pointer',flexShrink:0}}>
-                <svg width="18" height="18" fill={_m} viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
-              </button>
             </div>
             {/* Trial notice strip */}
             {activeTab==='home' && (trialActive||trialExpired) && (
-              <div style={{padding:'7px 14px 9px',background:'rgba(255,101,63,.09)',borderTop:`1px solid rgba(255,101,63,.18)`,display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
-                <span style={{fontSize:12,color:cd?'#ff9a7a':'#c94a1f',fontWeight:600}}>
-                  {trialExpired?'Free trial ended — upgrade to continue':`${trialDaysLeft===1?'Last day':trialDaysLeft+' days'} left in free trial`}
+              <div style={{padding:'8px 14px',background:'#F06535',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+                <span style={{fontSize:12,color:'rgba(255,255,255,.95)',fontWeight:600}}>
+                  {trialExpired?'Free trial ended — upgrade to continue':`🔥 ${trialDaysLeft===1?'Last day':trialDaysLeft+' days'} left in free trial`}
                 </span>
-                <button onClick={()=>setActiveTab('subscriptions')} style={{fontSize:11,fontWeight:800,color:'#fff',background:'#FF653F',border:'none',borderRadius:8,padding:'5px 10px',cursor:'pointer',flexShrink:0,whiteSpace:'nowrap'}}>
-                  Upgrade
+                <button onClick={()=>setActiveTab('subscriptions')} style={{fontSize:11,fontWeight:800,color:'#F06535',background:'#fff',border:'none',borderRadius:8,padding:'5px 10px',cursor:'pointer',flexShrink:0,whiteSpace:'nowrap',touchAction:'manipulation'}}>
+                  Upgrade →
                 </button>
               </div>
             )}
@@ -1320,12 +1551,12 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
       {!isNative && <header className="h-16 flex items-center px-5 gap-4 sticky top-0 z-30" style={{ background:'#fff', borderBottom:'1px solid #e5e7eb', boxShadow:'0 1px 4px rgba(0,0,0,.06)' }}>
         {/* Logo */}
         <div className="flex items-center gap-3 flex-shrink-0">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background:'#FF653F' }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background:'#F06535' }}>
             <span className="text-white text-sm font-black">MT</span>
           </div>
           <div className="hidden sm:block leading-none">
             <div className="text-base font-black tracking-tight" style={{color:'#111827'}}>MockTest</div>
-            <div style={{fontSize:8.5,fontWeight:700,color:'#FF653F',letterSpacing:'.10em',textTransform:'uppercase',fontStyle:'italic',marginTop:3,lineHeight:1}}>Your World of Mock Tests</div>
+            <div style={{fontSize:8.5,fontWeight:700,color:'#F06535',letterSpacing:'.10em',textTransform:'uppercase',fontStyle:'italic',marginTop:3,lineHeight:1}}>Your World of Mock Tests</div>
           </div>
         </div>
         <div className="flex-1"/>
@@ -1335,11 +1566,11 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
             <span>
               {trialExpired
                 ? 'Free trial ended — upgrade to continue.'
-                : <>{trialDaysLeft === 1 ? 'Last day' : <><b style={{color:'#FF653F'}}>{trialDaysLeft} days</b> left</>} of your free trial.</>}
+                : <>{trialDaysLeft === 1 ? 'Last day' : <><b style={{color:'#F06535'}}>{trialDaysLeft} days</b> left</>} of your free trial.</>}
             </span>
             <button onClick={() => setActiveTab('subscriptions')}
               className="text-white text-xs font-bold px-3 py-1 rounded-lg flex-shrink-0"
-              style={{ background:'#FF653F' }}>
+              style={{ background:'#F06535' }}>
               Upgrade
             </button>
           </div>
@@ -1364,7 +1595,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
             <button onClick={()=>setUserMenuOpen(o=>!o)}
               className="flex items-center gap-2 rounded-full transition-all"
               style={{background:'#f3f4f6',border:'1px solid #e5e7eb',padding:'5px 12px 5px 5px',cursor:'pointer',outline:'none',position:'relative',zIndex:50}}>
-              <div style={{width:30,height:30,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:900,color:'#fff',flexShrink:0,overflow:'hidden'}}>
+              <div style={{width:30,height:30,borderRadius:'50%',background:'linear-gradient(135deg,#F06535,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:900,color:'#fff',flexShrink:0,overflow:'hidden'}}>
                 {avatarUrl ? <img src={avatarUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/> : (userName[0]||'U').toUpperCase()}
               </div>
               <span style={{fontSize:13,fontWeight:700,color:'#111827',maxWidth:100,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
@@ -1388,7 +1619,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                 {/* User info header */}
                 <div style={{padding:'14px 16px 12px',borderBottom:'1px solid #f5f5f5'}}>
                   <div style={{display:'flex',alignItems:'center',gap:10}}>
-                    <div style={{width:36,height:36,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:900,color:'#fff',flexShrink:0,overflow:'hidden'}}>
+                    <div style={{width:36,height:36,borderRadius:'50%',background:'linear-gradient(135deg,#F06535,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:900,color:'#fff',flexShrink:0,overflow:'hidden'}}>
                       {avatarUrl ? <img src={avatarUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/> : (userName[0]||'U').toUpperCase()}
                     </div>
                     <div style={{minWidth:0}}>
@@ -1401,7 +1632,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     <div style={{fontSize:10,fontWeight:700,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.06em'}}>
                       {isPro?'Plan':'Free Trial'}
                     </div>
-                    <div style={{fontSize:12,fontWeight:700,color:isPro?(plan==='ultimate'?'#7048E8':'#FF653F'):(trialExpired?'#ef4444':'#FF653F'),marginTop:1}}>
+                    <div style={{fontSize:12,fontWeight:700,color:isPro?(plan==='ultimate'?'#7048E8':'#F06535'):(trialExpired?'#ef4444':'#F06535'),marginTop:1}}>
                       {isPro
                         ? `${plan.charAt(0).toUpperCase()+plan.slice(1)} — active`
                         : trialExpired ? `Trial expired on ${trialEndStr}`
@@ -1456,14 +1687,14 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
               <button key={item.id} onClick={() => setActiveTab(item.id)}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm mb-0.5 transition-all"
                 style={activeTab === item.id
-                  ? { background:'rgba(255,101,63,.1)', color:'#FF653F', fontWeight:700, boxShadow:'inset 3px 0 0 #FF653F' }
+                  ? { background:'rgba(232,90,44,.1)', color:'#F06535', fontWeight:700, boxShadow:'inset 3px 0 0 #F06535' }
                   : { color:'#6b7280', fontWeight:500 }}
                 onMouseOver={e=>{ if(activeTab!==item.id){ e.currentTarget.style.background='#f0f0f0'; e.currentTarget.style.color='#374151' } }}
                 onMouseOut={e=>{ if(activeTab!==item.id){ e.currentTarget.style.background=''; e.currentTarget.style.color='#6b7280' } }}>
                 <span className="flex-shrink-0 opacity-80"><item.Icon /></span>
                 {item.label}
                 {item.badge && activeTab !== item.id && (
-                  <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ background:'#FF653F' }}>{item.badge}</span>
+                  <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ background:'#F06535' }}>{item.badge}</span>
                 )}
               </button>
             ))}
@@ -1472,9 +1703,9 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
         </aside>}
 
         {/* ══ MAIN CONTENT ══ */}
-        <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto flex flex-col" style={{background: isNative?(cd?'#000':'#f2f2f7'):'#fff'}}>
+        <main ref={mainScrollRef} className="flex-1 min-w-0 overflow-y-auto flex flex-col" style={{overflowX:'clip',background: isNative?(cd?'#000':'#f2f2f7'):'#fff'}}>
           <div className="flex-1 py-6 px-4 sm:px-8 lg:px-12" style={{maxWidth:'100%',boxSizing:'border-box',
-            ...(isNative ? {paddingBottom:'calc(76px + env(safe-area-inset-bottom,0px))',paddingLeft:14,paddingRight:14,paddingTop:14} : {})
+            ...(isNative ? {paddingBottom:'calc(76px + env(safe-area-inset-bottom,0px))',paddingLeft:16,paddingRight:16,paddingTop:14} : {})
           }}>
 
             {/* ── HOME tab ── */}
@@ -1502,7 +1733,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
               const _b = cd ? '#232c3a' : '#efefef'
               const _t = cd ? '#f1f5f9' : '#111827'
               const _m = cd ? '#94a3b8' : '#6b7280'
-              const _a = '#FF653F'
+              const _a = '#F06535'
               const shortLbl2 = l => l.replace(/\s*(exams?|tests?)\s*$/i,'').trim()
 
               /* ── returning-user derived stats ── */
@@ -1581,21 +1812,21 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                   <style>{`
                     .ht-new-outer{display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start}.ht-new-col-right{align-self:stretch}
                     .ht-new-right{position:sticky;top:0;display:flex;flex-direction:column;gap:20px}
-                    .ht-cat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+                    .ht-cat-grid{display:grid;grid-template-columns:var(--cc,repeat(5,1fr));gap:14px}
                     .ht-cat-card{background:${_s};border:1px solid ${_b};border-radius:14px;padding:20px 14px 16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;width:100%;transition:all .18s}
+                    .ht-cat-card-solo{flex-direction:row!important;text-align:left!important;align-items:center!important;padding:18px 20px!important;gap:16px!important}
+                    .ht-cat-card-span2{grid-column:span 2!important}
                     .ht-explore-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
                     .ht-explore-card{background:${_s};border:1px solid ${_b};border-radius:14px;padding:18px 16px;display:flex;flex-direction:column;align-items:flex-start;gap:12px}
                     .ht-why-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
-                    .ht-feat-grid{display:flex;flex-wrap:wrap;gap:8px}
-                    .ht-feat-item{display:flex;align-items:center;gap:7px;padding:6px 12px;background:${cd?'rgba(255,255,255,.06)':'rgba(255,255,255,.82)'};border-radius:99px;border:1px solid ${cd?'rgba(255,255,255,.1)':'rgba(255,101,63,.14)'};flex-shrink:0}
                     .ht-hero-illus{flex-shrink:0;width:240px;min-width:0}
                     .ht-hero-inner{display:flex;align-items:center;gap:24;justify-content:space-between;position:relative}
                     @media(max-width:1100px){.ht-hero-illus{display:none!important}}
                     @media(max-width:980px){.ht-new-outer{grid-template-columns:1fr!important}.ht-new-col-right{align-self:auto!important}.ht-new-right{position:static!important}}
-                    @media(max-width:1100px){.ht-cat-grid{grid-template-columns:repeat(3,1fr)!important}}
-                    @media(max-width:700px){.ht-cat-grid{grid-template-columns:repeat(2,1fr)!important}.ht-why-grid{grid-template-columns:1fr 1fr!important}.ht-explore-grid{grid-template-columns:1fr 1fr!important}.ht-explore-card{flex-direction:row!important;align-items:flex-start!important;gap:12px!important}}
-                    @media(max-width:480px){.ht-why-grid{grid-template-columns:1fr!important}.ht-cat-grid{grid-template-columns:repeat(2,1fr)!important}.ht-feat-grid{gap:6px!important}}
-                    @media(max-width:360px){.ht-cat-grid{grid-template-columns:1fr!important}}
+                    @media(max-width:1100px){.ht-cat-grid{grid-template-columns:var(--cc,repeat(3,1fr))!important}}
+                    @media(max-width:700px){.ht-cat-grid{grid-template-columns:var(--cc-sm,repeat(2,1fr))!important}.ht-why-grid{grid-template-columns:1fr 1fr!important}.ht-explore-grid{grid-template-columns:1fr 1fr!important}.ht-explore-card{flex-direction:row!important;align-items:flex-start!important;gap:12px!important}}
+                    @media(max-width:480px){.ht-why-grid{grid-template-columns:1fr!important}.ht-cat-grid{grid-template-columns:var(--cc-sm,repeat(2,1fr))!important}}
+                    @media(max-width:360px){.ht-cat-grid{grid-template-columns:var(--cc-sm,1fr)!important}}
                   `}</style>
 
                   <div className="ht-new-outer">
@@ -1604,44 +1835,24 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
 
                       {/* HERO BANNER */}
                       <div style={{position:'relative',borderRadius:18,overflow:'hidden',
-                        background:cd?'linear-gradient(135deg,#0d1117 0%,#161b24 100%)':'linear-gradient(135deg,#fff8f5 0%,#fff3ee 100%)',
-                        border:`1px solid ${cd?'#1e2738':'#ffdece'}`,
-                        boxShadow:cd?'0 2px 20px rgba(0,0,0,.35)':'0 4px 24px rgba(255,101,63,.08)',
-                        marginBottom:22,padding:'26px 28px 26px 32px'}}>
-                        <div style={{position:'absolute',left:0,top:0,bottom:0,width:4,background:'linear-gradient(180deg,#FF653F,#ff9c68)'}}/>
-                        <div style={{position:'absolute',top:-50,right:-30,width:180,height:180,borderRadius:'50%',background:'radial-gradient(circle,rgba(255,101,63,.1) 0%,transparent 70%)',pointerEvents:'none'}}/>
+                        background:'linear-gradient(135deg,#F06535 0%,#e8571c 60%,#c94613 100%)',
+                        border:'none',
+                        boxShadow:'0 6px 28px rgba(232,90,44,.45)',
+                        marginBottom:22,padding:'22px 20px'}}>
+                        <div style={{position:'absolute',left:0,top:0,bottom:0,width:4,background:'rgba(255,255,255,.3)'}}/>
+                        <div style={{position:'absolute',top:-50,right:-30,width:180,height:180,borderRadius:'50%',background:'radial-gradient(circle,rgba(0,0,0,.15) 0%,transparent 70%)',pointerEvents:'none'}}/>
                         <div style={{display:'flex',alignItems:'center',gap:24,justifyContent:'space-between',position:'relative'}}>
                           <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontSize:13,fontWeight:700,color:_a,marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
+                            <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
                               <span style={{fontSize:16}}>👋</span>
                               <span>Hi, {(u=>{const fn=u.split(/[\s._@]/)[0];return fn.charAt(0).toUpperCase()+fn.slice(1)})(userName)}!</span>
                             </div>
-                            <h1 style={{fontSize:18,fontWeight:400,color:cd?'#fff':_t,letterSpacing:'-.01em',lineHeight:1.3,margin:'0 0 12px',whiteSpace:'nowrap'}}>
+                            <h1 style={{fontSize:18,fontWeight:800,color:'#fff',letterSpacing:'-.01em',lineHeight:1.3,margin:'0 0 10px',whiteSpace:'nowrap'}}>
                               Prepare Smarter, Score Higher
                             </h1>
-                            <p style={{margin:'0 0 20px',fontSize:13,color:_m,fontWeight:500,lineHeight:1.7,maxWidth:380}}>
+                            <p style={{margin:0,fontSize:13,color:'rgba(255,255,255,.95)',fontWeight:500,lineHeight:1.7,maxWidth:380}}>
                               Full-length mock tests, topic-wise practice, and detailed analytics — everything you need to crack your exam.
                             </p>
-                            <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:18}}>
-                              <button onClick={()=>setActiveTab('explore')}
-                                style={{background:_a,color:'#fff',border:'none',borderRadius:10,padding:'11px 22px',fontWeight:800,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',gap:7,boxShadow:'0 4px 16px rgba(255,101,63,.32)'}}>
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                                Browse Exams
-                              </button>
-                            </div>
-                            <div className="ht-feat-grid">
-                              {[
-                                {label:'Full-Length Mock Tests',icon:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>},
-                                {label:'Topic-Wise Practice',icon:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>},
-                                {label:'Detailed Explanations',icon:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>},
-                                {label:'Personalised Study Plan',icon:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>},
-                              ].map((f,fi)=>(
-                                <div key={fi} className="ht-feat-item">
-                                  {f.icon}
-                                  <span style={{fontSize:11.5,fontWeight:700,color:cd?'rgba(255,220,190,.88)':_t,lineHeight:1.3,whiteSpace:'nowrap'}}>{f.label}</span>
-                                </div>
-                              ))}
-                            </div>
                           </div>
                           <div className="ht-hero-illus" style={{display:'flex',alignItems:'flex-end',justifyContent:'center'}}>
                             <img
@@ -1672,41 +1883,49 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
                           </button>
                         </div>
-                        <div className="ht-cat-grid">
-                          {[
-                            {label:'Banking Exams',sub:'IBPS, SBI, RRB, NABARD\nand more',col:'#3b82f6',grp:'ibps',
+                        {(()=>{
+                          const _vc=[
+                            {catId:'banking',label:'Banking Exams',sub:'IBPS, SBI, RRB, NABARD\nand more',col:'#3b82f6',grp:'ibps',
                               icon:<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>},
-                            {label:'SSC Exams',sub:'CGL, CHSL, MTS, GD\nand more',col:'#8b5cf6',grp:'ssc',
+                            {catId:'ssc',label:'SSC Exams',sub:'CGL, CHSL, MTS, GD\nand more',col:'#8b5cf6',grp:'ssc',
                               icon:<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>},
-                            {label:'Railway Exams',sub:'RRB NTPC, Group D\nand more',col:'#16a34a',grp:'rrb',
+                            {catId:'railway',label:'Railway Exams',sub:'RRB NTPC, Group D\nand more',col:'#16a34a',grp:'rrb',
                               icon:<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="16" rx="2"/><path d="M4 11h16"/><path d="M12 3v8"/><circle cx="8.5" cy="17" r="1.5"/><circle cx="15.5" cy="17" r="1.5"/><path d="M8 19l-2 3"/><path d="M16 19l2 3"/></svg>},
-                            {label:'Entrance Exams',sub:'JEE, NEET, CUET\nand more',col:'#7c3aed',grp:null,
+                            {catId:'engineering',label:'Entrance Exams',sub:'JEE, NEET, CUET\nand more',col:'#7c3aed',grp:'eamcet',
                               icon:<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>},
-                            {label:'International',sub:'SAT, ACT\nand more',col:'#d97706',grp:'sat',
+                            {catId:'international',label:'International',sub:'SAT, ACT\nand more',col:'#d97706',grp:'sat',
                               icon:<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>},
-                          ].map((cat,ci)=>(
-                            <button key={ci}
-                              onClick={cat.grp?()=>{setActiveExploreGroup(cat.grp);setActiveTab('explore')}:undefined}
-                              className="ht-cat-card"
-                              style={{cursor:cat.grp?'pointer':'default',opacity:cat.grp?1:.75}}
-                              onMouseOver={cat.grp?e=>{e.currentTarget.style.borderColor=cat.col+'55';e.currentTarget.style.boxShadow=`0 8px 24px ${cat.col}18`;e.currentTarget.style.transform='translateY(-3px)'}:undefined}
-                              onMouseOut={cat.grp?e=>{e.currentTarget.style.borderColor='';e.currentTarget.style.boxShadow='';e.currentTarget.style.transform=''}:undefined}>
-                              <div style={{width:52,height:52,borderRadius:15,background:cat.col+'15',display:'flex',alignItems:'center',justifyContent:'center',color:cat.col,flexShrink:0}}>
-                                {cat.icon}
-                              </div>
-                              <div style={{flex:1,display:'flex',flexDirection:'column',gap:3,minWidth:0}}>
-                                <div style={{fontSize:12.5,fontWeight:800,color:_t,lineHeight:1.3}}>{cat.label}</div>
-                                <div style={{fontSize:10.5,color:_m,lineHeight:1.5,whiteSpace:'pre-line'}}>{cat.sub}</div>
-                              </div>
-                              {cat.grp
-                                ?<div style={{width:24,height:24,borderRadius:'50%',border:`1.5px solid ${cat.col}44`,display:'flex',alignItems:'center',justifyContent:'center',color:cat.col,flexShrink:0}}>
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                          ].filter(cat => !_selCats.length || (cat.catId === 'international' ? examRegion === 'us' : _selCats.includes(cat.catId)))
+                          const _vn=_vc.length
+                          const _cc=_vn<=1?'1fr':_vn<=4?'repeat(2,1fr)':'repeat(3,1fr)'
+                          const _ccSm=_vn<=1?'1fr':'repeat(2,1fr)'
+                          return (
+                          <div className="ht-cat-grid" style={{'--cc':_cc,'--cc-sm':_ccSm}}>
+                            {_vc.map((cat,ci)=>(
+                              <button key={ci}
+                                onClick={cat.grp?()=>{setActiveExploreGroup(cat.grp);setActiveTab('explore')}:undefined}
+                                className={`ht-cat-card${_vn===1?' ht-cat-card-solo':(_vn===3&&ci===2)?' ht-cat-card-span2':''}`}
+                                style={{cursor:cat.grp?'pointer':'default',opacity:cat.grp?1:.75}}
+                                onMouseOver={cat.grp?e=>{e.currentTarget.style.borderColor=cat.col+'55';e.currentTarget.style.boxShadow=`0 8px 24px ${cat.col}18`;e.currentTarget.style.transform='translateY(-3px)'}:undefined}
+                                onMouseOut={cat.grp?e=>{e.currentTarget.style.borderColor='';e.currentTarget.style.boxShadow='';e.currentTarget.style.transform=''}:undefined}>
+                                <div style={{width:52,height:52,borderRadius:15,background:cat.col,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',flexShrink:0}}>
+                                  {cat.icon}
                                 </div>
-                                :<div style={{fontSize:9,fontWeight:800,color:cat.col,background:cat.col+'18',borderRadius:99,padding:'3px 9px',flexShrink:0,letterSpacing:'.04em'}}>Soon</div>
-                              }
-                            </button>
-                          ))}
-                        </div>
+                                <div style={{flex:1,display:'flex',flexDirection:'column',gap:3,minWidth:0}}>
+                                  <div style={{fontSize:12.5,fontWeight:800,color:_t,lineHeight:1.3}}>{cat.label}</div>
+                                  <div style={{fontSize:10.5,color:_m,lineHeight:1.5,whiteSpace:'pre-line'}}>{cat.sub}</div>
+                                </div>
+                                {cat.grp
+                                  ?<div style={{width:24,height:24,borderRadius:'50%',border:`1.5px solid ${cat.col}44`,display:'flex',alignItems:'center',justifyContent:'center',color:cat.col,flexShrink:0}}>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                                  </div>
+                                  :<div style={{fontSize:9,fontWeight:800,color:cat.col,background:cat.col+'18',borderRadius:99,padding:'3px 9px',flexShrink:0,letterSpacing:'.04em'}}>Soon</div>
+                                }
+                              </button>
+                            ))}
+                          </div>
+                          )
+                        })()}
                       </div>
 
                       {/* EXPLORE WHAT YOU CAN DO */}
@@ -1717,27 +1936,28 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                         </div>
                         <div className="ht-explore-grid">
                           {[
-                            {label:'Full Mock Tests',desc:'Take complete tests with real exam pattern',btnText:'Start Now',col:'#FF653F',bg:`${_a}15`,act:()=>onStartTest?.('mock',selectedExamId),
+                            {label:'Full Mock Tests',btnText:'Start Now',col:'#F06535',act:()=>onStartTest?.('mock',selectedExamId),
                               icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>},
-                            {label:'Topic Practice',desc:'Practice topic-wise questions',btnText:'Start Practice',col:'#3b82f6',bg:'rgba(59,130,246,.12)',act:()=>onStartTest?.('topic',selectedExamId),
+                            {label:'Topic Practice',btnText:'Start Practice',col:'#3b82f6',act:()=>onStartTest?.('topic',''),
                               icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>},
-                            {label:'Previous Year Papers',desc:'Access past exam question papers',btnText:'Explore',col:'#16a34a',bg:'rgba(22,163,74,.12)',act:()=>onNav?.('papers'),
+                            {label:'Previous Year Papers',btnText:'Explore',col:'#16a34a',act:()=>onNav?.('papers'),
                               icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>},
-                            {label:'Study Planner',desc:'Plan your study schedule effectively',btnText:'Create Plan',col:'#d97706',bg:'rgba(217,119,6,.12)',act:()=>setActiveTab('studyplan'),
+                            {label:'Study Planner',btnText:'Create Plan',col:'#d97706',act:()=>setActiveTab('studyplan'),
                               icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>},
                           ].map((ex,ei)=>(
-                            <div key={ei} className="ht-explore-card">
-                              <div style={{width:46,height:46,borderRadius:13,background:ex.bg,display:'flex',alignItems:'center',justifyContent:'center',color:ex.col,flexShrink:0}}>
+                            <div key={ei} className="ht-explore-card" onClick={ex.act}
+                              style={{cursor:'pointer',touchAction:'manipulation',transition:'box-shadow .15s,border-color .15s'}}
+                              onMouseOver={e=>{e.currentTarget.style.boxShadow=`0 4px 16px ${ex.col}25`;e.currentTarget.style.borderColor=`${ex.col}40`}}
+                              onMouseOut={e=>{e.currentTarget.style.boxShadow='';e.currentTarget.style.borderColor=''}}>
+                              <div style={{width:46,height:46,borderRadius:13,background:ex.col,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',flexShrink:0,boxShadow:`0 4px 12px ${ex.col}55`}}>
                                 {ex.icon}
                               </div>
-                              <div style={{minWidth:0,display:'flex',flexDirection:'column',gap:4}}>
+                              <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',gap:6,justifyContent:'center'}}>
                                 <div style={{fontSize:13,fontWeight:800,color:_t,lineHeight:1.3}}>{ex.label}</div>
-                                <div style={{fontSize:11.5,color:_m,lineHeight:1.5}}>{ex.desc}</div>
-                                <button onClick={ex.act}
-                                  style={{background:'none',border:'none',color:ex.col,fontSize:12,fontWeight:800,cursor:'pointer',padding:0,display:'flex',alignItems:'center',gap:4,marginTop:4}}>
+                                <div style={{display:'flex',alignItems:'center',gap:3,color:ex.col,fontSize:12,fontWeight:800}}>
                                   {ex.btnText}
                                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-                                </button>
+                                </div>
                               </div>
                             </div>
                           ))}
@@ -1764,7 +1984,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                                 icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>},
                             ].map((f,fi)=>(
                               <div key={fi} style={{display:'flex',flexDirection:'column',gap:9}}>
-                                <div style={{width:42,height:42,borderRadius:'50%',background:f.col+'1a',display:'flex',alignItems:'center',justifyContent:'center',color:f.col,flexShrink:0}}>
+                                <div style={{width:42,height:42,borderRadius:'50%',background:f.col,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',flexShrink:0,boxShadow:`0 4px 12px ${f.col}55`}}>
                                   {f.icon}
                                 </div>
                                 <div>
@@ -1782,13 +2002,13 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                             <path d="M20 43 L44 53 L68 43" fill="rgba(0,0,0,.12)"/>
                             <ellipse cx="44" cy="53" rx="15" ry="8" fill={cd?'#2a4a70':'#334155'}/>
                             <path d="M29 53 Q44 64 59 53" fill={cd?'#3a5a82':'#475569'}/>
-                            <line x1="68" y1="43" x2="68" y2="57" stroke="#FF653F" strokeWidth="2.5" strokeLinecap="round"/>
-                            <circle cx="68" cy="61" r="4" fill="#FF653F"/>
-                            <line x1="65" y1="65" x2="63" y2="75" stroke="#FF653F" strokeWidth="1.5" strokeLinecap="round"/>
-                            <line x1="68" y1="65" x2="68" y2="76" stroke="#FF653F" strokeWidth="1.5" strokeLinecap="round"/>
-                            <line x1="71" y1="65" x2="73" y2="75" stroke="#FF653F" strokeWidth="1.5" strokeLinecap="round"/>
+                            <line x1="68" y1="43" x2="68" y2="57" stroke="#F06535" strokeWidth="2.5" strokeLinecap="round"/>
+                            <circle cx="68" cy="61" r="4" fill="#F06535"/>
+                            <line x1="65" y1="65" x2="63" y2="75" stroke="#F06535" strokeWidth="1.5" strokeLinecap="round"/>
+                            <line x1="68" y1="65" x2="68" y2="76" stroke="#F06535" strokeWidth="1.5" strokeLinecap="round"/>
+                            <line x1="71" y1="65" x2="73" y2="75" stroke="#F06535" strokeWidth="1.5" strokeLinecap="round"/>
                             <circle cx="26" cy="37" r="2.5" fill={cd?'rgba(255,200,80,.4)':'rgba(255,180,50,.5)'}/>
-                            <circle cx="62" cy="25" r="2" fill={cd?'rgba(255,101,63,.4)':'rgba(255,101,63,.5)'}/>
+                            <circle cx="62" cy="25" r="2" fill={cd?'rgba(232,90,44,.4)':'rgba(232,90,44,.5)'}/>
                             <path d="M17 55 L18.5 50 L20 55 L25 56.5 L20 58 L18.5 63 L17 58 L12 56.5 Z" fill={cd?'rgba(255,180,80,.3)':'rgba(255,180,80,.45)'}/>
                           </svg>
                         </div>
@@ -1827,13 +2047,13 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                         <div style={{display:'flex',alignItems:'flex-start',gap:14}}>
                           <div style={{flexShrink:0}}>
                             <svg width="54" height="54" viewBox="0 0 44 44" fill="none">
-                              <circle cx="22" cy="22" r="22" fill={cd?'rgba(251,191,36,.1)':'rgba(251,191,36,.16)'}/>
-                              <path d="M13.5 11h11v8.5a5.5 5.5 0 0 1-11 0V11z" fill={cd?'#d97706':'#f59e0b'}/>
-                              <path d="M10.5 12.5h3v4.5a3.5 3.5 0 0 1-3 0v-4.5z" fill={cd?'#b45309':'#d97706'} opacity=".8"/>
-                              <path d="M24.5 12.5h3v4.5a3.5 3.5 0 0 1-3 0v-4.5z" fill={cd?'#b45309':'#d97706'} opacity=".8"/>
-                              <rect x="19.5" y="23.5" width="5" height="4.5" rx="1" fill={cd?'#d97706':'#f59e0b'}/>
-                              <rect x="15" y="28" width="14" height="3" rx="1.5" fill={cd?'#d97706':'#f59e0b'}/>
-                              <path d="M18 17L19.5 13.5L21 17L24.5 17.5L22 20L22.5 24L19.5 22.3L16.5 24L17 20L14.5 17.5Z" fill={cd?'#fef08a':'#fde68a'} opacity=".85"/>
+                              <circle cx="22" cy="22" r="22" fill="#f59e0b"/>
+                              <path d="M13.5 11h11v8.5a5.5 5.5 0 0 1-11 0V11z" fill="rgba(255,255,255,.9)"/>
+                              <path d="M10.5 12.5h3v4.5a3.5 3.5 0 0 1-3 0v-4.5z" fill="rgba(255,255,255,.7)" opacity=".8"/>
+                              <path d="M24.5 12.5h3v4.5a3.5 3.5 0 0 1-3 0v-4.5z" fill="rgba(255,255,255,.7)" opacity=".8"/>
+                              <rect x="19.5" y="23.5" width="5" height="4.5" rx="1" fill="rgba(255,255,255,.9)"/>
+                              <rect x="15" y="28" width="14" height="3" rx="1.5" fill="rgba(255,255,255,.9)"/>
+                              <path d="M18 17L19.5 13.5L21 17L24.5 17.5L22 20L22.5 24L19.5 22.3L16.5 24L17 20L14.5 17.5Z" fill="#fff" opacity=".95"/>
                             </svg>
                           </div>
                           <div style={{flex:1,minWidth:0}}>
@@ -1849,8 +2069,8 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                         border:`1px solid ${cd?'rgba(236,72,153,.15)':'rgba(236,72,153,.18)'}`,
                         padding:'20px 18px'}}>
                         <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
-                          <div style={{width:30,height:30,borderRadius:9,background:'rgba(236,72,153,.14)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                          <div style={{width:30,height:30,borderRadius:9,background:'#ec4899',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:'0 2px 8px rgba(236,72,153,.45)'}}>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                           </div>
                           <div style={{fontSize:12.5,fontWeight:800,color:cd?'rgba(255,180,220,.9)':'#9d174d'}}>Today's Motivation</div>
                         </div>
@@ -1865,7 +2085,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                       <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:14,padding:'18px 16px'}}>
                         <div style={{fontSize:12,fontWeight:800,color:_t,marginBottom:14}}>Your Preparation Journey</div>
                         {[
-                          {n:1,col:'#FF653F',label:'Choose Your Exam',desc:'Select your target exam from the categories above.',
+                          {n:1,col:'#F06535',label:'Choose Your Exam',desc:'Select your target exam from the categories above.',
                             icon:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>},
                           {n:2,col:'#3b82f6',label:'Take Your First Mock',desc:'Experience real exam patterns with full-length timed tests.',
                             icon:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>},
@@ -1893,8 +2113,8 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                       {/* Card D: Need Help? */}
                       <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:14,padding:'18px 16px'}}>
                         <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
-                          <div style={{width:30,height:30,borderRadius:9,background:cd?'rgba(255,255,255,.06)':'rgba(59,130,246,.1)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <div style={{width:30,height:30,borderRadius:9,background:'#3b82f6',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:'0 2px 8px rgba(59,130,246,.45)'}}>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
                               <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
                             </svg>
@@ -1914,7 +2134,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                             style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px',borderRadius:10,border:`1px solid ${_b}`,background:cd?'rgba(255,255,255,.03)':'rgba(0,0,0,.02)',cursor:'pointer',transition:'all .15s',textAlign:'left',width:'100%',marginBottom:ii===0?10:0}}
                             onMouseOver={e=>{e.currentTarget.style.borderColor=item.col+'55';e.currentTarget.style.background=`${item.col}08`}}
                             onMouseOut={e=>{e.currentTarget.style.borderColor=_b;e.currentTarget.style.background=cd?'rgba(255,255,255,.03)':'rgba(0,0,0,.02)'}}>
-                            <div style={{width:30,height:30,borderRadius:8,background:`${item.col}12`,display:'flex',alignItems:'center',justifyContent:'center',color:item.col,flexShrink:0}}>
+                            <div style={{width:30,height:30,borderRadius:8,background:item.col,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',flexShrink:0,boxShadow:`0 2px 8px ${item.col}55`}}>
                               {item.icon}
                             </div>
                             <div style={{flex:1,minWidth:0}}>
@@ -1930,6 +2150,72 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                   </div>
                 </>
               )
+
+              /* ── Onboarded user, exam chosen, but no tests taken yet (native only) ── */
+              if (isNative && hasChosenExam && history.length === 0) {
+                const eObj = visibleGroupExams.find(e=>e.id===selectedExamId) || visibleGroupExams[0]
+                const daysToExam = savedPlan?.exam_date
+                  ? Math.max(0,Math.ceil((new Date(savedPlan.exam_date)-new Date())/86400000))
+                  : null
+                const selHex = selectedGroup?.hex || '#F06535'
+                return (
+                  <div>
+                    {/* Target exam banner */}
+                    <div style={{background:`linear-gradient(135deg,${selHex} 0%,${selHex}cc 100%)`,borderRadius:20,padding:'22px 20px',marginBottom:16,color:'#fff',position:'relative',overflow:'hidden'}}>
+                      <div style={{position:'absolute',right:-24,top:-24,width:130,height:130,borderRadius:'50%',background:'rgba(255,255,255,.08)',pointerEvents:'none'}}/>
+                      <div style={{fontSize:10,fontWeight:700,color:'rgba(255,255,255,.7)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:4}}>Your Target Exam</div>
+                      <div style={{fontSize:20,fontWeight:900,lineHeight:1.2,marginBottom:2}}>{selectedGroup?.exams?.find(e=>e.id===selectedExamId)?.name||selectedGroup?.label||'Your Exam'}</div>
+                      <div style={{fontSize:12,color:'rgba(255,255,255,.8)',marginBottom:daysToExam!=null?10:16}}>{shortLbl2(selectedGroup?.label||'')}</div>
+                      {daysToExam!=null&&(
+                        <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(255,255,255,.18)',borderRadius:99,padding:'4px 12px',fontSize:12,fontWeight:800,marginBottom:16}}>
+                          {daysToExam}d until exam
+                        </div>
+                      )}
+                      <button
+                        onClick={()=>onStartTest?.('mock',selectedExamId)}
+                        style={{display:'block',background:'#fff',color:selHex,border:'none',borderRadius:12,padding:'11px 22px',fontSize:13,fontWeight:900,cursor:'pointer',touchAction:'manipulation'}}>
+                        Start First Mock Test →
+                      </button>
+                    </div>
+
+                    {/* Quick actions */}
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
+                      {[
+                        {label:'Topic Practice',sub:'Build section skills',col:'#7c3aed',action:()=>onStartTest?.('topic','')},
+                        {label:'Study Planner',sub:'Build a schedule',col:'#0891b2',action:()=>setActiveTab('studyplan')},
+                      ].map((a,i)=>(
+                        <button key={i} onClick={a.action}
+                          style={{background:_s,border:`1px solid ${_b}`,borderRadius:14,padding:'14px 12px',textAlign:'left',cursor:'pointer',touchAction:'manipulation'}}>
+                          <div style={{fontSize:13,fontWeight:800,color:_t,marginBottom:3}}>{a.label}</div>
+                          <div style={{fontSize:11,color:_m}}>{a.sub}</div>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Available exams in group */}
+                    {visibleGroupExams.length>0&&(
+                      <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:14,padding:'16px 14px',marginBottom:16}}>
+                        <div style={{fontSize:12,fontWeight:700,color:_t,marginBottom:10}}>{shortLbl2(selectedGroup?.label||'')} Exams</div>
+                        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                          {visibleGroupExams.map(e=>(
+                            <button key={e.id}
+                              onClick={()=>onStartTest?.('mock',e.id)}
+                              style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 12px',borderRadius:10,border:`1px solid ${e.id===selectedExamId?selHex+'55':_b}`,background:e.id===selectedExamId?`${selHex}0d`:'transparent',cursor:'pointer',touchAction:'manipulation',textAlign:'left',width:'100%'}}>
+                              <div>
+                                <div style={{fontSize:13,fontWeight:700,color:_t}}>{e.name}</div>
+                                <div style={{fontSize:11,color:_m}}>{e.sub}</div>
+                              </div>
+                              {e.id===selectedExamId&&<span style={{fontSize:10,fontWeight:800,color:selHex,background:`${selHex}18`,padding:'2px 8px',borderRadius:99,flexShrink:0}}>Selected</span>}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <TodayPlanCard savedPlan={savedPlan} onViewPlan={()=>setActiveTab('studyplan')}/>
+                  </div>
+                )
+              }
 
               return <>
                 <style>{`
@@ -1957,41 +2243,29 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                 <div className="db-hero-row">
                   {/* Hero Banner */}
                   <div style={{position:'relative',borderRadius:18,overflow:'hidden',
-                    background:cd?'linear-gradient(135deg,#1a0e08 0%,#2a1510 100%)':'linear-gradient(135deg,#fff8f5 0%,#fff0e8 100%)',
-                    border:`1px solid ${cd?'rgba(255,101,63,.15)':'#ffdece'}`,
-                    boxShadow:cd?'0 2px 20px rgba(0,0,0,.35)':'0 4px 24px rgba(255,101,63,.08)',
-                    padding:'24px 24px 24px 30px',minHeight:160}}>
-                    <div style={{position:'absolute',left:0,top:0,bottom:0,width:4,background:'linear-gradient(180deg,#FF653F,#ff9c68)'}}/>
-                    <div style={{position:'absolute',top:-50,right:-30,width:200,height:200,borderRadius:'50%',background:'radial-gradient(circle,rgba(255,101,63,.1) 0%,transparent 70%)',pointerEvents:'none'}}/>
+                    background:'linear-gradient(135deg,#F06535 0%,#e8571c 60%,#c94613 100%)',
+                    border:'none',
+                    boxShadow:'0 6px 28px rgba(232,90,44,.45)',
+                    padding:isNative?'20px 18px':'24px 24px 24px 30px',minHeight:isNative?140:160}}>
+                    <div style={{position:'absolute',left:0,top:0,bottom:0,width:4,background:'rgba(255,255,255,.3)'}}/>
+                    <div style={{position:'absolute',top:-50,right:-30,width:200,height:200,borderRadius:'50%',background:'radial-gradient(circle,rgba(0,0,0,.15) 0%,transparent 70%)',pointerEvents:'none'}}/>
                     <div style={{display:'flex',alignItems:'center',gap:12,position:'relative'}}>
-                      <div style={{flex:'1 1 auto',minWidth:0,maxWidth:'62%'}}>
-                        <h1 style={{fontSize:21,fontWeight:900,color:cd?'#fff':_t,letterSpacing:'-.03em',lineHeight:1.25,margin:'0 0 6px'}}>
+                      <div style={{flex:'1 1 auto',minWidth:0,...(!isNative&&{maxWidth:'62%'})}}>
+                        <h1 style={{fontSize:21,fontWeight:900,color:'#fff',letterSpacing:'-.03em',lineHeight:1.25,margin:'0 0 6px'}}>
                           {greeting}, {firstName}! 👋
                         </h1>
-                        <p style={{margin:'0 0 14px',fontSize:12.5,color:_m,lineHeight:1.65,maxWidth:400}}>
+                        <p style={{margin:'0 0 14px',fontSize:12.5,color:'rgba(255,255,255,.85)',lineHeight:1.65,maxWidth:400}}>
                           {history.length>0
                             ?`Keep going! You've completed ${history.length} mock test${history.length===1?'':'s'}. Your consistency is paying off.`
                             :'Welcome! Start your first mock test and begin tracking your progress.'}
                         </p>
-                        <button onClick={()=>setActiveTab('explore')}
-                          style={{display:'inline-flex',alignItems:'center',gap:8,background:cd?'rgba(255,101,63,.15)':'#fff',border:`1px solid ${cd?'rgba(255,101,63,.3)':'rgba(255,101,63,.22)'}`,borderRadius:10,padding:'7px 13px',cursor:'pointer',transition:'all .15s'}}
-                          onMouseOver={e=>{e.currentTarget.style.borderColor=_a;e.currentTarget.style.background=cd?'rgba(255,101,63,.25)':'rgba(255,101,63,.06)'}}
-                          onMouseOut={e=>{e.currentTarget.style.borderColor=cd?'rgba(255,101,63,.3)':'rgba(255,101,63,.22)';e.currentTarget.style.background=cd?'rgba(255,101,63,.15)':'#fff'}}>
-                          <div style={{width:24,height:24,borderRadius:6,background:_a,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                          </div>
-                          <div style={{textAlign:'left'}}>
-                            <div style={{fontSize:9,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.07em'}}>Your Target Exam</div>
-                            <div style={{fontSize:12.5,fontWeight:800,color:cd?'rgba(255,210,180,.9)':_t}}>{selectedGroup?.exams?.find(e=>e.id===selectedExamId)?.name||selectedGroup?.label||'Select an exam'} →</div>
-                          </div>
-                        </button>
                       </div>
                       {/* Hero illustration — hidden below 600px to keep banner compact */}
                       <div className="hero-illus" style={{flexShrink:0,position:'relative',alignSelf:'flex-end'}}>
                         <div style={{position:'absolute',top:'-10px',right:'10px',textAlign:'right',lineHeight:1.45,pointerEvents:'none'}}>
-                          <div style={{fontSize:11,fontWeight:800,fontStyle:'italic',color:cd?'rgba(255,200,100,.8)':'#FF653F',textShadow:cd?'none':'0 1px 4px rgba(255,101,63,.2)'}}>Practice Today</div>
-                          <div style={{fontSize:10.5,fontWeight:700,fontStyle:'italic',color:cd?'rgba(255,200,100,.65)':'rgba(255,101,63,.75)'}}>Get Closer</div>
-                          <div style={{fontSize:10.5,fontWeight:700,fontStyle:'italic',color:cd?'rgba(255,200,100,.65)':'rgba(255,101,63,.75)'}}>To Your Goal! →</div>
+                          <div style={{fontSize:11,fontWeight:800,fontStyle:'italic',color:cd?'rgba(255,200,100,.8)':'#F06535',textShadow:cd?'none':'0 1px 4px rgba(232,90,44,.2)'}}>Practice Today</div>
+                          <div style={{fontSize:10.5,fontWeight:700,fontStyle:'italic',color:cd?'rgba(255,200,100,.65)':'rgba(232,90,44,.75)'}}>Get Closer</div>
+                          <div style={{fontSize:10.5,fontWeight:700,fontStyle:'italic',color:cd?'rgba(255,200,100,.65)':'rgba(232,90,44,.75)'}}>To Your Goal! →</div>
                         </div>
                         <img
                           src="/hero-student.webp"
@@ -2009,41 +2283,25 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     </div>
                   </div>
 
-                  {/* Next Exam Date */}
-                  <div className="db-card" style={{padding:'18px 20px',display:'flex',flexDirection:'column'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:14}}>
-                      <div style={{width:30,height:30,borderRadius:8,background:cd?'rgba(255,101,63,.12)':'rgba(255,101,63,.09)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
-                      </div>
-                      <div>
-                        <div style={{fontSize:9,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.08em'}}>Next Exam Date</div>
-                        <div style={{fontSize:12.5,fontWeight:800,color:_t,lineHeight:1.2}}>{selectedGroup?.exams?.find(e=>e.id===selectedExamId)?.name||selectedGroup?.label||'—'}</div>
-                      </div>
-                    </div>
-                    {savedPlan?.exam_date ? (() => {
-                      const ed=new Date(savedPlan.exam_date), msLeft=Math.max(0,ed-clockNow)
-                      const dL=Math.floor(msLeft/86400000)
-                      const hL=Math.floor((msLeft%86400000)/3600000)
-                      const mL=Math.floor((msLeft%3600000)/60000)
-                      const sL=Math.floor((msLeft%60000)/1000)
-                      return <>
-                        <div style={{fontSize:11,color:_m,marginBottom:10}}>{ed.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>
-                        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:5}}>
-                          {[{v:dL,l:'Days'},{v:hL,l:'Hours'},{v:mL,l:'Mins'},{v:sL,l:'Secs'}].map(({v,l})=>(
-                            <div key={l} style={{textAlign:'center',background:cd?'rgba(255,255,255,.05)':'#f9fafb',borderRadius:8,padding:'8px 3px'}}>
-                              <div style={{fontSize:20,fontWeight:900,color:_a,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{String(v).padStart(2,'0')}</div>
-                              <div style={{fontSize:9,color:_m,marginTop:3,fontWeight:600}}>{l}</div>
-                            </div>
-                          ))}
+                  {/* Next Exam Date — only shown when user has set an exam date */}
+                  {savedPlan?.exam_date && (() => {
+                    const ed=new Date(savedPlan.exam_date)
+                    return (
+                      <div className="db-card" style={{padding:'18px 20px',display:'flex',flexDirection:'column'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:14}}>
+                          <div style={{width:30,height:30,borderRadius:8,background:_a,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:`0 2px 8px ${_a}55`}}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+                          </div>
+                          <div>
+                            <div style={{fontSize:9,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.08em'}}>Next Exam Date</div>
+                            <div style={{fontSize:12.5,fontWeight:800,color:_t,lineHeight:1.2}}>{selectedGroup?.exams?.find(e=>e.id===selectedExamId)?.name||selectedGroup?.label||'—'}</div>
+                          </div>
                         </div>
-                      </>
-                    })() : (
-                      <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,paddingBottom:8}}>
-                        <div style={{fontSize:11.5,color:_m,textAlign:'center',lineHeight:1.55}}>Set your exam date in the Study Planner to see the countdown</div>
-                        <button onClick={()=>setActiveTab('studyplan')} style={{background:_a,color:'#fff',border:'none',borderRadius:8,padding:'7px 16px',fontSize:12,fontWeight:700,cursor:'pointer'}}>Set Date →</button>
+                        <div style={{fontSize:11,color:_m,marginBottom:10}}>{ed.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>
+                        <ExamCountdown examDate={savedPlan.exam_date} accent={_a} muted={_m} dark={cd} />
                       </div>
-                    )}
-                  </div>
+                    )
+                  })()}
                 </div>
 
                 {/* ── MAIN LAYOUT (main-area + right sidebar) ── */}
@@ -2055,21 +2313,23 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     {/* ── STATS ROW (inside main area so right col aligns with hero right) ── */}
                     <div className="db-stat-grid">
                       {[
-                        {label:'Tests Completed',value:history.length,icon:<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={_a} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>,
+                        {label:'Tests Completed',value:history.length,icon:<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>,
                           trend:testsTrend!=null?`${testsTrend>=0?'↑':'↓'} ${Math.abs(testsTrend)}%`:null,trendUp:testsTrend==null||testsTrend>=0,sub:'vs last month',col:_a},
-                        {label:'Average Score',value:`${avg||0}%`,icon:<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+                        {label:'Average Score',value:`${avg||0}%`,icon:<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
                           trend:avgTrend!=null?`${avgTrend>=0?'↑':'↓'} ${Math.abs(avgTrend)}%`:null,trendUp:avgTrend==null||avgTrend>=0,sub:'vs last month',col:'#16a34a'},
-                        {label:'Accuracy',value:`${accuracyPct}%`,icon:<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="#3b82f6"/></svg>,
+                        {label:'Accuracy',value:`${accuracyPct}%`,icon:<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="#fff"/></svg>,
                           trend:null,sub:`${totalCorrect}/${totalQ} correct`,col:'#3b82f6'},
-                        {label:'Day Streak',value:streak,icon:<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>,
+                        {label:'Day Streak',value:streak,icon:<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>,
                           trend:streak>0?`↑ ${streak}d`:null,trendUp:true,sub:'Keep it up!',col:'#d97706'},
                       ].map((s,si)=>(
                         <div key={si} className="db-card" style={{padding:'10px 14px'}}>
-                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:7}}>
-                            <div style={{width:28,height:28,borderRadius:8,background:`${s.col}14`,display:'flex',alignItems:'center',justifyContent:'center'}}>{s.icon}</div>
+                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                            <div style={{display:'flex',alignItems:'center',gap:9}}>
+                              <div style={{width:32,height:32,borderRadius:9,background:s.col,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:`0 3px 10px ${s.col}55`}}>{s.icon}</div>
+                              <div style={{fontSize:22,fontWeight:900,color:_t,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{s.value}</div>
+                            </div>
                             {s.trend&&<span style={{fontSize:9.5,fontWeight:700,color:s.trendUp?'#16a34a':'#dc2626',background:s.trendUp?'rgba(22,163,74,.08)':'rgba(220,38,38,.08)',borderRadius:99,padding:'1px 6px'}}>{s.trend}</span>}
                           </div>
-                          <div style={{fontSize:22,fontWeight:900,color:_t,lineHeight:1,fontVariantNumeric:'tabular-nums',marginBottom:2}}>{s.value}</div>
                           <div style={{fontSize:10.5,fontWeight:700,color:_t,marginBottom:1}}>{s.label}</div>
                           <div style={{fontSize:9.5,color:_m}}>{s.sub}</div>
                         </div>
@@ -2079,49 +2339,81 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     {/* Top row: Continue Prep + Performance Chart side by side */}
                     <div className="db-sec-row">
 
-                    {/* Continue Your Preparation */}
+                    {/* Continue Your Preparation / Your Next Mock Test */}
                     <div className="db-card" style={{padding:'18px 20px'}}>
-                      <div className="db-ctitle">Continue Your Preparation</div>
-                      {history.length>0 ? (()=>{
-                        const nr=(examResults.length||history.length)+1
-                        const examName2=selectedGroup?.exams?.find(e=>e.id===selectedExamId)?.name||'Mock Test'
-                        const totalQs=(selectedGroup?.exams?.find(e=>e.id===selectedExamId)?.questions)||100
+                      {inProgressTest ? (()=>{
+                        const iExam = inProgressTest.testData?.exam || ''
+                        const iExamName = selectedGroup?.exams?.find(e=>e.id===iExam)?.name
+                          || iExam.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) || 'Full Mock Test'
+                        const iAnswered = Object.keys(inProgressTest.answers||{}).length
+                        const iTotalQ = Object.values(inProgressTest.testData?.sections||{}).reduce((s,sec)=>s+(sec.questions?.length||sec.count||0),0)||100
+                        const iSecsLeft = inProgressTest.secsLeft!=null ? inProgressTest.secsLeft : (inProgressTest.testData?.total_time_mins||60)*60
+                        const iMins = Math.floor(iSecsLeft/60)
                         return <>
+                          <div className="db-ctitle">Continue Your Preparation</div>
                           <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12,flexWrap:'wrap'}}>
                             <span style={{fontSize:10,fontWeight:800,color:'#16a34a',background:'rgba(22,163,74,.1)',borderRadius:5,padding:'3px 8px',letterSpacing:'.04em',flexShrink:0}}>IN PROGRESS</span>
-                            <span style={{fontSize:13,fontWeight:800,color:_t,lineHeight:1.3}}>{examName2} – Full Length Mock {nr}</span>
+                            <span style={{fontSize:13,fontWeight:800,color:_t,lineHeight:1.3}}>{iExamName}</span>
                           </div>
                           <div style={{display:'flex',gap:14,flexWrap:'wrap',marginBottom:12}}>
                             {[
-                              {icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>,txt:`${totalQs} Questions`},
-                              {icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,txt:'60 Minutes'},
+                              {icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>,txt:`${iAnswered}/${iTotalQ} Answered`},
+                              {icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,txt:`${iMins} min left`},
                               {icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,txt:'Full Pattern'},
                             ].map((it,ii)=>(
                               <span key={ii} style={{display:'flex',alignItems:'center',gap:5,fontSize:11.5,color:_m}}>{it.icon}{it.txt}</span>
                             ))}
                           </div>
                           <div style={{height:5,background:cd?'rgba(255,255,255,.07)':'#f0f0f0',borderRadius:99,overflow:'hidden',marginBottom:4}}>
-                            <div style={{height:'100%',width:`${Math.min(95,Math.max(10,Math.round(lastPct*0.35+15)))}%`,background:'linear-gradient(90deg,#FF653F,#ff8a5f)',borderRadius:99}}/>
+                            <div style={{height:'100%',width:`${Math.min(95,Math.max(5,Math.round(iAnswered/Math.max(1,iTotalQ)*100)))}%`,background:'linear-gradient(90deg,#F06535,#ff8a5f)',borderRadius:99}}/>
                           </div>
-                          <div style={{fontSize:10.5,color:_m,marginBottom:14}}>Ready to start your next test</div>
+                          <div style={{fontSize:10.5,color:_m,marginBottom:14}}>{iAnswered} of {iTotalQ} questions answered</div>
                           <div style={{display:'flex',gap:10}}>
-                            <button onClick={()=>onStartTest?.('mock',selectedExamId)}
+                            <button onClick={()=>onResumeTest?.()}
                               style={{flex:1,background:_a,color:'#fff',border:'none',borderRadius:9,padding:'10px 16px',fontWeight:800,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                              Continue Test →
+                              Resume Test →
                             </button>
-                            <button onClick={()=>onOpenResult?.(lastTest)}
-                              style={{background:'none',color:_a,border:`1px solid ${cd?'rgba(255,101,63,.3)':'rgba(255,101,63,.25)'}`,borderRadius:9,padding:'10px 16px',fontWeight:700,fontSize:13,cursor:'pointer',whiteSpace:'nowrap'}}>
-                              View Details
+                            <button onClick={()=>{ try{localStorage.removeItem('mt-inprogress');localStorage.removeItem('mt-inprogress-state')}catch{}; setInProgressTest(null) }}
+                              style={{background:'none',color:_m,border:`1px solid ${_b}`,borderRadius:9,padding:'10px 16px',fontWeight:700,fontSize:13,cursor:'pointer',whiteSpace:'nowrap'}}>
+                              Discard
                             </button>
                           </div>
                         </>
-                      })() : (
-                        <div style={{textAlign:'center',padding:'14px 0'}}>
-                          <div style={{fontSize:12,color:_m,marginBottom:12}}>No tests yet. Start your first mock test to begin tracking your progress.</div>
-                          <button onClick={()=>onStartTest?.('mock',selectedExamId)} style={{background:_a,color:'#fff',border:'none',borderRadius:9,padding:'10px 20px',fontWeight:800,fontSize:13,cursor:'pointer'}}>Start First Test →</button>
-                        </div>
-                      )}
+                      })() : (()=>{
+                        const nr=(examResults.length||history.length)+1
+                        const examName2=selectedGroup?.exams?.find(e=>e.id===selectedExamId)?.name||'Mock Test'
+                        const totalQs=(selectedGroup?.exams?.find(e=>e.id===selectedExamId)?.questions)||100
+                        return <>
+                          <div className="db-ctitle">Your Next Mock Test</div>
+                          {history.length>0 ? <>
+                            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12,flexWrap:'wrap'}}>
+                              <span style={{fontSize:10,fontWeight:800,color:'#2563eb',background:'rgba(37,99,235,.1)',borderRadius:5,padding:'3px 8px',letterSpacing:'.04em',flexShrink:0}}>UP NEXT</span>
+                              <span style={{fontSize:13,fontWeight:800,color:_t,lineHeight:1.3}}>{examName2} – Full Length Mock {nr}</span>
+                            </div>
+                            <div style={{display:'flex',gap:14,flexWrap:'wrap',marginBottom:12}}>
+                              {[
+                                {icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>,txt:`${totalQs} Questions`},
+                                {icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,txt:'60 Minutes'},
+                                {icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,txt:'Full Pattern'},
+                              ].map((it,ii)=>(
+                                <span key={ii} style={{display:'flex',alignItems:'center',gap:5,fontSize:11.5,color:_m}}>{it.icon}{it.txt}</span>
+                              ))}
+                            </div>
+                            <div style={{fontSize:11,color:_m,marginBottom:14}}>You've completed {history.length} mock test{history.length!==1?'s':''}. Keep the streak going!</div>
+                            <button onClick={()=>onStartTest?.('mock',selectedExamId)}
+                              style={{width:'100%',background:_a,color:'#fff',border:'none',borderRadius:9,padding:'10px 16px',fontWeight:800,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                              Start Now →
+                            </button>
+                          </> : (
+                            <div style={{textAlign:'center',padding:'14px 0'}}>
+                              <div style={{fontSize:12,color:_m,marginBottom:12}}>No tests yet. Start your first mock test to begin tracking your progress.</div>
+                              <button onClick={()=>onStartTest?.('mock',selectedExamId)} style={{background:_a,color:'#fff',border:'none',borderRadius:9,padding:'10px 20px',fontWeight:800,fontSize:13,cursor:'pointer'}}>Start First Test →</button>
+                            </div>
+                          )}
+                        </>
+                      })()}
                     </div>
 
                     {/* Your Recent Performance Chart */}
@@ -2129,7 +2421,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                       <div className="db-ctitle">
                         Your Recent Performance
                         <div style={{display:'flex',gap:12}}>
-                          {[{col:'#FF653F',lbl:'Score %'},{col:'#3b82f6',lbl:'Accuracy %'}].map(l=>(
+                          {[{col:'#F06535',lbl:'Score %'},{col:'#3b82f6',lbl:'Accuracy %'}].map(l=>(
                             <span key={l.lbl} style={{display:'flex',alignItems:'center',gap:5,fontSize:10,fontWeight:700,color:_m}}>
                               <span style={{width:12,height:12,borderRadius:3,background:l.col,display:'inline-block',flexShrink:0}}/>
                               {l.lbl}
@@ -2138,21 +2430,19 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                         </div>
                       </div>
                       {chartResults.length>0 ? (
-                        <div style={{width:'100%',overflow:'hidden'}}>
-                          <ResponsiveContainer width="100%" height={180}>
+                        <div style={{width:'100%',minWidth:0,overflow:'hidden'}}>
+                          <ResponsiveContainer width="100%" height={200} debounce={50}>
                             <BarChart
                               data={chartResults.map((r,i)=>({
-                                name: chartResults.length<=6
-                                  ? new Date(r.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})
-                                  : `T${i+1}`,
+                                name: `T${i+1}`,
                                 Score: Math.round(r.percentage||0),
                                 Accuracy: ((r.correct_count||0)+(r.wrong_count||0))>0
                                   ? Math.round((r.correct_count||0)/((r.correct_count||0)+(r.wrong_count||0))*100)
                                   : 0
                               }))}
-                              margin={{top:18,right:20,bottom:4,left:-20}}
-                              barCategoryGap="28%"
-                              barGap={3}>
+                              margin={{top:22,right:8,bottom:4,left:-20}}
+                              barCategoryGap="30%"
+                              barGap={2}>
                               <CartesianGrid strokeDasharray="3 3" stroke={cd?'rgba(255,255,255,.06)':'#f0f0f0'} vertical={false}/>
                               <XAxis dataKey="name" tick={{fontSize:9,fill:_m}} tickLine={false} axisLine={false}/>
                               <YAxis tick={{fontSize:9,fill:_m}} tickLine={false} axisLine={false} domain={[0,100]} tickFormatter={v=>`${v}%`}/>
@@ -2162,10 +2452,10 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                                 labelStyle={{color:_t,fontWeight:700,marginBottom:4}}
                                 formatter={(val,name)=>[`${val}%`, name]}
                               />
-                              <Bar dataKey="Score" fill="#FF653F" radius={[4,4,0,0]} maxBarSize={22}
-                                label={{position:'top',fontSize:9,fontWeight:700,fill:'#FF653F',formatter:v=>`${v}%`}}/>
-                              <Bar dataKey="Accuracy" fill="#3b82f6" radius={[4,4,0,0]} maxBarSize={22}
-                                label={{position:'top',fontSize:9,fontWeight:700,fill:'#3b82f6',formatter:v=>`${v}%`}}/>
+                              <Bar dataKey="Score" fill="#F06535" radius={[4,4,0,0]} maxBarSize={18}
+                                label={{position:'top',fontSize:8,fontWeight:700,fill:'#F06535',formatter:v=>`${v}%`}}/>
+                              <Bar dataKey="Accuracy" fill="#3b82f6" radius={[4,4,0,0]} maxBarSize={18}
+                                label={{position:'top',fontSize:8,fontWeight:700,fill:'#3b82f6',formatter:v=>`${v}%`}}/>
                             </BarChart>
                           </ResponsiveContainer>
                         </div>
@@ -2246,18 +2536,9 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                         </div>
                         {topicPerfArr.length>0 ? (
                           <>
-                            {/* Interactive tabs */}
-                            <div style={{display:'flex',gap:6,marginBottom:14}}>
-                              {[{key:'weak',lbl:'Need Improvement'},{key:'strong',lbl:'Strong Topics'}].map(({key,lbl})=>{
-                                const isAct=topicTab===key
-                                return (
-                                  <button key={key} onClick={()=>setTopicTab(key)}
-                                    style={{padding:'5px 12px',borderRadius:7,border:`1.5px solid ${isAct?_a:cd?'rgba(255,255,255,.15)':'#e5e7eb'}`,cursor:'pointer',fontSize:11,fontWeight:700,
-                                      background:isAct?_a:'transparent',color:isAct?'#fff':_m,transition:'all .15s'}}>
-                                    {lbl}
-                                  </button>
-                                )
-                              })}
+                            {/* Need Improvement label */}
+                            <div style={{marginBottom:14}}>
+                              <span style={{padding:'5px 12px',borderRadius:7,border:`1.5px solid ${_a}`,fontSize:11,fontWeight:700,background:_a,color:'#fff',display:'inline-block'}}>Need Improvement</span>
                             </div>
                             {/* Topic list */}
                             {(() => {
@@ -2268,9 +2549,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
                               ]
-                              const showArr = topicTab==='weak'
-                                ? (weakTopicArr.length>0 ? weakTopicArr : topicPerfArr.slice(0,5))
-                                : (strongTopicArr.length>0 ? strongTopicArr : topicPerfArr.slice(0,5))
+                              const showArr = weakTopicArr.length>0 ? weakTopicArr : topicPerfArr.slice(0,5)
                               if (showArr.length===0) return (
                                 <div style={{textAlign:'center',padding:'16px 0',color:_m,fontSize:12}}>
                                   {topicTab==='weak'?'All sections look good!':'Keep practicing to build strong topics'}
@@ -2281,13 +2560,13 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                                   {showArr.slice(0,5).map((tp,ti)=>{
                                     const isWeak=tp.accuracy<65
                                     const barCol=isWeak?'linear-gradient(90deg,#f97316,#fbbf24)':'linear-gradient(90deg,#16a34a,#4ade80)'
-                                    const iconCol=isWeak?'#f97316':'#16a34a'
-                                    const iconBg=isWeak?'rgba(249,115,22,.12)':'rgba(22,163,74,.12)'
+                                    const iconBg=isWeak?'#f97316':'#16a34a'
+                                    const iconCol='#fff'
                                     return (
                                       <div key={ti}>
                                         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
                                           <div style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
-                                            <div style={{width:24,height:24,borderRadius:7,background:iconBg,display:'flex',alignItems:'center',justifyContent:'center',color:iconCol,flexShrink:0}}>
+                                            <div style={{width:24,height:24,borderRadius:7,background:iconBg,display:'flex',alignItems:'center',justifyContent:'center',color:iconCol,flexShrink:0,boxShadow:`0 2px 6px ${iconBg}55`}}>
                                               {ICONS[ti%ICONS.length]}
                                             </div>
                                             <span style={{fontSize:12.5,fontWeight:600,color:_t,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{tp.topic}</span>
@@ -2312,54 +2591,42 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     </div>
 
                     {/* Recent Tests */}
-                    <div className="db-card" style={{padding:'18px 20px',overflowX:'auto'}}>
+                    <div className="db-card" style={{padding:'18px 20px'}}>
                       <div className="db-ctitle">
                         Recent Tests
-                        <button onClick={()=>setActiveTab('performance')} style={{fontSize:11,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0,whiteSpace:'nowrap',flexShrink:0}}>View All Tests →</button>
+                        <button onClick={()=>setActiveTab('performance')} style={{fontSize:11,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0,whiteSpace:'nowrap',flexShrink:0}}>View All →</button>
                       </div>
                       {history.length>0 ? (
-                        <table style={{width:'100%',borderCollapse:'collapse',minWidth:260}}>
-                          <thead>
-                            <tr style={{borderBottom:`1px solid ${_b}`}}>
-                              <td style={{padding:'0 6px 8px 0',fontSize:9.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',whiteSpace:'nowrap'}}>Test Name</td>
-                              <td className="db-rt-date" style={{padding:'0 6px 8px 0',fontSize:9.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',whiteSpace:'nowrap'}}>Date</td>
-                              <td className="db-rt-score" style={{padding:'0 6px 8px 0',fontSize:9.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',whiteSpace:'nowrap'}}>Score</td>
-                              <td style={{padding:'0 6px 8px 0',fontSize:9.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',whiteSpace:'nowrap'}}>Accuracy</td>
-                              <td className="db-rt-rank" style={{padding:'0 6px 8px 0',fontSize:9.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',whiteSpace:'nowrap'}}>Rank</td>
-                              <td style={{padding:'0 6px 8px 0',fontSize:9.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',whiteSpace:'nowrap'}}>Action</td>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {history.slice(0,3).map((r,i,arr)=>{
-                              const pct=Math.round(r.percentage||0)
-                              const tot2=(r.correct_count||0)+(r.wrong_count||0)
-                              const acc=tot2>0?Math.round((r.correct_count||0)/tot2*100):0
-                              const nm=r.test_type==='topic_diagnostic'?`Topic · ${_toT2(r.topic||'')}`:r.test_type==='mini'?`Practice · ${_toT2(r.section||'')}`:_toT2(r.exam||'Mock')
-                              const dt=new Date(r.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'})
-                              const maxQ=(selectedGroup?.exams?.find(e=>e.id===r.exam)?.questions)||200
-                              const peerPct=r.peer_comparison?.peer_percentile||null
-                              const rankNum=peerPct?.rank||null
-                              const rankTotal=peerPct?.total_candidates||null
-                              return (
-                                <tr key={i} style={{borderBottom:i<arr.length-1?`1px solid ${_b}`:'none'}}>
-                                  <td style={{padding:'9px 6px 9px 0',fontSize:12,fontWeight:600,color:_t,maxWidth:90,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{nm}</td>
-                                  <td className="db-rt-date" style={{padding:'9px 6px',fontSize:11,color:_m,whiteSpace:'nowrap'}}>{dt}</td>
-                                  <td className="db-rt-score" style={{padding:'9px 6px',fontSize:12,fontWeight:800,color:pct>=60?'#16a34a':'#f97316',whiteSpace:'nowrap'}}>{r.correct_count||pct}/{maxQ}</td>
-                                  <td style={{padding:'9px 6px',fontSize:12,fontWeight:700,color:acc>=60?'#16a34a':'#f97316'}}>{acc}%</td>
-                                  <td className="db-rt-rank" style={{padding:'9px 6px',whiteSpace:'nowrap'}}>
-                                    {rankNum&&rankTotal
-                                      ? <span style={{fontSize:11,fontWeight:700,color:'#6366f1'}}>#{rankNum}<span style={{fontSize:10,fontWeight:500,color:_m}}> / {rankTotal}</span></span>
-                                      : <span style={{fontSize:11,color:_m}}>—</span>
-                                    }
-                                  </td>
-                                  <td style={{padding:'9px 0'}}>
-                                    <button onClick={()=>onOpenResult?.(r)} style={{fontSize:11,fontWeight:700,color:'#fff',background:_a,border:'none',borderRadius:6,padding:'4px 8px',cursor:'pointer',whiteSpace:'nowrap'}}>View</button>
-                                  </td>
-                                </tr>
-                              )
-                            })}
-                          </tbody>
-                        </table>
+                        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                          {history.slice(0,5).map((r,i)=>{
+                            const pct=Math.round(r.percentage||0)
+                            const tot2=(r.correct_count||0)+(r.wrong_count||0)
+                            const acc=tot2>0?Math.round((r.correct_count||0)/tot2*100):0
+                            const nm=r.test_type==='topic_diagnostic'?`Topic · ${_toT2(r.topic||'')}`:r.test_type==='mini'?`Practice · ${_toT2(r.section||'')}`:_toT2(r.exam||'Mock')
+                            const dt=new Date(r.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})
+                            const scorePct=Math.round(r.percentage||0)
+                            const isGood=scorePct>=60
+                            return (
+                              <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:10,background:cd?'rgba(255,255,255,.04)':'#fafafa',border:`1px solid ${cd?'rgba(255,255,255,.08)':'#f0f0f0'}`}}>
+                                {/* Score badge */}
+                                <div style={{width:38,height:38,borderRadius:9,background:isGood?'rgba(22,163,74,.12)':'rgba(249,115,22,.12)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                                  <span style={{fontSize:12,fontWeight:900,color:isGood?'#16a34a':'#f97316'}}>{scorePct}%</span>
+                                </div>
+                                {/* Name + date */}
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{fontSize:12,fontWeight:700,color:_t,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{nm}</div>
+                                  <div style={{display:'flex',gap:8,marginTop:2,flexWrap:'wrap'}}>
+                                    <span style={{fontSize:10.5,color:_m}}>{dt}</span>
+                                    <span style={{fontSize:10.5,color:'#16a34a',fontWeight:600}}>{r.correct_count||0} ✓</span>
+                                    <span style={{fontSize:10.5,color:'#ef4444',fontWeight:600}}>{r.wrong_count||0} ✗</span>
+                                    <span style={{fontSize:10.5,color:isGood?'#16a34a':'#f97316',fontWeight:700}}>{acc}% acc</span>
+                                  </div>
+                                </div>
+                                <button onClick={()=>onOpenResult?.(r)} style={{fontSize:11,fontWeight:700,color:_a,background:'none',border:`1px solid ${_a}`,borderRadius:6,padding:'4px 8px',cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>View</button>
+                              </div>
+                            )
+                          })}
+                        </div>
                       ) : (
                         <div style={{textAlign:'center',padding:'14px 0',color:_m,fontSize:12}}>No tests yet. Take your first test to see results here.</div>
                       )}
@@ -2373,34 +2640,47 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     <div className="db-card" style={{padding:'16px 18px'}}>
                       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
                         <div style={{fontSize:13,fontWeight:700,color:_t}}>Today's Goal</div>
-                        <button onClick={()=>setActiveTab('studyplan')} style={{fontSize:11,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0}}>Edit Goal</button>
+                        <button onClick={()=>{setGoalEditVal(dailyGoal);setShowGoalEditor(v=>!v)}} style={{fontSize:11,fontWeight:700,color:_a,background:'none',border:'none',cursor:'pointer',padding:0}}>
+                          {showGoalEditor?'Cancel':'Edit Goal'}
+                        </button>
                       </div>
-                      <div style={{display:'flex',alignItems:'flex-start',gap:10,marginBottom:12}}>
-                        <div style={{width:32,height:32,borderRadius:8,background:'rgba(59,130,246,.1)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="#3b82f6"/></svg>
+                      {showGoalEditor && (
+                        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12,padding:'10px 12px',background:cd?'rgba(255,255,255,.05)':'#fff8f5',borderRadius:9,border:`1px solid ${cd?'rgba(255,255,255,.1)':'#fde8dc'}`}}>
+                          <span style={{fontSize:12,color:_t,fontWeight:600,flex:1}}>Daily activities target:</span>
+                          <div style={{display:'flex',alignItems:'center',gap:6}}>
+                            <button onClick={()=>setGoalEditVal(v=>Math.max(1,v-1))} style={{width:26,height:26,borderRadius:6,border:`1px solid ${_b}`,background:'transparent',color:_t,cursor:'pointer',fontWeight:800,fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'}}>−</button>
+                            <span style={{fontSize:14,fontWeight:800,color:_t,minWidth:20,textAlign:'center'}}>{goalEditVal}</span>
+                            <button onClick={()=>setGoalEditVal(v=>Math.min(10,v+1))} style={{width:26,height:26,borderRadius:6,border:`1px solid ${_b}`,background:'transparent',color:_t,cursor:'pointer',fontWeight:800,fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'}}>+</button>
+                          </div>
+                          <button onClick={()=>{try{localStorage.setItem('mt_dailyGoal',String(goalEditVal))}catch{}; setDailyGoal(goalEditVal); setShowGoalEditor(false)}} style={{padding:'5px 12px',background:_a,color:'#fff',border:'none',borderRadius:7,fontWeight:700,fontSize:11,cursor:'pointer'}}>Save</button>
                         </div>
-                        <div style={{fontSize:12,fontWeight:600,color:_t,lineHeight:1.55}}>
-                          {savedPlan?'Complete today\'s study session and 1 topic practice':'Complete 1 mock test and 2 topic practice sessions'}
+                      )}
+                      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                        <div style={{flex:1,height:6,background:cd?'rgba(255,255,255,.07)':'#f0f0f0',borderRadius:99,overflow:'hidden'}}>
+                          <div style={{height:'100%',width:`${testsToday>0?Math.min(100,Math.round(testsToday/dailyGoal*100)):0}%`,background:`linear-gradient(90deg,${_a},#ff8a5f)`,borderRadius:99,transition:'width .5s'}}/>
                         </div>
+                        <span style={{fontSize:11,fontWeight:700,color:_t,flexShrink:0}}>{testsToday} / {dailyGoal}</span>
                       </div>
-                      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:5}}>
-                        <div style={{flex:1,height:4,background:cd?'rgba(255,255,255,.07)':'#f0f0f0',borderRadius:99,overflow:'hidden'}}>
-                          <div style={{height:'100%',width:`${testsToday>0?Math.min(100,Math.round(testsToday/3*100)):0}%`,background:'linear-gradient(90deg,#3b82f6,#60a5fa)',borderRadius:99,transition:'width .5s'}}/>
-                        </div>
-                        <span style={{fontSize:11,fontWeight:700,color:_t,flexShrink:0}}>{testsToday} / 3</span>
+                      <div style={{fontSize:10.5,color:_m}}>
+                        {testsToday===0
+                          ? '⚡ Start a test or practice to hit today\'s goal'
+                          : testsToday>=dailyGoal
+                            ? `✅ Goal reached! ${testsToday} activities done today`
+                            : `${testsToday} of ${dailyGoal} done today — keep going!`}
                       </div>
-                      <div style={{fontSize:10.5,color:_m}}>{testsToday===0?'⚡ Start a test to hit today\'s goal':`${testsToday} of 3 done today — keep going!`}</div>
                     </div>
 
-                    {/* Recommended for You */}
+                    {/* For More Practice – Topic Wise */}
                     <div className="db-card" style={{padding:'16px 18px'}}>
-                      <div style={{fontSize:13,fontWeight:700,color:_t,marginBottom:12}}>Recommended for You</div>
+                      <div style={{fontSize:13,fontWeight:700,color:_t,marginBottom:12}}>For More Practice – Topic Wise</div>
                       <div style={{display:'flex',flexDirection:'column',gap:8}}>
                         {[
-                          ...(weakTopicArr.slice(0,2).map((t,i)=>({col:i===0?'#FF653F':'#8b5cf6',label:t.topic,sub:`Practice more ${t.topic} questions`,act:()=>onStartTest?.('topic',selectedExamId),icon:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4z"/></svg>}))),
-                          {col:'#16a34a',label:'Take a Full Mock Test',sub:`${selectedGroup?.exams?.find(e=>e.id===selectedExamId)?.name||'Full Test'} – Next`,act:()=>onStartTest?.('mock',selectedExamId),icon:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>},
-                        ].slice(0,3).map((rec,ri)=>(
-                          <button key={ri} onClick={rec.act}
+                          {col:'#F06535',label:'Numerical Ability',sub:'Arithmetic, Number Series & more',sec:'numerical_ability',icon:<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="13" x2="16" y2="17"/><line x1="14" y1="15" x2="18" y2="15"/><line x1="8" y1="13" x2="12" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg>},
+                          {col:'#8b5cf6',label:'Reasoning Ability',sub:'Puzzles, Syllogisms & more',sec:'reasoning',icon:<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14z"/></svg>},
+                          {col:'#0ea5e9',label:'English Language',sub:'Reading Comprehension & more',sec:'english',icon:<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>},
+                          {col:'#16a34a',label:'Take a Full Mock Test',sub:`${selectedGroup?.exams?.find(e=>e.id===selectedExamId)?.name||'Full Test'} – Next`,sec:null,icon:<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/><polyline points="9 8 10 9 12 7"/></svg>},
+                        ].map((rec,ri)=>(
+                          <button key={ri} onClick={()=>{if(rec.sec){try{sessionStorage.setItem('mt-topic-section',rec.sec)}catch{};onStartTest?.('topic','')}else{onStartTest?.('mock',selectedExamId)}}}
                             style={{display:'flex',alignItems:'center',gap:9,padding:'9px 11px',borderRadius:10,border:`1px solid ${_b}`,background:cd?'rgba(255,255,255,.03)':'#fafafa',cursor:'pointer',textAlign:'left',width:'100%',transition:'all .15s'}}
                             onMouseOver={e=>{e.currentTarget.style.borderColor=`${rec.col}55`;e.currentTarget.style.background=`${rec.col}08`}}
                             onMouseOut={e=>{e.currentTarget.style.borderColor=_b;e.currentTarget.style.background=cd?'rgba(255,255,255,.03)':'#fafafa'}}>
@@ -2470,7 +2750,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                         </div>
                         {changingExam&&(
                           <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
-                            {(isPro?ACTIVE_GROUPS:ACTIVE_GROUPS.filter(g=>g.id===selectedGroup?.id)).flatMap(g=>g.exams).slice(0,8).map(e=>(
+                            {(isPro?VISIBLE_GROUPS:VISIBLE_GROUPS.filter(g=>g.id===selectedGroup?.id)).flatMap(g=>g.exams).slice(0,8).map(e=>(
                               <button key={e.id} onClick={()=>{if(!e.comingSoon)handleChangeExam(e.id)}} disabled={!!e.comingSoon}
                                 style={{padding:'4px 9px',borderRadius:6,border:'1.5px solid',cursor:e.comingSoon?'not-allowed':'pointer',fontSize:11,fontWeight:700,opacity:e.comingSoon?.4:1,background:e.id===selectedExamId?_a:'transparent',borderColor:e.id===selectedExamId?_a:(cd?'rgba(255,255,255,.15)':'#e5e7eb'),color:e.id===selectedExamId?'#fff':(cd?'rgba(255,255,255,.7)':'#374151')}}>
                                 {e.name}
@@ -2505,7 +2785,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                 ))}
               </div>
               <div className="space-y-4">
-                {ACTIVE_GROUPS.map(g => (
+                {VISIBLE_GROUPS.map(g => (
                   <div key={g.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                     <div className={`bg-gradient-to-r ${g.color} px-5 py-3 flex items-center justify-between`}>
                       <span className="font-bold text-white text-sm">{g.label}</span>
@@ -2541,63 +2821,114 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
               const userPlan = (user?.user_metadata?.plan || user?.user_metadata?.subscription || '').toLowerCase()
               const fmtTopic = t => String(t||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
               const SEC_COLORS = ['#1d4ed8','#7c3aed','#0891b2','#d97706','#16a34a','#e11d48']
-              const TOPIC_COLORS = ['#FF653F','#1d4ed8','#7c3aed','#0891b2','#d97706','#16a34a','#e11d48','#db2777','#0d9488','#9333ea','#ca8a04','#2563eb']
+              const TOPIC_COLORS = ['#F06535','#1d4ed8','#7c3aed','#0891b2','#d97706','#16a34a','#e11d48','#db2777','#0d9488','#9333ea','#ca8a04','#2563eb']
               const cutExam = exploreExam ? CUTOFF_EXAMS.find(e => e.id === (CUTOFF_ID_MAP[exploreExam] || exploreExam)) : null
               const cutRows = cutExam ? cutExam.rows.slice(0, 2) : []
               return (
               <div>
                 {!exam ? (
-                  /* ── SINGLE-SCREEN EXPLORE ── */
+                  /* ── PREMIUM EXPLORE SCREEN ── */
                   <>
-                    <h2 className="text-xl font-black text-gray-900 mb-1">Explore Exams</h2>
-                    <p className="text-sm text-gray-500 mb-5">Select a category then click any exam to start a mock test</p>
-
-                    {/* Category filter tabs */}
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      <button onClick={()=>setActiveExploreGroup(null)}
-                        className="px-4 py-1.5 rounded-full text-xs font-bold border transition-all"
-                        style={!activeExploreGroup
-                          ? {background:'#FF653F',color:'#fff',borderColor:'#FF653F'}
-                          : {color:'#6b7280',borderColor:'#e5e7eb',background:'#fff'}}>
-                        All Exams
-                      </button>
-                      {ACTIVE_GROUPS.map(g => (
-                        <button key={g.id} onClick={()=>setActiveExploreGroup(g.id)}
-                          className="px-4 py-1.5 rounded-full text-xs font-bold border transition-all"
-                          style={activeExploreGroup===g.id
-                            ? {background:g.hex,color:'#fff',borderColor:g.hex}
-                            : {color:'#6b7280',borderColor:'#e5e7eb',background:'#fff'}}>
-                          {g.label.replace(' Exams','')}
+                    {/* Search bar */}
+                    <div style={{position:'relative',marginBottom:12}}>
+                      <svg width="15" height="15" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24" style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                      <input
+                        ref={exploreSearchRef}
+                        value={exploreSearch}
+                        onChange={e => { setExploreSearch(e.target.value); setActiveExploreGroup(null) }}
+                        placeholder="Search exams, topics..."
+                        style={{width:'100%',paddingLeft:38,paddingRight:exploreSearch?36:16,height:42,borderRadius:12,border:'1.5px solid #e5e7eb',fontSize:13.5,background:'#f9fafb',outline:'none',boxSizing:'border-box',fontFamily:'inherit',color:'#111'}}
+                      />
+                      {exploreSearch && (
+                        <button onClick={()=>setExploreSearch('')} style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',border:'none',background:'none',cursor:'pointer',padding:4,display:'flex',alignItems:'center',color:'#9ca3af'}}>
+                          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
-                      ))}
+                      )}
                     </div>
-
-                    {/* Exam cards — filtered by selected category */}
-                    {(activeExploreGroup
-                      ? ACTIVE_GROUPS.filter(g=>g.id===activeExploreGroup)
-                      : ACTIVE_GROUPS
-                    ).map(g => (
-                      <div key={g.id} className="mb-6">
-                        {!activeExploreGroup && (
-                          <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color:g.hex }}>{g.label}</div>
-                        )}
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-                          {g.exams.map(e => (
-                            <button key={e.id}
-                              onClick={() => { onStartTest('mock', e.id); window.scrollTo(0,0) }}
-                              className="text-left border rounded-xl p-3 hover:shadow-md transition-all"
-                              style={{ background:`${g.hex}0D`, borderColor:`${g.hex}33`, borderLeftColor:g.hex, borderLeftWidth:4 }}>
-                              <div className="flex items-start justify-between gap-1.5">
-                                <span className="text-[13px] font-bold leading-tight" style={{ color:g.hex }}>{e.name}</span>
-                                {e.tag && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 text-white" style={{ background:g.hex }}>{e.tag}</span>}
+                    {/* Category filter chips */}
+                    <div style={{display:'flex',gap:7,overflowX:'auto',scrollbarWidth:'none',paddingBottom:2,marginBottom:16}}>
+                      {[{id:null,label:'All'},...VISIBLE_GROUPS.map(g=>({id:g.id,label:g.label.replace(' Exams','').replace(' Exam','').split('/')[0].trim()}))].map(f=>{
+                        const active = f.id===null ? !activeExploreGroup : activeExploreGroup===f.id
+                        return (
+                          <button key={f.id||'all'} onClick={()=>setActiveExploreGroup(f.id)}
+                            style={{flexShrink:0,padding:'6px 15px',borderRadius:99,fontSize:12.5,fontWeight:700,border:`1.5px solid ${active?'#F06535':'#e5e7eb'}`,background:active?'#F06535':'#fff',color:active?'#fff':'#6b7280',cursor:'pointer',whiteSpace:'nowrap',touchAction:'manipulation'}}>
+                            {f.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {/* Section heading */}
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+                      <span style={{fontSize:15,fontWeight:800,color:'#111'}}>{exploreSearch ? `Results for "${exploreSearch}"` : 'Trending Exams'}</span>
+                      {!exploreSearch && <span style={{fontSize:12,fontWeight:700,color:'#F06535'}}>View All</span>}
+                    </div>
+                    {/* Premium exam cards */}
+                    {(() => {
+                      const sq = exploreSearch.toLowerCase().trim()
+                      const groups = activeExploreGroup ? VISIBLE_GROUPS.filter(g=>g.id===activeExploreGroup) : VISIBLE_GROUPS
+                      const filtered = sq
+                        ? groups.map(g=>({...g,exams:g.exams.filter(e=>(g.label+' '+e.name).toLowerCase().includes(sq))})).filter(g=>g.exams.length)
+                        : groups
+                      if (sq && filtered.length===0) return <div style={{textAlign:'center',padding:'32px 0',color:'#9ca3af',fontSize:14}}>No exams found for "{exploreSearch}"</div>
+                      return filtered.map(g => {
+                      const getLvl = (n='',id='') => {
+                        const s = (n+id).toLowerCase()
+                        if (s.includes('mains')||s.includes('grade b')||s.includes('grade a')||s.includes('phase 1')) return 'hard'
+                        if (s.includes('po')||s.includes('officer')||s.includes('mt ')||s.includes('aao')) return 'med'
+                        return 'easy'
+                      }
+                      const LVL = { hard:{l:'ADVANCED',bg:'rgba(232,90,44,.12)',c:'#F06535'}, med:{l:'INTERMEDIATE',bg:'rgba(10,132,255,.12)',c:'#0a84ff'}, easy:{l:'BEGINNER',bg:'rgba(52,199,89,.12)',c:'#34c759'} }
+                      const STATIC_TRIES = {bank_po_prelims:'24k',bank_po_mains:'12k',bank_clerk_prelims:'38k',bank_clerk_mains:'8k',sbi_po_prelims:'19k',sbi_po_mains:'7k',sbi_clerk_prelims:'28k',sbi_clerk_mains:'5k'}
+                      const STATIC_RATING = {bank_po_prelims:'4.8',bank_po_mains:'4.9',bank_clerk_prelims:'4.7',sbi_po_prelims:'4.8',sbi_po_mains:'4.9',rbi_gradeb_p1:'4.9'}
+                      return g.exams.map(e => {
+                        const lv = getLvl(e.name, e.id); const li = LVL[lv]
+                        const qNum = (e.sub.match(/(\d+)\s*Q/)||[])[1]||'—'
+                        const mNum = (e.sub.match(/(\d+)\s*min/)||[])[1]||'—'
+                        const tries  = STATIC_TRIES[e.id] || '5k'
+                        const rating = STATIC_RATING[e.id] || '4.7'
+                        const abbr = g.label.replace(/ Exams?/,'').split('/')[0].trim()
+                        const abbrFs = abbr.length >= 6 ? 8.5 : abbr.length >= 5 ? 10 : abbr.length >= 4 ? 12 : abbr.length >= 3 ? 14 : 18
+                        return (
+                          <div key={e.id} style={{background:'#fff',borderRadius:18,boxShadow:'0 2px 12px rgba(0,0,0,.07)',marginBottom:11,overflow:'hidden',border:`1px solid ${g.hex}18`}}>
+                            {/* Card header */}
+                            <div style={{display:'flex',alignItems:'flex-start',gap:13,padding:'15px 15px 11px',background:`linear-gradient(135deg,${g.hex}08,transparent)`}}>
+                              <div style={{width:52,height:52,borderRadius:14,background:`linear-gradient(135deg,${g.hex},${g.hex}bb)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:abbrFs,fontWeight:900,color:'#fff',flexShrink:0,boxShadow:`0 4px 12px ${g.hex}40`,letterSpacing:abbr.length>=5?'-.5px':'0',padding:'2px',textAlign:'center',lineHeight:1.1}}>
+                                {abbr}
                               </div>
-                              <div className="text-[11px] text-gray-500 mt-1">{e.sub}</div>
-                              <div className="text-[11px] font-semibold mt-1.5" style={{ color:'#FF653F' }}>Start Test →</div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5,flexWrap:'wrap'}}>
+                                  <span style={{fontSize:9.5,fontWeight:800,letterSpacing:'.04em',padding:'2px 8px',borderRadius:7,background:li.bg,color:li.c}}>{li.l}</span>
+                                  {e.tag && <span style={{fontSize:9.5,fontWeight:800,padding:'2px 8px',borderRadius:7,background:`${g.hex}15`,color:g.hex}}>{e.tag}</span>}
+                                </div>
+                                <div style={{fontSize:14,fontWeight:800,color:'#111',lineHeight:1.25,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{g.label.replace(' Exams','').replace(' Exam','')} {e.name}</div>
+                              </div>
+                            </div>
+                            {/* Meta row */}
+                            <div style={{display:'flex',alignItems:'center',padding:'9px 15px 12px',borderTop:`1px solid ${g.hex}12`,gap:2}}>
+                              <div style={{display:'flex',gap:12,flex:1,flexWrap:'wrap'}}>
+                                <span style={{display:'flex',alignItems:'center',gap:3,fontSize:11.5,color:'#6b7280',fontWeight:600}}>
+                                  <svg width="12" height="12" fill="none" stroke="#9ca3af" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                  {qNum} Qs
+                                </span>
+                                <span style={{display:'flex',alignItems:'center',gap:3,fontSize:11.5,color:'#6b7280',fontWeight:600}}>
+                                  <svg width="12" height="12" fill="none" stroke="#9ca3af" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                  {mNum} min
+                                </span>
+                              </div>
+                              {e.comingSoon ? (
+                                <span style={{fontSize:11,fontWeight:700,padding:'7px 12px',borderRadius:11,background:'#f3f4f6',color:'#9ca3af',flexShrink:0}}>Soon</span>
+                              ) : (
+                                <button onClick={() => { onStartTest('mock', e.id); window.scrollTo(0,0) }}
+                                  style={{fontSize:12,fontWeight:800,padding:'8px 16px',borderRadius:11,background:`linear-gradient(135deg,${g.hex},${g.hex}cc)`,color:'#fff',border:'none',cursor:'pointer',flexShrink:0,boxShadow:`0 3px 9px ${g.hex}40`,touchAction:'manipulation'}}>
+                                  Start →
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })
+                    })
+                    })()}
                   </>
                 ) : (
                   /* ── DETAIL (tabbed) — no outer card padding so it aligns edge-to-edge like the exam list ── */
@@ -2616,9 +2947,9 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                         ) : (
                           <button onClick={()=>onStartTest('mock', exam.id)}
                             className="text-xs font-bold text-white rounded-lg px-4 py-1.5 hover:shadow-md transition-all whitespace-nowrap"
-                            style={{ background:'#FF653F' }}
+                            style={{ background:'#F06535' }}
                             onMouseOver={e=>e.currentTarget.style.background='#e5512f'}
-                            onMouseOut={e=>e.currentTarget.style.background='#FF653F'}>
+                            onMouseOut={e=>e.currentTarget.style.background='#F06535'}>
                             Start Mock Test →
                           </button>
                         )}
@@ -2643,7 +2974,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                       {[['overview','Overview'],['cutoff','Cut-off Marks']].map(([id,label])=>(
                         <button key={id} onClick={()=>setExploreTab(id)}
                           className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px whitespace-nowrap transition-colors ${exploreTab===id?'text-orange-600':'border-transparent text-gray-500 hover:text-gray-800'}`}
-                          style={exploreTab===id?{borderColor:'#FF653F'}:{}}>
+                          style={exploreTab===id?{borderColor:'#F06535'}:{}}>
                           {label}
                         </button>
                       ))}
@@ -2741,7 +3072,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                                 <tr key={r.year} className={i<cutRows.length-1?'border-b border-gray-100':''}>
                                   <td className="px-4 py-2.5 font-bold text-gray-900 whitespace-nowrap">{r.year}</td>
                                   {['UR','OBC','EWS','SC','ST','PwBD'].map(c=>(
-                                    <td key={c} className="px-3 py-2.5 text-center font-semibold whitespace-nowrap" style={{ color:c==='UR'?'#FF653F':'#374151' }}>{r[c]??'—'}</td>
+                                    <td key={c} className="px-3 py-2.5 text-center font-semibold whitespace-nowrap" style={{ color:c==='UR'?'#F06535':'#374151' }}>{r[c]??'—'}</td>
                                   ))}
                                 </tr>
                               ))}
@@ -2776,75 +3107,88 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     plan={savedPlan}
                     onStartTest={onStartTest}
                     onTopicPractice={(topic) => {
-                      /* Route to HomeScreen in topic mode, pass topic as examId so
-                         HomeScreen/ExamScreen can pre-select it */
                       onStartTest('topic', topic)
                     }}
                     onRebuild={() => { setShowPlanBuilder(true); setGeneratedPlan(null) }}
                     todayStr={today}
+                    completedTasks={completedTasks}
+                    onToggleDone={handleToggleDone}
                   />
                 ) : (
                   /* ── Plan builder form ── */
-                  <div className="w-full">
-                    <div className="text-center mb-6">
-                      <h2 className="text-2xl sm:text-3xl font-black text-gray-900">Study Planner</h2>
-                      <p className="text-sm text-gray-500 mt-1.5 max-w-2xl mx-auto">
-                        Tell us your exam date and how many hours you can give each day — we'll turn it into a clear,
-                        day-by-day schedule with built-in mock tests and revision, so you always know what to study next.
+                  <div className="w-full sp-form">
+                    {/* ── Study Planner hero banner ── */}
+                    <div style={{background:'linear-gradient(135deg,#F06535 0%,#f06030 58%,#d95020 100%)',borderRadius:isNative?18:20,padding:isNative?'18px 18px 16px':'22px 24px 20px',marginBottom:20,position:'relative',overflow:'hidden'}}>
+                      <div style={{position:'absolute',top:-28,right:-18,width:110,height:110,borderRadius:'50%',background:'rgba(255,255,255,.09)',pointerEvents:'none'}}/>
+                      <div style={{position:'absolute',bottom:-18,left:-12,width:72,height:72,borderRadius:'50%',background:'rgba(255,255,255,.06)',pointerEvents:'none'}}/>
+                      <div style={{position:'absolute',top:'50%',right:16,transform:'translateY(-50%)',opacity:.07,pointerEvents:'none'}}>
+                        <svg width="64" height="64" fill="#fff" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><rect x="3" y="9" width="18" height="1"/><line x1="8" y1="2" x2="8" y2="5" stroke="#fff" strokeWidth="2"/><line x1="16" y1="2" x2="16" y2="5" stroke="#fff" strokeWidth="2"/></svg>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8,position:'relative'}}>
+                        <div style={{width:36,height:36,borderRadius:11,background:'rgba(255,255,255,.22)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,backdropFilter:'blur(4px)'}}>
+                          <svg width="18" height="18" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+                        </div>
+                        <h2 style={{fontSize:20,fontWeight:900,color:'#fff',letterSpacing:'-.02em',margin:0,lineHeight:1.1}}>Study Planner</h2>
+                      </div>
+                      <p style={{fontSize:12.5,color:'rgba(255,255,255,.88)',margin:'0 0 0',lineHeight:1.65,fontWeight:500,position:'relative',maxWidth:340}}>
+                        Tell us your exam date and daily hours — we'll build a clear, day-by-day schedule with mock tests and revision built in.
                       </p>
                       {savedPlan && (
-                        <button onClick={()=>setShowPlanBuilder(false)}
-                          className="mt-3 text-xs text-blue-600 font-semibold border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50">
+                        <button onClick={()=>setShowPlanBuilder(false)} style={{marginTop:12,fontSize:11.5,fontWeight:700,color:'#fff',background:'rgba(255,255,255,.2)',border:'1px solid rgba(255,255,255,.32)',borderRadius:9,padding:'6px 14px',cursor:'pointer',touchAction:'manipulation',position:'relative'}}>
                           ← View My Plan
                         </button>
                       )}
                     </div>
 
-                    <div className="grid lg:grid-cols-2 gap-4 items-start">
+                    <div className="grid lg:grid-cols-2 gap-4 items-start sp-grid">
 
                     {/* ════ LEFT column: exam + weak topics ════ */}
                     <div>
                     {/* Exam selector — tabbed by category */}
                     {(() => {
-                      const activeGrp = ACTIVE_GROUPS.find(g => g.id === planExamTab) || ACTIVE_GROUPS[0]
+                      const activeGrp = VISIBLE_GROUPS.find(g => g.id === planExamTab) || VISIBLE_GROUPS[0]
                       return (
-                      <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden">
+                      <div className="sp-card" style={{background:'#fff',border:'1px solid #e5e7eb',borderRadius:16,marginBottom:16,width:'100%',minWidth:0,boxSizing:'border-box'}}>
                         {/* Header */}
-                        <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
+                        <div className="sp-header" style={{padding:'14px 20px',borderBottom:'1px solid #f3f4f6',display:'flex',alignItems:'center',gap:8}}>
                           <DIcGrad s={18} c='#374151'/>
-                          <span className="text-sm font-bold text-gray-900">Select your target exam</span>
+                          <span style={{fontSize:13.5,fontWeight:700,color:'#111827'}}>Select your target exam</span>
                           {planExam && (() => {
                             const g = ACTIVE_GROUPS.find(gr => gr.exams.find(e => e.id === planExam))
                             const e = g?.exams.find(e => e.id === planExam)
                             return e ? (
-                              <span className="ml-auto text-xs font-bold px-2.5 py-0.5 rounded-full" style={{background:`${g.hex}18`,color:g.hex}}>
+                              <span style={{marginLeft:'auto',fontSize:11,fontWeight:800,padding:'3px 10px',borderRadius:99,background:`${g.hex}18`,color:g.hex,flexShrink:0}}>
                                 ✓ {e.name}
                               </span>
                             ) : null
                           })()}
                         </div>
-                        {/* Category tabs — scrollable */}
-                        <div style={{overflowX:'auto',scrollbarWidth:'none',borderBottom:'1px solid #f3f4f6'}}>
-                          <div style={{display:'flex',minWidth:'max-content',padding:'0 16px'}}>
-                            {ACTIVE_GROUPS.map(g => {
-                              const isTab = (planExamTab||ACTIVE_GROUPS[0].id) === g.id
+                        {/* Category tabs — horizontally scrollable; pan-x prevents Android vertical scroll from claiming the gesture */}
+                        <div style={{overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none',WebkitOverflowScrolling:'touch',touchAction:'pan-x',width:'100%',minWidth:0,boxSizing:'border-box',borderBottom:'1px solid #f3f4f6'}}>
+                          <div style={{display:'flex',minWidth:'max-content',padding:'10px 16px',gap:8}}>
+                            {VISIBLE_GROUPS.map(g => {
+                              const isTab = (planExamTab||VISIBLE_GROUPS[0].id) === g.id
                               const hasSelected = g.exams.some(e => e.id === planExam)
                               return (
                                 <button key={g.id}
                                   onClick={() => setPlanExamTab(g.id)}
                                   style={{
-                                    padding:'10px 14px',
+                                    padding:'6px 14px',
                                     fontSize:12,fontWeight:700,
                                     whiteSpace:'nowrap',
-                                    border:'none',background:'transparent',cursor:'pointer',
-                                    borderBottom: isTab ? `2.5px solid ${g.hex}` : '2.5px solid transparent',
-                                    color: isTab ? g.hex : hasSelected ? g.hex : '#9ca3af',
-                                    transition:'all .12s',
+                                    borderRadius:20,
+                                    border: isTab ? 'none' : `1.5px solid ${hasSelected ? g.hex+'80' : '#e5e7eb'}`,
+                                    background: isTab ? g.hex : hasSelected ? g.hex+'14' : '#f9fafb',
+                                    color: isTab ? '#fff' : hasSelected ? g.hex : '#6b7280',
+                                    cursor:'pointer',
+                                    transition:'all .15s',
                                     position:'relative',
+                                    touchAction:'manipulation',
+                                    boxShadow: isTab ? `0 2px 8px ${g.hex}50` : 'none',
                                   }}>
                                   {g.label.replace(' Exams','').replace(' Exam','')}
                                   {hasSelected && !isTab && (
-                                    <span style={{position:'absolute',top:8,right:6,width:6,height:6,borderRadius:'50%',background:g.hex}}/>
+                                    <span style={{position:'absolute',top:4,right:5,width:5,height:5,borderRadius:'50%',background:g.hex}}/>
                                   )}
                                 </button>
                               )
@@ -2852,8 +3196,8 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                           </div>
                         </div>
                         {/* Exam chips for selected category */}
-                        <div style={{padding:'14px 16px'}}>
-                          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))',gap:8}}>
+                        <div style={{padding:'14px 16px',width:'100%',boxSizing:'border-box'}}>
+                          <div style={{display:'grid',gridTemplateColumns:isNative?'repeat(2,1fr)':'repeat(auto-fill,minmax(130px,1fr))',gap:8}}>
                             {activeGrp.exams.map(e => {
                               const sel = planExam === e.id
                               return (
@@ -2868,14 +3212,14 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                                     textAlign:'left',cursor:'pointer',
                                     transition:'all .12s',
                                     lineHeight:1.3,
+                                    touchAction:'manipulation',
                                   }}>
-                                  <div>{e.name}</div>
-                                  {e.sub && <div style={{fontSize:10,opacity:.7,marginTop:2,fontWeight:500}}>{e.sub}</div>}
+                                  <div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.name}</div>
+                                  {e.sub && <div style={{fontSize:10,opacity:.7,marginTop:2,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.sub}</div>}
                                 </button>
                               )
                             })}
                           </div>
-                          {/* Count hint */}
                           <div style={{marginTop:10,fontSize:11,color:'#9ca3af',fontWeight:500}}>
                             {activeGrp.exams.length} exam{activeGrp.exams.length!==1?'s':''} in {activeGrp.label}
                           </div>
@@ -2885,8 +3229,8 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     })()}
 
                     {/* Weak topics */}
-                    <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden">
-                      <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
+                    <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden sp-card">
+                      <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between sp-header">
                         <div className="flex items-center gap-2">
                           <DIcBolt s={16} c='#374151'/>
                           <div>
@@ -2909,8 +3253,8 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                                   <button key={t} onClick={() => toggleTopic(t)}
                                     className="px-3 py-1 rounded-full text-xs font-semibold border transition-all hover:shadow-sm text-center truncate"
                                     style={sel
-                                      ? {borderColor:group.color, background:group.color, color:'#fff'}
-                                      : {borderColor:`${group.color}40`, background:`${group.color}12`, color:group.color}}>
+                                      ? {borderColor:group.color, background:group.color, color:'#fff', fontWeight:700, boxShadow:`0 2px 8px ${group.color}44`}
+                                      : {borderColor:group.color, background:`${group.color}BB`, color:'#fff'}}>
                                     {t}
                                   </button>
                                 )
@@ -2937,8 +3281,8 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     {/* ════ RIGHT column: dates + per-day study hours ════ */}
                     <div>
                     {/* Date range */}
-                    <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden">
-                      <div className="px-5 py-3.5 border-b border-gray-100">
+                    <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden sp-card">
+                      <div className="px-5 py-3.5 border-b border-gray-100 sp-header">
                         <div className="flex items-center gap-2">
                           <DIcCal s={18} c='#374151'/>
                           <span className="text-sm font-bold text-gray-900">Choose your start and end dates</span>
@@ -2948,12 +3292,18 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                       <div className="px-5 py-4">
                         <div className="border border-gray-200 rounded-xl overflow-hidden flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-gray-200 focus-within:border-blue-500">
                           <div className="flex-1 px-3 py-2.5">
-                            <label className="block text-xs font-semibold text-gray-500 mb-1">Start date</label>
+                            <label className="flex items-center gap-1 text-xs font-semibold text-gray-500 mb-1">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                              Start date
+                            </label>
                             <input type="date" min={today} max={startMax || undefined} value={startDate} onChange={e=>setStartDate(e.target.value)}
                               className="w-full text-sm text-gray-700 bg-transparent outline-none border-0 p-0"/>
                           </div>
                           <div className="flex-1 px-3 py-2.5">
-                            <label className="block text-xs font-semibold text-gray-500 mb-1">End date <span className="text-gray-300 font-normal">{(!isPro && trialActive) ? `(within your ${trialDaysLeft}-day trial)` : '(max 7 days)'}</span></label>
+                            <label className="flex items-center gap-1 text-xs font-semibold text-gray-500 mb-1">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                              End date <span className="text-gray-300 font-normal ml-1">{(!isPro && trialActive) ? `(within your ${trialDaysLeft}-day trial)` : '(max 7 days)'}</span>
+                            </label>
                             <input type="date" min={minEnd} max={maxEnd || undefined} value={endDate} onChange={e=>setEndDate(e.target.value)}
                               className="w-full text-sm text-gray-700 bg-transparent outline-none border-0 p-0"/>
                           </div>
@@ -2970,8 +3320,8 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     </div>
 
                     {/* Study days + per-day hours (checkbox · slider · hh:mm) */}
-                    <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden">
-                      <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
+                    <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden sp-card">
+                      <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between sp-header">
                         <div className="flex items-center gap-2">
                           <span>⏰</span>
                           <span className="text-sm font-bold text-gray-900">Select your study days and hours</span>
@@ -3001,8 +3351,8 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     </div>
 
                     {/* Mark off unavailable days */}
-                    <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden">
-                      <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
+                    <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden sp-card">
+                      <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2 sp-header">
                         <span style={{fontSize:16}}>🚫</span>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-bold text-gray-900">Mark off unavailable days</div>
@@ -3090,7 +3440,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     </div>
 
                     {/* Catch-up buffer days */}
-                    <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden">
+                    <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden sp-card">
                       <div className="px-5 py-4 flex items-start gap-3">
                         <div style={{paddingTop:1}}>
                           <input type="checkbox" id="catchup-toggle" checked={catchupEnabled}
@@ -3171,108 +3521,443 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                 user={user}
                 darkMode={document.documentElement.classList.contains('dark')}
                 onNav={setActiveTab}
+                onOpenResult={onOpenResult}
               />
             )}
 
             {activeTab === 'prediction' && (
-              <PredictionPage
-                history={history}
-                user={user}
-                darkMode={document.documentElement.classList.contains('dark')}
-                onNav={setActiveTab}
-              />
+              (isNative && examResults.length < 3) ? (
+                <div style={{textAlign:'center',padding:'56px 20px 40px'}}>
+                  <div style={{fontSize:38,marginBottom:14}}>🔮</div>
+                  <div style={{fontSize:17,fontWeight:900,color:_t,marginBottom:8}}>AI Prediction</div>
+                  <div style={{fontSize:13,color:_m,marginBottom:4,lineHeight:1.6}}>
+                    Complete at least <b style={{color:_t}}>3 mock tests</b> for {selectedExam?.name||'your exam'} to unlock your clearance probability score.
+                  </div>
+                  <div style={{fontSize:12,color:_m,marginBottom:22}}>
+                    You've completed <b style={{color:_t}}>{examResults.length}</b> of 3 required tests.
+                  </div>
+                  <div style={{display:'flex',justifyContent:'center',gap:10,marginBottom:28}}>
+                    {[0,1,2].map(i=>(
+                      <div key={i} style={{width:14,height:14,borderRadius:'50%',background:i<examResults.length?'#F06535':'#e5e7eb',transition:'background .3s'}}/>
+                    ))}
+                  </div>
+                  <button onClick={()=>onStartTest?.('mock',selectedExamId)}
+                    style={{background:'#F06535',color:'#fff',border:'none',borderRadius:12,padding:'12px 28px',fontSize:14,fontWeight:900,cursor:'pointer',touchAction:'manipulation'}}>
+                    Take a Mock Test
+                  </button>
+                </div>
+              ) : (
+                <PredictionPage
+                  history={history}
+                  user={user}
+                  savedPlan={savedPlan}
+                  darkMode={document.documentElement.classList.contains('dark')}
+                  onNav={setActiveTab}
+                />
+              )
             )}
 
             {activeTab === 'settings' && (
-              <div className="max-w-lg">
-                <h2 className="text-xl font-black text-gray-900 mb-6">Settings</h2>
-                <div className="bg-white border border-gray-200 rounded-2xl divide-y divide-gray-100 mb-4">
-                  {[
-                    { label:'Email notifications',  sub:'Exam reminders, plan updates',      on:true  },
-                    { label:'WhatsApp alerts',       sub:'Daily study reminders',             on:false },
-                    { label:'Performance digest',   sub:'Weekly score summary email',        on:true  },
-                  ].map(s=>(
-                    <div key={s.label} className="flex items-center justify-between px-5 py-4">
-                      <div>
-                        <div className="text-sm font-semibold text-gray-900">{s.label}</div>
-                        <div className="text-xs text-gray-400 mt-0.5">{s.sub}</div>
+              <div style={{maxWidth:480}}>
+                <h2 style={{fontSize:18,fontWeight:900,color:_t,marginBottom:20}}>Settings</h2>
+
+                {/* ── Push Notifications (native only) ── */}
+                {isNative && notifPrefs && (() => {
+                  const p = notifPrefs
+                  const updatePref = async (key, val) => {
+                    const next = { ...p, [key]: val }
+                    setNotifPrefs(next)
+                    saveNotifPrefs(next)
+                    const examObj = CUTOFF_EXAMS.find(e => e.id === savedPlan?.exam_id)
+                    const examLabel = examObj?.name || 'Your Exam'
+                    const examDate = savedPlan?.exam_date || null
+                    if (next.enabled) {
+                      scheduleAll(next, examDate, examLabel).catch(() => {})
+                    } else {
+                      cancelAllNotifs().catch(() => {})
+                    }
+                  }
+                  const Toggle = ({ on, onToggle }) => (
+                    <div onClick={onToggle} style={{width:42,height:24,borderRadius:12,background:on?'#F06535':'#d1d5db',position:'relative',cursor:'pointer',flexShrink:0,transition:'background .2s',touchAction:'manipulation'}}>
+                      <div style={{position:'absolute',top:3,left:on?21:3,width:18,height:18,borderRadius:9,background:'#fff',boxShadow:'0 1px 3px rgba(0,0,0,.3)',transition:'left .2s'}}/>
+                    </div>
+                  )
+                  const Row = ({ label, sub, on, onToggle, children }) => (
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 18px',gap:12}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:14,fontWeight:600,color:_t}}>{label}</div>
+                        {sub && <div style={{fontSize:12,color:_m,marginTop:2}}>{sub}</div>}
+                        {children}
                       </div>
-                      <div className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${s.on?'':'bg-gray-200'}`} style={s.on?{background:'#FF653F'}:{}}>
-                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${s.on?'left-5':'left-0.5'}`}/>
+                      <Toggle on={on} onToggle={onToggle}/>
+                    </div>
+                  )
+                  const hours = Array.from({length:24},(_,i)=>i)
+                  const fmtHour = h => { const ampm=h<12?'AM':'PM'; const hh=h%12||12; return `${hh}:00 ${ampm}` }
+                  return (
+                    <div style={{marginBottom:16}}>
+                      <div style={{fontSize:11,fontWeight:700,color:_m,letterSpacing:.6,textTransform:'uppercase',marginBottom:8,paddingLeft:4}}>App Notifications</div>
+                      <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,overflow:'hidden'}}>
+                        {/* Master switch */}
+                        <Row label="Push Notifications" sub="Enable all app notifications" on={p.enabled} onToggle={()=>updatePref('enabled',!p.enabled)}/>
+                        {p.enabled && <>
+                          <div style={{height:1,background:_b,margin:'0 18px'}}/>
+                          {/* Daily study reminder */}
+                          <Row label="Daily Study Reminder" sub={`Fires daily at ${fmtHour(p.studyReminderHour)}`} on={p.studyReminder} onToggle={()=>updatePref('studyReminder',!p.studyReminder)}>
+                            {p.studyReminder && (
+                              <div style={{marginTop:8,display:'flex',alignItems:'center',gap:8}}>
+                                <span style={{fontSize:12,color:_m}}>Time:</span>
+                                <select
+                                  value={p.studyReminderHour}
+                                  onChange={e=>updatePref('studyReminderHour',Number(e.target.value))}
+                                  style={{fontSize:13,fontWeight:600,color:_t,background:cd?'#1e293b':'#f3f4f6',border:`1px solid ${_b}`,borderRadius:8,padding:'4px 8px',cursor:'pointer'}}
+                                >
+                                  {hours.map(h=><option key={h} value={h}>{fmtHour(h)}</option>)}
+                                </select>
+                              </div>
+                            )}
+                          </Row>
+                          <div style={{height:1,background:_b,margin:'0 18px'}}/>
+                          {/* Streak reminder */}
+                          <Row label="Streak Reminder" sub="Every evening at 8:00 PM if not practiced" on={p.streakReminder} onToggle={()=>updatePref('streakReminder',!p.streakReminder)}/>
+                          <div style={{height:1,background:_b,margin:'0 18px'}}/>
+                          {/* Exam countdown */}
+                          <Row label="Exam Countdown" sub="Alerts 7, 5, 3 and 1 day before your exam" on={p.examCountdown} onToggle={()=>updatePref('examCountdown',!p.examCountdown)}/>
+                          <div style={{height:1,background:_b,margin:'0 18px'}}/>
+                          {/* Idle nudge */}
+                          <Row label="Comeback Reminder" sub="Nudge after 3 days away from the app" on={p.idleNudge} onToggle={()=>updatePref('idleNudge',!p.idleNudge)}/>
+                        </>}
                       </div>
                     </div>
-                  ))}
-                </div>
-                <button onClick={onLogout} className="w-full py-3 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-bold rounded-xl border border-red-200 transition-colors">
+                  )
+                })()}
+
+                <button onClick={onLogout} style={{width:'100%',padding:'13px 0',background:cd?'rgba(239,68,68,.12)':'#fef2f2',border:`1px solid ${cd?'rgba(239,68,68,.3)':'#fecaca'}`,borderRadius:14,color:'#ef4444',fontSize:14,fontWeight:700,cursor:'pointer',touchAction:'manipulation'}}>
                   ↪ Log Out of MockTest
                 </button>
               </div>
             )}
 
-            {/* ── PROFILE tab ── */}
-            {activeTab === 'profile' && (
-              <div className="max-w-lg">
-                <h2 className="text-xl font-black mb-1" style={{color:_t}}>Your Profile</h2>
-                <p className="text-sm mb-6" style={{color:_m}}>Manage your personal information and exam preferences</p>
-
-                {/* Avatar + name row */}
-                <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,padding:'20px 22px',marginBottom:16,display:'flex',alignItems:'center',gap:18}}>
-                  <div style={{width:64,height:64,borderRadius:'50%',background:`${_a}18`,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,fontSize:24,color:_a,flexShrink:0,overflow:'hidden',position:'relative'}}>
-                    {avatarUrl ? <img src={avatarUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/> : (userName[0]||'U').toUpperCase()}
-                    <label style={{position:'absolute',inset:0,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0)',transition:'background .15s'}}
-                      onMouseOver={e=>e.currentTarget.style.background='rgba(0,0,0,.35)'}
-                      onMouseOut={e=>e.currentTarget.style.background='rgba(0,0,0,0)'}>
-                      <input type="file" accept="image/*" style={{display:'none'}} onChange={handleAvatarUpload}/>
-                    </label>
-                  </div>
-                  <div>
-                    <div style={{fontWeight:800,fontSize:16,color:_t}}>{profileName || userName}</div>
-                    <div style={{fontSize:12,color:_m,marginTop:2}}>{user?.email}</div>
-                    <div style={{marginTop:6,padding:'3px 10px',background:isPro?`${_a}18`:(cd?'rgba(255,255,255,.07)':'#f1f5f9'),borderRadius:99,display:'inline-block',fontSize:10.5,fontWeight:800,color:isPro?_a:(cd?'rgba(255,255,255,.5)':'#64748b')}}>
-                      {isPro ? plan.charAt(0).toUpperCase()+plan.slice(1)+' Plan' : `Free Trial · ${trialDaysLeft}d left`}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Form */}
-                <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,overflow:'hidden',marginBottom:16}}>
-                  {[
-                    {label:'Full Name',      value:profileName,     set:setProfileName,     type:'text',    placeholder:'Your full name'},
-                    {label:'Phone Number',   value:profilePhone,    set:setProfilePhone,    type:'tel',     placeholder:'+91 XXXXX XXXXX'},
-                    {label:'Date of Birth',  value:profileDob,      set:setProfileDob,      type:'date',    placeholder:''},
-                  ].map((f,i,arr)=>(
-                    <div key={f.label} style={{padding:'14px 20px',borderBottom:i<arr.length-1?`1px solid ${_b}`:'none'}}>
-                      <label style={{display:'block',fontSize:10.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>{f.label}</label>
-                      <input type={f.type} value={f.value} onChange={e=>f.set(e.target.value)} placeholder={f.placeholder}
-                        style={{width:'100%',background:'none',border:'none',outline:'none',fontSize:13.5,fontWeight:500,color:_t,padding:0}}/>
-                    </div>
-                  ))}
-                  <div style={{padding:'14px 20px',borderBottom:`1px solid ${_b}`}}>
-                    <label style={{display:'block',fontSize:10.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>Gender</label>
-                    <select value={profileGender} onChange={e=>setProfileGender(e.target.value)}
-                      style={{background:'none',border:'none',outline:'none',fontSize:13.5,fontWeight:500,color:_t,padding:0,width:'100%',cursor:'pointer'}}>
-                      <option value="">Select gender</option>
-                      {['Male','Female','Non-binary','Prefer not to say'].map(g=><option key={g} value={g.toLowerCase()}>{g}</option>)}
-                    </select>
-                  </div>
-                  <div style={{padding:'14px 20px'}}>
-                    <label style={{display:'block',fontSize:10.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>Category</label>
-                    <select value={profileCategory} onChange={e=>setProfileCategory(e.target.value)}
-                      style={{background:'none',border:'none',outline:'none',fontSize:13.5,fontWeight:500,color:_t,padding:0,width:'100%',cursor:'pointer'}}>
-                      {['UR','OBC','SC','ST','EWS'].map(c=><option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                <div style={{display:'flex',alignItems:'center',gap:12}}>
-                  <button onClick={handleSaveProfile} disabled={profileSaving}
-                    style={{background:_a,color:'#fff',border:'none',borderRadius:10,padding:'11px 24px',fontWeight:800,fontSize:13,cursor:profileSaving?'default':'pointer',opacity:profileSaving?.6:1}}>
-                    {profileSaving ? 'Saving…' : 'Save Changes'}
-                  </button>
-                  {profileMsg && <span style={{fontSize:12.5,fontWeight:700,color:'#16a34a'}}>{profileMsg}</span>}
-                </div>
-              </div>
+            {/* ── HELP & SUPPORT tab ── */}
+            {activeTab === 'help' && (
+              <Suspense fallback={null}>
+                <DashHelpTab cd={cd} isNative={isNative} />
+              </Suspense>
             )}
+
+            {/* ── PROFILE tab ── */}
+            {activeTab === 'profile' && (() => {
+              // Streak: consecutive days with ≥1 test (counts today OR yesterday as starting point)
+              const testStreak = (() => {
+                if (!history.length) return 0
+                const dates = new Set(history.map(r => r.created_at?.split?.('T')[0]).filter(Boolean))
+                const d = new Date()
+                if (!dates.has(d.toISOString().split('T')[0])) d.setDate(d.getDate() - 1)
+                let s = 0
+                while (s < 365 && dates.has(d.toISOString().split('T')[0])) { s++; d.setDate(d.getDate() - 1) }
+                return s
+              })()
+              const rankLabel = !avg ? '—' : parseFloat(avg)>=85?'Top 5%':parseFloat(avg)>=75?'Top 12%':parseFloat(avg)>=60?'Top 25%':'Top 40%'
+              const displayName = profileName || userName || user?.email?.split('@')[0] || 'User'
+
+              const ChevronRight = () => <svg width="14" height="14" fill="none" stroke={_m} strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+
+              // Edit-profile sub-view
+              if (profileEdit) return (
+                <div style={{margin:'-14px'}}>
+                  <div style={{background:_s,borderBottom:`1px solid ${_b}`,padding:'14px 16px',display:'flex',alignItems:'center',gap:10}}>
+                    <button onClick={()=>setProfileEdit(false)} style={{width:34,height:34,borderRadius:10,background:cd?'rgba(255,255,255,.08)':'#f3f4f6',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,touchAction:'manipulation'}}>
+                      <svg width="16" height="16" fill="none" stroke={_t} strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <span style={{fontSize:15,fontWeight:800,color:_t}}>Edit Profile</span>
+                  </div>
+                  <div style={{padding:'16px 14px 24px'}}>
+                    {/* Avatar in edit mode */}
+                    <div style={{display:'flex',justifyContent:'center',marginBottom:20}}>
+                      <div style={{width:72,height:72,borderRadius:'50%',overflow:'hidden',position:'relative',background:`${_a}18`}}>
+                        {avatarUrl ? <img src={avatarUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/> : <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:26,fontWeight:900,color:_a}}>{displayName[0].toUpperCase()}</div>}
+                        <label style={{position:'absolute',inset:0,cursor:'pointer',display:'flex',alignItems:'flex-end',justifyContent:'center',paddingBottom:6,background:'linear-gradient(transparent 40%,rgba(0,0,0,.4))'}}>
+                          <svg width="13" height="13" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                          <input type="file" accept="image/*" style={{display:'none'}} onChange={handleAvatarUpload}/>
+                        </label>
+                      </div>
+                    </div>
+                    <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,overflow:'hidden',marginBottom:16}}>
+                      {[
+                        {label:'Full Name',    value:profileName,  set:setProfileName,  type:'text', placeholder:'Your full name'},
+                        {label:'Phone Number', value:profilePhone, set:setProfilePhone, type:'tel',  placeholder:'+91 XXXXX XXXXX'},
+                        {label:'Date of Birth',value:profileDob,   set:setProfileDob,   type:'date', placeholder:''},
+                      ].map((f,i,arr)=>(
+                        <div key={f.label} style={{padding:'14px 20px',borderBottom:i<arr.length-1?`1px solid ${_b}`:'none'}}>
+                          <label style={{display:'block',fontSize:10.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>{f.label}</label>
+                          <input type={f.type} value={f.value} onChange={e=>f.set(e.target.value)} placeholder={f.placeholder}
+                            style={{width:'100%',background:'none',border:'none',outline:'none',fontSize:13.5,fontWeight:500,color:_t,padding:0}}/>
+                        </div>
+                      ))}
+                      <div style={{padding:'14px 20px',borderBottom:`1px solid ${_b}`}}>
+                        <label style={{display:'block',fontSize:10.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>Gender</label>
+                        <select value={profileGender} onChange={e=>setProfileGender(e.target.value)} style={{background:'none',border:'none',outline:'none',fontSize:13.5,fontWeight:500,color:_t,padding:0,width:'100%',cursor:'pointer'}}>
+                          <option value="">Select gender</option>
+                          {['Male','Female','Non-binary','Prefer not to say'].map(g=><option key={g} value={g.toLowerCase()}>{g}</option>)}
+                        </select>
+                      </div>
+                      <div style={{padding:'14px 20px'}}>
+                        <label style={{display:'block',fontSize:10.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>Category</label>
+                        <select value={profileCategory} onChange={e=>setProfileCategory(e.target.value)} style={{background:'none',border:'none',outline:'none',fontSize:13.5,fontWeight:500,color:_t,padding:0,width:'100%',cursor:'pointer'}}>
+                          {['UR','OBC','SC','ST','EWS'].map(c=><option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',gap:12}}>
+                      <button onClick={handleSaveProfile} disabled={profileSaving}
+                        style={{background:_a,color:'#fff',border:'none',borderRadius:10,padding:'12px 28px',fontWeight:800,fontSize:13.5,cursor:profileSaving?'default':'pointer',opacity:profileSaving?.6:1}}>
+                        {profileSaving ? 'Saving…' : 'Save Changes'}
+                      </button>
+                      {profileMsg && <span style={{fontSize:12.5,fontWeight:700,color:'#16a34a'}}>{profileMsg}</span>}
+                    </div>
+                  </div>
+                </div>
+              )
+
+              // Privacy & Security sub-view
+              if (privacyView) {
+                const provider = user?.app_metadata?.provider || user?.identities?.[0]?.provider || 'email'
+                const isEmailUser = provider === 'email'
+                return (
+                  <div style={{margin:'-14px'}}>
+                    {/* Header */}
+                    <div style={{background:_s,borderBottom:`1px solid ${_b}`,padding:'14px 16px',display:'flex',alignItems:'center',gap:10}}>
+                      <button onClick={()=>{setPrivacyView(false);setNewPwd('');setConfirmPwd('');setPwdMsg('');setShowNewPwd(false);setShowConfPwd(false);setDeleteModal(false)}}
+                        style={{width:34,height:34,borderRadius:10,background:cd?'rgba(255,255,255,.08)':'#f3f4f6',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,touchAction:'manipulation'}}>
+                        <svg width="16" height="16" fill="none" stroke={_t} strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+                      </button>
+                      <span style={{fontSize:15,fontWeight:800,color:_t}}>Privacy & Security</span>
+                    </div>
+
+                    <div style={{padding:'16px 14px 36px',background:cd?'#000':'#f2f2f7',minHeight:'calc(100vh - 62px)'}}>
+
+                      {/* ── Account Security ── */}
+                      <div style={{fontSize:11,fontWeight:700,color:_m,letterSpacing:'.07em',marginBottom:8,paddingLeft:4}}>ACCOUNT SECURITY</div>
+                      <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,overflow:'hidden',marginBottom:20}}>
+
+                        {/* Signed-in method row */}
+                        <div style={{display:'flex',alignItems:'center',gap:12,padding:'13px 16px',borderBottom:`1px solid ${_b}`}}>
+                          <div style={{width:36,height:36,borderRadius:10,background:isEmailUser?'#007AFF':'#EA4335',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                            {isEmailUser
+                              ? <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                              : <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21.8 10.2H21V10h-9v4h6.3C17.4 16.5 15 18 12 18c-3.3 0-6-2.7-6-6s2.7-6 6-6c1.5 0 2.9.6 4 1.5l2.8-2.8C17 3 14.6 2 12 2 6.5 2 2 6.5 2 12s4.5 10 10 10c5.5 0 10-4.5 10-10 0-.7-.1-1.3-.2-1.8z" fill="#fff"/></svg>
+                            }
+                          </div>
+                          <div style={{flex:1}}>
+                            <div style={{fontSize:13.5,fontWeight:600,color:_t}}>{isEmailUser ? 'Email & Password' : 'Google Account'}</div>
+                            <div style={{fontSize:11.5,color:_m,marginTop:1}}>{user?.email}</div>
+                          </div>
+                          <span style={{fontSize:10.5,fontWeight:700,padding:'3px 9px',borderRadius:99,background:'#dcfce7',color:'#16a34a'}}>Active</span>
+                        </div>
+
+                        {/* Change Password (email users only) */}
+                        {isEmailUser && (
+                          <div style={{padding:'14px 16px'}}>
+                            <div style={{fontSize:12,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:12}}>Change Password</div>
+                            {[
+                              {label:'New Password',     val:newPwd,     set:setNewPwd,     show:showNewPwd,   toggle:()=>setShowNewPwd(p=>!p)},
+                              {label:'Confirm Password', val:confirmPwd, set:setConfirmPwd, show:showConfPwd,  toggle:()=>setShowConfPwd(p=>!p)},
+                            ].map(f=>(
+                              <div key={f.label} style={{marginBottom:10,position:'relative'}}>
+                                <label style={{display:'block',fontSize:10.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:5}}>{f.label}</label>
+                                <div style={{display:'flex',alignItems:'center',background:cd?'rgba(255,255,255,.06)':'#f9fafb',border:`1.5px solid ${_b}`,borderRadius:10,overflow:'hidden'}}>
+                                  <input
+                                    type={f.show ? 'text' : 'password'}
+                                    value={f.val}
+                                    onChange={e=>f.set(e.target.value)}
+                                    placeholder="••••••••"
+                                    style={{flex:1,padding:'11px 12px',background:'none',border:'none',outline:'none',fontSize:13.5,color:_t,fontFamily:'inherit'}}
+                                  />
+                                  <button onClick={f.toggle} type="button" style={{padding:'0 12px',background:'none',border:'none',cursor:'pointer',color:_m,display:'flex',alignItems:'center',touchAction:'manipulation'}}>
+                                    {f.show
+                                      ? <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                      : <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    }
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                            {pwdMsg && (
+                              <div style={{fontSize:12.5,fontWeight:600,color:pwdMsg.startsWith('✓')?'#16a34a':'#dc2626',marginBottom:10}}>{pwdMsg}</div>
+                            )}
+                            <button onClick={handleChangePassword} disabled={pwdSaving||!newPwd||!confirmPwd}
+                              style={{padding:'11px 22px',background:pwdSaving||!newPwd||!confirmPwd?_b:'#F06535',color:pwdSaving||!newPwd||!confirmPwd?_m:'#fff',border:'none',borderRadius:10,fontWeight:800,fontSize:13,cursor:pwdSaving||!newPwd||!confirmPwd?'default':'pointer',touchAction:'manipulation',transition:'background .15s'}}>
+                              {pwdSaving ? 'Updating…' : 'Update Password'}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* OAuth users can't change password */}
+                        {!isEmailUser && (
+                          <div style={{padding:'13px 16px',display:'flex',alignItems:'center',gap:8}}>
+                            <svg width="14" height="14" fill="none" stroke={_m} strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            <span style={{fontSize:12.5,color:_m}}>Password is managed by Google. Change it at myaccount.google.com.</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ── Sessions ── */}
+                      <div style={{fontSize:11,fontWeight:700,color:_m,letterSpacing:'.07em',marginBottom:8,paddingLeft:4}}>SESSIONS</div>
+                      <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,overflow:'hidden',marginBottom:20}}>
+                        <button onClick={handleSignOutAllDevices}
+                          style={{width:'100%',display:'flex',alignItems:'center',gap:12,padding:'13px 16px',border:'none',background:'none',cursor:'pointer',textAlign:'left',touchAction:'manipulation'}}>
+                          <div style={{width:36,height:36,borderRadius:10,background:'#FF9500',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                            <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                          </div>
+                          <div style={{flex:1}}>
+                            <div style={{fontSize:13.5,fontWeight:600,color:_t}}>Sign Out All Devices</div>
+                            <div style={{fontSize:11.5,color:_m,marginTop:1}}>Revoke access on all other browsers &amp; devices</div>
+                          </div>
+                          <svg width="14" height="14" fill="none" stroke={_m} strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                        </button>
+                        {signOutAllMsg && <div style={{padding:'0 16px 12px',fontSize:12,color:'#dc2626'}}>{signOutAllMsg}</div>}
+                      </div>
+
+                      {/* ── Danger Zone ── */}
+                      <div style={{fontSize:11,fontWeight:700,color:'#dc2626',letterSpacing:'.07em',marginBottom:8,paddingLeft:4}}>DANGER ZONE</div>
+                      <div style={{background:_s,border:`1px solid ${cd?'rgba(220,38,38,.25)':'#fee2e2'}`,borderRadius:16,overflow:'hidden',marginBottom:20}}>
+                        <button onClick={()=>setDeleteModal(true)}
+                          style={{width:'100%',display:'flex',alignItems:'center',gap:12,padding:'13px 16px',border:'none',background:'none',cursor:'pointer',textAlign:'left',touchAction:'manipulation'}}>
+                          <div style={{width:36,height:36,borderRadius:10,background:'#FF3B30',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                            <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                          </div>
+                          <div style={{flex:1}}>
+                            <div style={{fontSize:13.5,fontWeight:600,color:'#dc2626'}}>Delete Account</div>
+                            <div style={{fontSize:11.5,color:_m,marginTop:1}}>Permanently remove your account and all data</div>
+                          </div>
+                          <svg width="14" height="14" fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                        </button>
+                      </div>
+
+                      {/* Delete Account confirmation modal */}
+                      {deleteModal && (
+                        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:500,display:'flex',alignItems:'flex-end',justifyContent:'center',padding:'0 12px 24px'}}>
+                          <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:20,padding:'24px 20px',width:'100%',maxWidth:440,boxShadow:'0 -4px 40px rgba(0,0,0,.2)'}}>
+                            <div style={{width:48,height:48,borderRadius:14,background:'#FF3B30',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 14px'}}>
+                              <svg width="22" height="22" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                            </div>
+                            <div style={{textAlign:'center',marginBottom:16}}>
+                              <div style={{fontSize:17,fontWeight:800,color:_t,marginBottom:6}}>Delete Account?</div>
+                              <div style={{fontSize:13,color:_m,lineHeight:1.5}}>This will permanently delete your account, all test results, and study progress. This action cannot be undone.</div>
+                            </div>
+                            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                              <button onClick={handleDeleteAccount} disabled={deleting}
+                                style={{padding:'13px',background:'#FF3B30',color:'#fff',border:'none',borderRadius:12,fontWeight:800,fontSize:14,cursor:deleting?'default':'pointer',opacity:deleting?.6:1,touchAction:'manipulation'}}>
+                                {deleting ? 'Deleting…' : 'Yes, Delete My Account'}
+                              </button>
+                              <button onClick={()=>setDeleteModal(false)}
+                                style={{padding:'13px',background:cd?'rgba(255,255,255,.08)':'#f3f4f6',color:_t,border:'none',borderRadius:12,fontWeight:700,fontSize:14,cursor:'pointer',touchAction:'manipulation'}}>
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              }
+
+              // Main profile menu view (iOS Settings style)
+              return (
+                <div style={{margin:'-14px'}}>
+                  {/* ── Hero ── */}
+                  <div style={{background:'linear-gradient(160deg,#F06535 0%,#E85A28 52%,#DC5020 100%)',margin:'12px 14px 0',borderRadius:20,padding:'14px 18px 12px',position:'relative',overflow:'hidden',boxShadow:'0 4px 24px rgba(240,101,53,0.32)'}}>
+                    <div style={{position:'absolute',inset:0,background:'radial-gradient(circle at 78% 18%,rgba(255,255,255,.18) 0%,transparent 55%)',pointerEvents:'none'}}/>
+                    {/* Avatar left + info right */}
+                    <div style={{display:'flex',flexDirection:'row',alignItems:'center',gap:14,marginBottom:12}}>
+                      <div style={{width:58,height:58,borderRadius:'50%',overflow:'hidden',border:'2.5px solid rgba(255,255,255,.5)',position:'relative',background:'rgba(255,255,255,.2)',flexShrink:0}}>
+                        {(avatarUrl && avatarUrl.includes('supabase'))
+                          ? <img src={avatarUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt="profile"/>
+                          : <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,fontWeight:900,color:'#fff'}}>{displayName[0].toUpperCase()}</div>
+                        }
+                        <label style={{position:'absolute',inset:0,cursor:'pointer',display:'flex',alignItems:'flex-end',justifyContent:'center',paddingBottom:4,background:'linear-gradient(transparent 45%,rgba(0,0,0,.3))',touchAction:'manipulation'}}>
+                          <svg width="12" height="12" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                          <input type="file" accept="image/*" style={{display:'none'}} onChange={handleAvatarUpload}/>
+                        </label>
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:18,fontWeight:900,color:'#fff',letterSpacing:'-.01em',lineHeight:1.2}}>{displayName}</div>
+                        <div style={{fontSize:11,color:'rgba(255,255,255,.8)',marginTop:2,letterSpacing:'.01em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{user?.email}</div>
+                        <div style={{marginTop:6,display:'inline-block',padding:'3px 10px',background:'rgba(255,255,255,.22)',borderRadius:99,fontSize:10.5,fontWeight:800,color:'#fff',border:'1px solid rgba(255,255,255,.35)',letterSpacing:'.02em'}}>
+                          {isPro ? plan.charAt(0).toUpperCase()+plan.slice(1)+' Plan' : trialActive ? `Free Trial · ${trialDaysLeft}d left` : 'Trial Ended — Upgrade'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Sections ── */}
+                  <div style={{padding:'16px 14px 28px',background:cd?'#000':'#f2f2f7',minHeight:'100%'}}>
+
+                    {/* Your Progress card */}
+                    <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,overflow:'hidden',marginBottom:20,display:'flex'}}>
+                      {[
+                        {value:String(history.length||0), label:'Tests',  col:'#F06535'},
+                        {value:avg?`${avg}%`:'—',          label:'Avg',    col:'#16a34a'},
+                        {value:testStreak>0?`${testStreak}🔥`:'0', label:'Streak', col:'#d97706'},
+                        {value:rankLabel,                   label:'Rank',   col:'#8b5cf6'},
+                      ].map((s,i,arr)=>(
+                        <div key={s.label} style={{flex:1,textAlign:'center',padding:'14px 4px',borderRight:i<arr.length-1?`1px solid ${_b}`:'none'}}>
+                          <div style={{fontSize:17,fontWeight:900,color:s.col,lineHeight:1,letterSpacing:'-.01em'}}>{s.value}</div>
+                          <div style={{fontSize:9.5,color:_m,fontWeight:700,marginTop:4,textTransform:'uppercase',letterSpacing:'.07em'}}>{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {[
+                      { label:'ACCOUNT', items:[
+                        { id:'editprofile',   label:'Edit Profile',      col:'#FF453A', icon:<svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> },
+                        { id:'notifications', label:'Notifications',     col:'#007AFF', icon:<svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> },
+                        { id:'privacy',       label:'Privacy & Security', col:'#34C759', icon:<svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> },
+                      ]},
+                      { label:'STUDY', items:[
+                        { id:'categories', label:'Exam Categories', col:'#F06535', icon:<svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> },
+                        { id:'explore',    label:'Target Exams', col:'#5856D6', icon:<svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> },
+                        { id:'studyplan',  label:'Study Goals',  col:'#FF9500', icon:<svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> },
+                        { id:'weakareas',  label:'Weak Areas',   col:'#FF3B30', icon:<svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> },
+                      ]},
+                      { label:'APP', items:[
+                        { id:'subscriptions',label:'Subscriptions', col:'#f59e0b', icon:<svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> },
+                        { id:'billing',      label:'Billing',       col:'#10b981', icon:<svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> },
+                        { id:'settings',     label:'Settings',      col:'#636366', icon:<svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> },
+                        { id:'help',         label:'Help & Support', col:'#5856D6', icon:<svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> },
+                      ]},
+                    ].map(section => (
+                      <div key={section.label}>
+                        <div style={{fontSize:11,fontWeight:700,color:_m,letterSpacing:'.07em',marginBottom:8,paddingLeft:4}}>{section.label}</div>
+                        <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,overflow:'hidden',marginBottom:20}}>
+                          {section.items.map((item,i,arr)=>(
+                            <button key={item.id}
+                              onClick={()=> item.id==='editprofile' ? setProfileEdit(true) : item.id==='privacy' ? setPrivacyView(true) : item.id==='notifications' ? setActiveTab('settings') : item.id==='categories' ? onNav?.('category-select') : setActiveTab(item.id)}
+                              style={{width:'100%',display:'flex',alignItems:'center',gap:14,padding:'13px 16px',border:'none',background:'none',cursor:'pointer',textAlign:'left',borderBottom:i<arr.length-1?`1px solid ${_b}`:'none',touchAction:'manipulation'}}>
+                              <div style={{width:36,height:36,borderRadius:10,background:item.col,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:`0 2px 8px ${item.col}55`}}>
+                                {item.icon}
+                              </div>
+                              <span style={{flex:1,fontSize:14,fontWeight:600,color:_t}}>{item.label}</span>
+                              <ChevronRight/>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Sign Out */}
+                    <button onClick={onLogout}
+                      style={{width:'100%',display:'flex',alignItems:'center',gap:14,padding:'13px 16px',background:cd?'rgba(255,59,48,.08)':'#fff5f5',border:`1px solid ${cd?'rgba(255,59,48,.2)':'#fecaca'}`,borderRadius:16,cursor:'pointer',touchAction:'manipulation'}}>
+                      <div style={{width:36,height:36,borderRadius:10,background:'#FF3B30',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:'0 2px 8px rgba(255,59,48,.4)'}}>
+                        <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                      </div>
+                      <span style={{flex:1,fontSize:14,fontWeight:700,color:'#FF3B30',textAlign:'left'}}>Sign Out</span>
+                      <svg width="14" height="14" fill="none" stroke="#FF3B30" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* ── WEAK AREAS tab ── */}
             {activeTab === 'weakareas' && (
@@ -3361,104 +4046,18 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
 
             {/* ── SUBSCRIPTIONS tab ── */}
             {activeTab === 'subscriptions' && (
-              <div>
-                <h2 className="text-xl font-black mb-1" style={{color:_t}}>Subscriptions</h2>
-                <p className="text-sm mb-6" style={{color:_m}}>Choose a plan to unlock the full MockTest experience</p>
-
-                {/* Current plan status */}
-                <div style={{background:isPro?`${_a}10`:(cd?'rgba(255,255,255,.05)':'#f8fafc'),border:`1px solid ${isPro?`${_a}30`:_b}`,borderRadius:14,padding:'16px 20px',marginBottom:24,display:'flex',alignItems:'center',gap:14}}>
-                  <div style={{width:40,height:40,borderRadius:12,background:isPro?`${_a}18`:(cd?'rgba(255,255,255,.08)':'#e5e7eb'),display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={isPro?_a:'#64748b'} strokeWidth="2" strokeLinecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                  </div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:13.5,fontWeight:800,color:_t}}>
-                      {isPro ? `${plan.charAt(0).toUpperCase()+plan.slice(1)} Plan — Active` : trialActive ? `Free Trial — ${trialDaysLeft} days remaining` : 'Free Trial Expired'}
-                    </div>
-                    <div style={{fontSize:12,color:_m,marginTop:2}}>
-                      {isPro ? 'You have full access to all features.' : trialActive ? 'Upgrade to keep access after your trial ends.' : 'Your trial has ended. Upgrade to continue.'}
-                    </div>
-                  </div>
-                  {isPro && <div style={{fontSize:10.5,fontWeight:800,color:_a,background:`${_a}15`,borderRadius:99,padding:'4px 12px'}}>Active</div>}
-                </div>
-
-                {/* Plan cards */}
-                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:16}}>
-                  {PLAN_TIERS.map(tier=>(
-                    <div key={tier.id} style={{background:_s,border:`2px solid ${tier.popular?_a:_b}`,borderRadius:16,padding:'22px 18px',position:'relative',display:'flex',flexDirection:'column',gap:12}}>
-                      {tier.popular && <div style={{position:'absolute',top:-1,left:'50%',transform:'translateX(-50%)',background:_a,color:'#fff',fontSize:10,fontWeight:800,padding:'3px 14px',borderRadius:'0 0 10px 10px',letterSpacing:'.04em'}}>MOST POPULAR</div>}
-                      <div>
-                        <div style={{fontSize:13,fontWeight:800,color:_m,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:4}}>{tier.name}</div>
-                        <div style={{fontSize:28,fontWeight:900,color:_t,lineHeight:1}}>{tier.price}<span style={{fontSize:13,fontWeight:600,color:_m}}>/{tier.validity}</span></div>
-                      </div>
-                      <ul style={{listStyle:'none',padding:0,margin:0,display:'flex',flexDirection:'column',gap:8,flex:1}}>
-                        {tier.features.map(f=>(
-                          <li key={f} style={{display:'flex',alignItems:'flex-start',gap:8,fontSize:12.5,color:_t,lineHeight:1.4}}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke='#16a34a' strokeWidth="2.5" strokeLinecap="round" style={{flexShrink:0,marginTop:1}}><polyline points="20 6 9 17 4 12"/></svg>
-                            {f}
-                          </li>
-                        ))}
-                      </ul>
-                      <button onClick={()=>onNav?.('subscriptions')}
-                        style={{background:tier.popular?_a:'none',color:tier.popular?'#fff':_a,border:`2px solid ${_a}`,borderRadius:10,padding:'10px',fontWeight:800,fontSize:13,cursor:'pointer',transition:'all .15s',marginTop:'auto'}}
-                        onMouseOver={e=>{if(!tier.popular){e.currentTarget.style.background=_a;e.currentTarget.style.color='#fff'}}}
-                        onMouseOut={e=>{if(!tier.popular){e.currentTarget.style.background='none';e.currentTarget.style.color=_a}}}>
-                        {isPro && plan===tier.id ? 'Current Plan' : 'Get Started'}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <Suspense fallback={null}>
+                <DashSubscriptionsTab cd={cd} _t={_t} _m={_m} _s={_s} _b={_b} _a={_a}
+                  isPro={isPro} plan={plan} trialActive={trialActive} trialDaysLeft={trialDaysLeft} onNav={onNav} />
+              </Suspense>
             )}
 
             {/* ── BILLING tab ── */}
             {activeTab === 'billing' && (
-              <div className="max-w-lg">
-                <h2 className="text-xl font-black mb-1" style={{color:_t}}>Billing</h2>
-                <p className="text-sm mb-6" style={{color:_m}}>Your payment details and transaction history</p>
-
-                {/* Plan summary */}
-                <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,padding:'20px 22px',marginBottom:16}}>
-                  <div style={{fontSize:11,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:10}}>Current Plan</div>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
-                    <div>
-                      <div style={{fontSize:16,fontWeight:900,color:_t}}>{isPro ? plan.charAt(0).toUpperCase()+plan.slice(1)+' Plan' : 'Free Trial'}</div>
-                      <div style={{fontSize:12.5,color:_m,marginTop:3}}>{isPro ? 'Billed monthly' : trialActive ? `${trialDaysLeft} days remaining in trial` : 'Trial period has ended'}</div>
-                    </div>
-                    <button onClick={()=>setActiveTab('subscriptions')}
-                      style={{background:_a,color:'#fff',border:'none',borderRadius:10,padding:'9px 18px',fontWeight:800,fontSize:12.5,cursor:'pointer',flexShrink:0}}>
-                      {isPro ? 'Manage' : 'Upgrade'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Payment method placeholder */}
-                <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,padding:'20px 22px',marginBottom:16}}>
-                  <div style={{fontSize:11,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:12}}>Payment Method</div>
-                  {isPro ? (
-                    <div style={{display:'flex',alignItems:'center',gap:14}}>
-                      <div style={{width:44,height:30,borderRadius:6,background:cd?'rgba(255,255,255,.1)':'#e5e7eb',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                        <svg width="22" height="16" viewBox="0 0 32 20" fill="none"><rect width="32" height="20" rx="3" fill="#1a1f71"/><rect y="5" width="32" height="5" fill="#f7b600"/></svg>
-                      </div>
-                      <div>
-                        <div style={{fontSize:13,fontWeight:700,color:_t}}>Card ending ••••</div>
-                        <div style={{fontSize:11.5,color:_m,marginTop:2}}>Update your payment method below</div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{fontSize:13,color:_m}}>No payment method on file. Add one when you upgrade.</div>
-                  )}
-                </div>
-
-                {/* Transaction history */}
-                <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,overflow:'hidden'}}>
-                  <div style={{padding:'16px 20px',borderBottom:`1px solid ${_b}`,fontSize:11,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.07em'}}>Transaction History</div>
-                  <div style={{padding:'32px 20px',textAlign:'center'}}>
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={_m} strokeWidth="1.5" strokeLinecap="round" style={{margin:'0 auto 12px',display:'block'}}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
-                    <div style={{fontSize:13,fontWeight:700,color:_t,marginBottom:4}}>No transactions yet</div>
-                    <div style={{fontSize:12,color:_m}}>Your payment history will appear here once you subscribe.</div>
-                  </div>
-                </div>
-              </div>
+              <Suspense fallback={null}>
+                <DashBillingTab cd={cd} _t={_t} _m={_m} _s={_s} _b={_b} _a={_a}
+                  isPro={isPro} plan={plan} trialActive={trialActive} trialDaysLeft={trialDaysLeft} setActiveTab={setActiveTab} />
+              </Suspense>
             )}
 
           </div>
@@ -3475,12 +4074,12 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
             <div className="fixed right-0 top-0 h-full w-72 z-50 flex flex-col overflow-y-auto shadow-2xl" style={{ background:'#fff' }}>
               <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom:'1px solid #e5e7eb' }}>
                 <div className="flex items-center gap-2">
-                  <div style={{ width:28, height:28, background:'#FF653F', borderRadius:7, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <div style={{ width:28, height:28, background:'#F06535', borderRadius:7, display:'flex', alignItems:'center', justifyContent:'center' }}>
                     <span style={{ color:'#fff', fontWeight:900, fontSize:10 }}>MT</span>
                   </div>
                   <div>
                     <div className="font-bold text-sm" style={{color:'#111827'}}>MockTest</div>
-                    <div style={{fontSize:8.5,fontWeight:700,color:'#FF653F',letterSpacing:'.10em',textTransform:'uppercase',fontStyle:'italic',marginTop:3,lineHeight:1}}>Your World of Mock Tests</div>
+                    <div style={{fontSize:8.5,fontWeight:700,color:'#F06535',letterSpacing:'.10em',textTransform:'uppercase',fontStyle:'italic',marginTop:3,lineHeight:1}}>Your World of Mock Tests</div>
                   </div>
                 </div>
                 <button onClick={()=>setPanelOpen(false)} className="text-2xl w-8 h-8 flex items-center justify-center" style={{color:'#6b7280'}}>×</button>
@@ -3491,11 +4090,11 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     onClick={()=>{ setPanelOpen(false); setActiveTab(item.id) }}
                     className="w-full flex items-center gap-3 px-5 py-3 transition-colors"
                     style={ activeTab===item.id
-                      ? { background:'rgba(255,101,63,.08)', color:'#FF653F', fontWeight:700, borderLeft:'3px solid #FF653F' }
+                      ? { background:'rgba(232,90,44,.08)', color:'#F06535', fontWeight:700, borderLeft:'3px solid #F06535' }
                       : { color:'#374151', borderLeft:'3px solid transparent' } }
                     onMouseOver={e=>{ if(activeTab!==item.id) e.currentTarget.style.background='#f9fafb' }}
                     onMouseOut={e=>{ if(activeTab!==item.id) e.currentTarget.style.background='transparent' }}>
-                    <span className="flex-shrink-0" style={{color: activeTab===item.id ? '#FF653F' : '#9ca3af'}}><item.Icon /></span>
+                    <span className="flex-shrink-0" style={{color: activeTab===item.id ? '#F06535' : '#9ca3af'}}><item.Icon /></span>
                     <span className="text-sm font-semibold">{item.label}</span>
                   </button>
                 ))}
@@ -3512,30 +4111,30 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
           {/* ── NATIVE APP "More" panel: secondary items only (bottom nav handles primary) ── */}
           {isNative && (
             <div className="fixed right-0 top-0 h-full w-72 z-50 flex flex-col overflow-y-auto shadow-2xl"
-              style={{background:cd?'#111':'#fff',paddingTop:'env(safe-area-inset-top,0px)'}}>
+              style={{background:'#111',paddingTop:'env(safe-area-inset-top,0px)'}}>
               {/* Header */}
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 18px',borderBottom:`1px solid ${cd?'rgba(255,255,255,.08)':'#f0f0f0'}`}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 18px',borderBottom:'1px solid rgba(255,255,255,.08)'}}>
                 <div style={{display:'flex',alignItems:'center',gap:10}}>
-                  <div style={{width:34,height:34,background:'#FF653F',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <div style={{width:34,height:34,background:'#F06535',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center'}}>
                     <span style={{color:'#fff',fontWeight:900,fontSize:12}}>MT</span>
                   </div>
                   <div>
-                    <div style={{fontSize:13,fontWeight:800,color:cd?'#fff':'#111827'}}>MockTest</div>
-                    <div style={{fontSize:8,fontWeight:700,color:'#FF653F',letterSpacing:'.12em',textTransform:'uppercase'}}>More</div>
+                    <div style={{fontSize:13,fontWeight:800,color:'#fff'}}>MockTest</div>
+                    <div style={{fontSize:8,fontWeight:700,color:'#F06535',letterSpacing:'.12em',textTransform:'uppercase'}}>More</div>
                   </div>
                 </div>
                 <button onClick={()=>setPanelOpen(false)}
                   style={{width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:8,border:'none',cursor:'pointer',
-                    background:cd?'rgba(255,255,255,.08)':'#f3f4f6',color:cd?'#9ca3af':'#6b7280',fontSize:18}}>×</button>
+                    background:'rgba(255,255,255,.1)',color:'rgba(255,255,255,.7)',fontSize:18,touchAction:'manipulation'}}>×</button>
               </div>
               {/* User card */}
-              <div style={{margin:'14px 16px',padding:'14px 16px',borderRadius:14,background:cd?'rgba(255,255,255,.05)':'#fafafa',border:`1px solid ${cd?'rgba(255,255,255,.07)':'#f0f0f0'}`,display:'flex',alignItems:'center',gap:12}}>
-                <div style={{width:44,height:44,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#ff9a7a)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:900,color:'#fff',flexShrink:0}}>
+              <div style={{margin:'14px 16px',padding:'14px 16px',borderRadius:14,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.07)',display:'flex',alignItems:'center',gap:12}}>
+                <div style={{width:44,height:44,borderRadius:'50%',background:'linear-gradient(135deg,#F06535,#ff9a7a)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:900,color:'#fff',flexShrink:0}}>
                   {(userName||'U')[0].toUpperCase()}
                 </div>
                 <div style={{minWidth:0}}>
-                  <div style={{fontSize:13,fontWeight:800,color:cd?'#fff':'#111827',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{userName}</div>
-                  <div style={{fontSize:11,color:cd?'#6b7280':'#9ca3af',marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{user?.email}</div>
+                  <div style={{fontSize:13,fontWeight:800,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{userName}</div>
+                  <div style={{fontSize:11,color:'rgba(255,255,255,.4)',marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{user?.email}</div>
                 </div>
               </div>
               {/* Secondary nav */}
@@ -3552,18 +4151,18 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     <button key={item.id}
                       onClick={()=>{ setPanelOpen(false); setActiveTab(item.id) }}
                       style={{width:'100%',display:'flex',alignItems:'center',gap:14,padding:'14px 18px',border:'none',cursor:'pointer',textAlign:'left',
-                        background: isAct ? 'rgba(255,101,63,.1)' : 'transparent',
-                        borderLeft: isAct ? '3px solid #FF653F' : '3px solid transparent'}}>
-                      <span style={{color:isAct?'#FF653F':cd?'#6b7280':'#9ca3af',flexShrink:0}}><item.Icon /></span>
-                      <span style={{fontSize:13,fontWeight:600,color:isAct?'#FF653F':cd?'#e5e7eb':'#374151'}}>{item.label}</span>
+                        background: isAct ? 'rgba(232,90,44,.1)' : 'transparent',
+                        borderLeft: isAct ? '3px solid #F06535' : '3px solid transparent'}}>
+                      <span style={{color:isAct?'#F06535':'rgba(255,255,255,.4)',flexShrink:0}}><item.Icon /></span>
+                      <span style={{fontSize:13,fontWeight:600,color:isAct?'#F06535':'rgba(255,255,255,.75)'}}>{item.label}</span>
                     </button>
                   )
                 })}
-                <div style={{margin:'10px 18px',borderTop:`1px solid ${cd?'rgba(255,255,255,.07)':'#f0f0f0'}`}}/>
+                <div style={{margin:'10px 18px',borderTop:'1px solid rgba(255,255,255,.07)'}}/>
                 {adminUser && (
                   <button onClick={()=>{setPanelOpen(false);onNav?.('admin')}}
                     style={{width:'100%',display:'flex',alignItems:'center',gap:14,padding:'14px 18px',border:'none',cursor:'pointer',background:'transparent'}}>
-                    <DIcGear s={15} c={cd?'#6b7280':'#9ca3af'}/><span style={{fontSize:13,fontWeight:600,color:cd?'#9ca3af':'#6b7280'}}>Admin Panel</span>
+                    <DIcGear s={15} c='rgba(255,255,255,.4)'/><span style={{fontSize:13,fontWeight:600,color:'rgba(255,255,255,.5)'}}>Admin Panel</span>
                   </button>
                 )}
                 <button onClick={onLogout}
@@ -3582,33 +4181,33 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
         <style>{`
           .db-bnav{position:fixed;bottom:0;left:0;right:0;z-index:200;padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -1px 0 rgba(0,0,0,.1),0 -6px 24px rgba(0,0,0,.08)}
           .db-bnav-inner{display:flex;width:100%;height:62px}
-          .db-bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:6px 2px;position:relative;min-width:0}
-          .db-bnav-pill{position:absolute;top:6px;width:32px;height:3px;border-radius:99px;background:#FF653F}
+          .db-bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:6px 2px;position:relative;min-width:0;touch-action:manipulation}
+          .db-bnav-pill{position:absolute;top:6px;width:32px;height:3px;border-radius:99px;background:#F06535}
           .db-bnav-lbl{font-size:9px;font-weight:700;line-height:1;letter-spacing:.02em}
         `}</style>
-        <nav className="db-bnav" style={{background:cd?'#111':'#fff',borderTop:`1px solid ${cd?'rgba(255,255,255,.07)':'#e8e8e8'}`}}>
+        <nav className="db-bnav" style={{background:'#111',borderTop:'1px solid rgba(255,255,255,.08)'}}>
           <div className="db-bnav-inner">
             {[
               { id:'home',        label:'Home',
-                path:'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10' },
+                icon:<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10"/> },
               { id:'explore',     label:'Explore',
-                path:'M21 21l-4.35-4.35 M11 19A8 8 0 1 0 11 3a8 8 0 0 0 0 16z' },
+                icon:<path d="M21 21l-4.35-4.35 M11 19A8 8 0 1 0 11 3a8 8 0 0 0 0 16z"/> },
               { id:'performance', label:'Progress',
-                path:'M22 7L13.5 15.5L8.5 10.5L2 17 M16 7h6v6' },
+                icon:<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/> },
               { id:'studyplan',   label:'Planner',
-                path:'M3 6h18 M3 12h18 M3 18h18' },
+                icon:<><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></> },
               { id:'profile',     label:'Profile',
-                path:'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z' },
-            ].map(({id, label, path}) => {
+                icon:<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></> },
+            ].map(({id, label, icon}) => {
               const isAct = activeTab === id
-              const col = isAct ? '#FF653F' : cd ? '#555' : '#bbb'
+              const col = isAct ? '#F06535' : 'rgba(255,255,255,.4)'
               return (
                 <button key={id} className="db-bnav-btn" onClick={() => setActiveTab(id)}>
                   {isAct && <span className="db-bnav-pill"/>}
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
                     stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                     style={{transition:'stroke .15s',flexShrink:0}}>
-                    <path d={path}/>
+                    {icon}
                   </svg>
                   <span className="db-bnav-lbl" style={{color:col,transition:'color .15s'}}>{label}</span>
                 </button>
@@ -3617,6 +4216,70 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
           </div>
         </nav>
       </>)}
+
+      {/* ══ NOTIFICATION PANEL ══ */}
+      {showNotifPanel && (() => {
+        const unread = notifInbox.filter(n=>!n.read).length
+        const markAllRead = () => {
+          const updated = notifInbox.map(n=>({...n,read:true}))
+          try{localStorage.setItem('mt_inbox_v2',JSON.stringify(updated))}catch{}
+          setNotifInbox(updated)
+        }
+        const handleItemTap = (item) => {
+          const updated = notifInbox.map(n=>n.id===item.id?{...n,read:true}:n)
+          try{localStorage.setItem('mt_inbox_v2',JSON.stringify(updated))}catch{}
+          setNotifInbox(updated)
+          if(item.action){ setShowNotifPanel(false); setActiveTab(item.action) }
+        }
+        const fmtTs = (ts) => {
+          const diff = Date.now()-ts
+          if(diff<60000) return 'just now'
+          if(diff<3600000) return `${Math.floor(diff/60000)}m ago`
+          if(diff<86400000) return `${Math.floor(diff/3600000)}h ago`
+          return new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})
+        }
+        const typeColors = {subscription:'#F06535',result:'#007AFF',system:'#34C759',reminder:'#FF9500'}
+        return (
+          <div style={{position:'fixed',inset:0,zIndex:300,display:'flex',flexDirection:'column'}}>
+            <div onClick={()=>setShowNotifPanel(false)} style={{position:'absolute',inset:0,background:'rgba(0,0,0,.55)'}}/>
+            <div style={{position:'relative',marginTop:'auto',background:cd?'#1c1c1e':'#f2f2f7',borderRadius:'20px 20px 0 0',maxHeight:'80vh',display:'flex',flexDirection:'column',paddingBottom:'max(env(safe-area-inset-bottom,0px),16px)'}}>
+              <div style={{width:36,height:4,background:'rgba(128,128,128,.4)',borderRadius:2,margin:'10px auto 0'}}/>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 20px 10px',borderBottom:`1px solid ${cd?'rgba(255,255,255,.08)':'#e5e5ea'}`}}>
+                <div>
+                  <div style={{fontSize:17,fontWeight:800,color:cd?'#f1f5f9':'#111'}}>Notifications</div>
+                  {unread>0 && <div style={{fontSize:12,color:cd?'#94a3b8':'#8e8e93',marginTop:1}}>{unread} unread</div>}
+                </div>
+                {unread>0 && <button onClick={markAllRead} style={{border:'none',background:'none',color:'#F06535',fontSize:13,fontWeight:700,cursor:'pointer',padding:'4px 8px',touchAction:'manipulation'}}>Mark all read</button>}
+              </div>
+              <div style={{overflowY:'auto',flex:1}}>
+                {notifInbox.length===0 ? (
+                  <div style={{padding:'48px 24px',textAlign:'center'}}>
+                    <div style={{fontSize:40,marginBottom:12}}>🔔</div>
+                    <div style={{fontSize:16,fontWeight:700,color:cd?'#f1f5f9':'#111',marginBottom:6}}>No notifications yet</div>
+                    <div style={{fontSize:13,color:cd?'#94a3b8':'#8e8e93'}}>Exam reminders and updates will appear here.</div>
+                  </div>
+                ) : (
+                  notifInbox.map(item=>(
+                    <button key={item.id} onClick={()=>handleItemTap(item)}
+                      style={{width:'100%',display:'flex',alignItems:'flex-start',gap:12,padding:'14px 20px',border:'none',background:item.read?'none':(cd?'rgba(255,255,255,.04)':'rgba(0,0,0,.03)'),cursor:'pointer',textAlign:'left',touchAction:'manipulation',borderBottom:`1px solid ${cd?'rgba(255,255,255,.05)':'#e5e5ea'}`}}>
+                      <div style={{width:40,height:40,borderRadius:12,background:typeColors[item.type]||'#8e8e93',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>{item.icon}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+                          <div style={{fontSize:14,fontWeight:item.read?600:800,color:cd?'#f1f5f9':'#111',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.title}</div>
+                          <div style={{fontSize:11,color:cd?'#64748b':'#8e8e93',flexShrink:0,whiteSpace:'nowrap'}}>{fmtTs(item.ts)}</div>
+                        </div>
+                        <div style={{fontSize:13,color:cd?'#94a3b8':'#6b7280',marginTop:2,lineHeight:1.4,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{item.body}</div>
+                        {item.action && <div style={{fontSize:12,color:'#F06535',fontWeight:700,marginTop:4}}>Tap to open →</div>}
+                      </div>
+                      {!item.read && <div style={{width:8,height:8,background:'#007AFF',borderRadius:'50%',flexShrink:0,marginTop:4}}/>}
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
     </div>
   )

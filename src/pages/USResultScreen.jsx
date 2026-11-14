@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import QuestionContent from '../components/QuestionContent'
 
 const _sv = (c) => ({fill:'none',stroke:c||'currentColor',strokeWidth:'1.5',strokeLinecap:'round',strokeLinejoin:'round'})
@@ -23,6 +23,7 @@ const URIcCalc   = ({s=14,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {
 import ChartQuestion from '../components/ChartQuestion'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
+import DOMPurify from 'dompurify'
 
 /* ── KaTeX helpers (shared with ResultScreen) ── */
 function _toKaTeX(s) {
@@ -51,7 +52,8 @@ function MathText({ text }) {
       {parts.map((p, i) => {
         if (!p.math) return <span key={i}>{p.val}</span>
         try {
-          const html = katex.renderToString(_toKaTeX(p.val), { throwOnError: false, displayMode: false, output: 'html' })
+          const raw  = katex.renderToString(_toKaTeX(p.val), { throwOnError: false, displayMode: false, output: 'html' })
+          const html = DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } })
           return <span key={i} dangerouslySetInnerHTML={{ __html: html }} />
         } catch {
           return <span key={i}>{p.val}</span>
@@ -193,9 +195,9 @@ function ShareModal({ result, studentName, onClose }) {
   const ringPct = sd.ring
   const scoreColor = sd.composite != null
     ? (sd.type === 'act'
-        ? (sd.composite >= 28 ? '#10b981' : sd.composite >= 20 ? '#f59e0b' : '#FF653F')
-        : (sd.composite >= 1200 ? '#10b981' : sd.composite >= 1000 ? '#f59e0b' : '#FF653F'))
-    : (result.percentage >= 60 ? '#10b981' : result.percentage >= 35 ? '#f59e0b' : '#FF653F')
+        ? (sd.composite >= 28 ? '#10b981' : sd.composite >= 20 ? '#f59e0b' : '#F06535')
+        : (sd.composite >= 1200 ? '#10b981' : sd.composite >= 1000 ? '#f59e0b' : '#F06535'))
+    : (result.percentage >= 60 ? '#10b981' : result.percentage >= 35 ? '#f59e0b' : '#F06535')
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -575,12 +577,17 @@ function ExplanationWithTabs({ q }) {
   return (
     <div>
       {tabs.length > 1 && (
-        <div className="flex gap-0 mb-4 border-b border-gray-200">
+        <div style={{display:'flex',borderBottom:'1px solid #e5e7eb',marginBottom:16}}>
           {tabs.map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id)}
-              className={`px-4 py-2 text-[15px] font-medium border-b-2 -mb-px transition-colors ${
-                activeTab === t.id ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}>
+              style={{
+                flex:1,padding:'8px 4px',fontSize:11.5,fontWeight:700,
+                whiteSpace:'nowrap',textAlign:'center',
+                background:'none',cursor:'pointer',
+                borderBottom: activeTab===t.id ? '2px solid #3b82f6' : '2px solid transparent',
+                color: activeTab===t.id ? '#2563eb' : '#9ca3af',
+                transition:'all .12s',
+              }}>
               {t.label}
             </button>
           ))}

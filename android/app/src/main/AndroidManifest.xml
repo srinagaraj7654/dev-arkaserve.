@@ -19,9 +19,17 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Custom scheme deep-link: receives com.arkaserve.prep://login-callback?code=
-                 from Supabase's HTTP 302 redirect after Google OAuth. Chrome Custom Tab
-                 forwards server-side 302s to custom schemes as Android intents. -->
+            <!-- App Links (HTTPS): Android intercepts the OAuth callback before Chrome
+                 Custom Tab loads the page and delivers it directly via appUrlOpen.
+                 autoVerify=true triggers verification against /.well-known/assetlinks.json
+                 on install; SHA256 fingerprint must match the signing keystore. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="prep.arkaserve.com" android:pathPrefix="/login-callback" />
+            </intent-filter>
+            <!-- Custom scheme fallback for devices where App Links verification fails -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

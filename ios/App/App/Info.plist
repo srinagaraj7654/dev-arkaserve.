@@ -68,6 +68,8 @@
 	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>MockTest sends study reminders and exam countdown alerts to help you stay on track.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

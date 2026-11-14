@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import Footer from '../components/Footer.jsx'
 
 /* ──────────────────────────────────────────────────────────────
@@ -43,7 +43,7 @@ const SEC_COLOR = {
   'Engineering Mathematics':'#f59e0b', 'General Aptitude':'#7048e8', 'Core Branch Subject':'#0891b2',
   Physics:'#7048e8', Chemistry:'#dc2626', 'Biology':'#16a34a', Botany:'#16a34a', Zoology:'#0891b2',
   'English & Logical Reasoning':'#16a34a', 'Pre-Clinical Subjects':'#0891b2',
-  'Para-Clinical Subjects':'#f59e0b', 'Clinical Subjects':'#FF653F',
+  'Para-Clinical Subjects':'#f59e0b', 'Clinical Subjects':'#F06535',
 }
 
 const EXAMS = [
@@ -398,37 +398,37 @@ const EXAM_UPDATES = {
     { dot:'#16a34a', label:'IBPS PO 2026 Prelims Result Out',         date:'Oct 18, 2026' },
     { dot:'#f59e0b', label:'SBI PO 2026 Mains Admit Card Released',   date:'Oct 14, 2026' },
     { dot:'#0891b2', label:'RBI Grade B 2026 Phase 2 Date Notified',  date:'Oct 09, 2026' },
-    { dot:'#FF653F', label:'IBPS Clerk 2026 Notification Released',   date:'Oct 05, 2026' },
+    { dot:'#F06535', label:'IBPS Clerk 2026 Notification Released',   date:'Oct 05, 2026' },
   ],
   insurance: [
     { dot:'#16a34a', label:'LIC ADO 2026 Mains Result Announced',     date:'Oct 16, 2026' },
     { dot:'#f59e0b', label:'NIACL Assistant 2026 Notification',       date:'Oct 10, 2026' },
     { dot:'#0891b2', label:'UIIC Assistant 2026 Exam Date',           date:'Oct 03, 2026' },
-    { dot:'#FF653F', label:'LIC AAO 2026 Interview Schedule',         date:'Sep 28, 2026' },
+    { dot:'#F06535', label:'LIC AAO 2026 Interview Schedule',         date:'Sep 28, 2026' },
   ],
   ssc: [
     { dot:'#16a34a', label:'SSC CGL 2026 Tier I Result Out',          date:'Oct 19, 2026' },
     { dot:'#f59e0b', label:'SSC CHSL 2026 Tier I Answer Key',         date:'Oct 13, 2026' },
     { dot:'#0891b2', label:'SSC MTS 2026 Admit Card Released',        date:'Oct 08, 2026' },
-    { dot:'#FF653F', label:'SSC GD 2026 Notification Published',      date:'Oct 02, 2026' },
+    { dot:'#F06535', label:'SSC GD 2026 Notification Published',      date:'Oct 02, 2026' },
   ],
   railway: [
     { dot:'#16a34a', label:'RRB NTPC 2026 CBT 1 Result Out',         date:'Oct 17, 2026' },
     { dot:'#f59e0b', label:'RRB ALP 2026 Technician Admit Card',     date:'Oct 11, 2026' },
     { dot:'#0891b2', label:'RRB Group D 2026 Notification',          date:'Oct 06, 2026' },
-    { dot:'#FF653F', label:'RRB JE 2026 Exam Dates Announced',       date:'Oct 01, 2026' },
+    { dot:'#F06535', label:'RRB JE 2026 Exam Dates Announced',       date:'Oct 01, 2026' },
   ],
   engineering: [
     { dot:'#16a34a', label:'JEE Advanced 2027 Exam Date Notified',   date:'Oct 15, 2026' },
     { dot:'#f59e0b', label:'GATE 2027 Registration Opens',           date:'Oct 11, 2026' },
     { dot:'#0891b2', label:'JEE Main 2027 Session 1 Schedule',       date:'Oct 07, 2026' },
-    { dot:'#FF653F', label:'BITSAT 2027 Application Form Out',       date:'Oct 02, 2026' },
+    { dot:'#F06535', label:'BITSAT 2027 Application Form Out',       date:'Oct 02, 2026' },
   ],
   medical: [
     { dot:'#16a34a', label:'NEET UG 2027 Notification Released',     date:'Oct 18, 2026' },
     { dot:'#f59e0b', label:'NEET PG 2026 Final Result Out',          date:'Oct 13, 2026' },
     { dot:'#0891b2', label:'AIIMS PG 2027 Registration Opens',       date:'Oct 08, 2026' },
-    { dot:'#FF653F', label:'JIPMER PG 2027 Application Form',        date:'Oct 02, 2026' },
+    { dot:'#F06535', label:'JIPMER PG 2027 Application Form',        date:'Oct 02, 2026' },
   ],
 }
 
@@ -523,7 +523,7 @@ function ExamCard({ exam, onNav, index = 0 }) {
         </div>
         {/* Stats row */}
         <div style={{ display:'flex', gap:12 }}>
-          {[{v:`${exam.total}`, l:'Questions', c:'#FF653F'}, {v:exam.duration, l:'Duration', c:'#7048e8'}, {v:exam.negative>0?`−${exam.negative}`:'None', l:'Negative', c:'#dc2626'}].map(({v,l,c}) => (
+          {[{v:`${exam.total}`, l:'Questions', c:'#F06535'}, {v:exam.duration, l:'Duration', c:'#7048e8'}, {v:exam.negative>0?`−${exam.negative}`:'None', l:'Negative', c:'#dc2626'}].map(({v,l,c}) => (
             <div key={l}>
               <div style={{ fontSize:13.5, fontWeight:900, color:c, lineHeight:1 }}>{v}</div>
               <div style={{ fontSize:9, color:'#94a3b8', fontWeight:500, marginTop:2, textTransform:'uppercase', letterSpacing:'.04em' }}>{l}</div>
@@ -536,7 +536,7 @@ function ExamCard({ exam, onNav, index = 0 }) {
       <div style={{ padding:'10px 14px', flex:1 }}>
         <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
           {exam.sections.map(s => {
-            const c = SEC_COLOR[s.label] || '#FF653F'
+            const c = SEC_COLOR[s.label] || '#F06535'
             const pct = Math.round((s.q / exam.total) * 100)
             return (
               <div key={s.label}>
@@ -556,11 +556,11 @@ function ExamCard({ exam, onNav, index = 0 }) {
       {/* Start button */}
       <div style={{ padding:'0 14px 12px' }}>
         <button onClick={() => onNav?.('auth')} style={{
-          width:'100%', padding:'7px', background:'#FF653F', color:'#fff', border:'none',
+          width:'100%', padding:'7px', background:'#F06535', color:'#fff', border:'none',
           borderRadius:8, fontSize:12.5, fontWeight:700, cursor:'pointer', transition:'background .15s',
         }}
         onMouseOver={e => e.currentTarget.style.background='#e5512f'}
-        onMouseOut={e => e.currentTarget.style.background='#FF653F'}>
+        onMouseOut={e => e.currentTarget.style.background='#F06535'}>
           Start Free Mock →
         </button>
       </div>
@@ -667,7 +667,7 @@ export default function ExamsPage({ onNav, category, isAdmin = false, user, onLo
 
           {/* Logo */}
           <button onClick={() => onNav?.('home')} style={{ display:'flex', alignItems:'center', gap:9, background:'none', border:'none', cursor:'pointer', flexShrink:0 }}>
-            <div style={{ width:30, height:30, borderRadius:7, background:'#FF653F', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <div style={{ width:30, height:30, borderRadius:7, background:'#F06535', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
               <span style={{ color:'#fff', fontSize:12, fontWeight:900, letterSpacing:'-0.5px' }}>MT</span>
             </div>
             <div className="exams-logo-text" style={{ textAlign:'left' }}>
@@ -693,9 +693,9 @@ export default function ExamsPage({ onNav, category, isAdmin = false, user, onLo
                 Login
               </button>
             )}
-            <button onClick={() => onNav?.('auth')} style={{ background:'#FF653F', color:'#fff', border:'none', borderRadius:7, padding:'7px 15px', fontSize:12.5, fontWeight:700, cursor:'pointer', transition:'background .15s', whiteSpace:'nowrap' }}
+            <button onClick={() => onNav?.('auth')} style={{ background:'#F06535', color:'#fff', border:'none', borderRadius:7, padding:'7px 15px', fontSize:12.5, fontWeight:700, cursor:'pointer', transition:'background .15s', whiteSpace:'nowrap' }}
               onMouseOver={e => e.currentTarget.style.background='#e5512f'}
-              onMouseOut={e => e.currentTarget.style.background='#FF653F'}>
+              onMouseOut={e => e.currentTarget.style.background='#F06535'}>
               Start Free →
             </button>
           </div>
@@ -753,9 +753,9 @@ export default function ExamsPage({ onNav, category, isAdmin = false, user, onLo
                     padding: sbExpanded ? '9px 16px' : '11px 0',
                     justifyContent: sbExpanded ? 'flex-start' : 'center',
                     border:'none',
-                    background: isActive ? 'rgba(255,101,63,.13)' : 'transparent',
+                    background: isActive ? 'rgba(232,90,44,.13)' : 'transparent',
                     cursor: soon ? 'default' : 'pointer',
-                    color: isActive ? '#FF653F' : soon ? 'rgba(255,255,255,.28)' : 'rgba(255,255,255,.68)',
+                    color: isActive ? '#F06535' : soon ? 'rgba(255,255,255,.28)' : 'rgba(255,255,255,.68)',
                     transition:'background .12s, color .12s',
                   }}
                   onMouseOver={e => { if (!isActive && !soon) { e.currentTarget.style.background='rgba(255,255,255,.07)'; e.currentTarget.style.color='#fff' } }}
@@ -766,7 +766,7 @@ export default function ExamsPage({ onNav, category, isAdmin = false, user, onLo
                       <span style={{ flex:1, fontSize:13, fontWeight: isActive ? 700 : 500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', textAlign:'left' }}>{label}</span>
                       {soon
                         ? <span style={{ fontSize:8.5, fontWeight:700, background:'rgba(255,255,255,.1)', color:'rgba(255,255,255,.38)', borderRadius:99, padding:'1px 5px', letterSpacing:'.04em', flexShrink:0 }}>SOON</span>
-                        : <span style={{ color: isActive ? 'rgba(255,101,63,.5)' : 'rgba(255,255,255,.18)', fontSize:10, flexShrink:0 }}>▾</span>
+                        : <span style={{ color: isActive ? 'rgba(232,90,44,.5)' : 'rgba(255,255,255,.18)', fontSize:10, flexShrink:0 }}>▾</span>
                       }
                     </>
                   )}
@@ -803,8 +803,8 @@ export default function ExamsPage({ onNav, category, isAdmin = false, user, onLo
               </div>
               <h1 style={{ fontSize:24, fontWeight:900, color:'#0f172a', marginBottom:8 }}>{meta.title} — Coming Soon</h1>
               <p style={{ fontSize:14.5, color:'#64748b', maxWidth:420, lineHeight:1.6, marginBottom:26 }}>{meta.subtitle}</p>
-              <button onClick={() => onNav?.('auth')} style={{ background:'#FF653F', color:'#fff', border:'none', borderRadius:10, padding:'12px 26px', fontSize:14.5, fontWeight:700, cursor:'pointer' }}
-                onMouseOver={e=>e.currentTarget.style.background='#e5512f'} onMouseOut={e=>e.currentTarget.style.background='#FF653F'}>
+              <button onClick={() => onNav?.('auth')} style={{ background:'#F06535', color:'#fff', border:'none', borderRadius:10, padding:'12px 26px', fontSize:14.5, fontWeight:700, cursor:'pointer' }}
+                onMouseOver={e=>e.currentTarget.style.background='#e5512f'} onMouseOut={e=>e.currentTarget.style.background='#F06535'}>
                 Notify Me When Live →
               </button>
               {faqs.length > 0 && (
@@ -864,7 +864,7 @@ export default function ExamsPage({ onNav, category, isAdmin = false, user, onLo
                   {/* Quick Links */}
                   <div style={{ background:'#fff', borderRadius:12, border:'1px solid #e2e8f0', overflow:'hidden', boxShadow:'0 2px 8px rgba(15,23,42,.05)' }}>
                     <div style={{ padding:'13px 16px 11px', borderBottom:'1px solid #f1f5f9', display:'flex', alignItems:'center', gap:7 }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF653F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F06535" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                       <span style={{ fontSize:12.5, fontWeight:700, color:'#0f172a' }}>Quick Links</span>
                     </div>
                     <div>
@@ -895,10 +895,10 @@ export default function ExamsPage({ onNav, category, isAdmin = false, user, onLo
                   <div style={{ background:'#fff', borderRadius:12, border:'1px solid #e2e8f0', overflow:'hidden', boxShadow:'0 2px 8px rgba(15,23,42,.05)' }}>
                     <div style={{ padding:'13px 16px 11px', borderBottom:'1px solid #f1f5f9', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                       <div style={{ display:'flex', alignItems:'center', gap:7 }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF653F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F06535" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                         <span style={{ fontSize:12.5, fontWeight:700, color:'#0f172a' }}>Exam Updates</span>
                       </div>
-                      <button onClick={() => onNav?.('exam-dates')} style={{ fontSize:11, color:'#FF653F', fontWeight:600, background:'none', border:'none', cursor:'pointer', padding:0 }}>View All →</button>
+                      <button onClick={() => onNav?.('exam-dates')} style={{ fontSize:11, color:'#F06535', fontWeight:600, background:'none', border:'none', cursor:'pointer', padding:0 }}>View All →</button>
                     </div>
                     <div style={{ padding:'4px 0' }}>
                       {(EXAM_UPDATES[catKey] || EXAM_UPDATES.banking).map((item, i) => (

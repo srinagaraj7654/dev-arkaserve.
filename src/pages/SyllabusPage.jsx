@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 
 /* ──────────────────────────────────────────────────────────────
    Syllabus Page — topic-by-topic breakdown for every exam category
@@ -255,11 +255,11 @@ export default function SyllabusPage({ onNav }) {
             <div style={{ fontSize:13.5, color:'rgba(255,255,255,.5)' }}>Attempt full-length mock tests for every exam listed above — completely free.</div>
           </div>
           <button onClick={() => onNav?.('exams-banking')} style={{
-            background:'#FF653F', color:'#fff', border:'none', borderRadius:10,
+            background:'#F06535', color:'#fff', border:'none', borderRadius:10,
             padding:'12px 24px', fontSize:14, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap',
           }}
           onMouseOver={e => e.currentTarget.style.background='#e5512f'}
-          onMouseOut={e => e.currentTarget.style.background='#FF653F'}>
+          onMouseOut={e => e.currentTarget.style.background='#F06535'}>
             Start Free Mock Test →
           </button>
         </div>

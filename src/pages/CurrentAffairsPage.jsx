@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+﻿import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabase.js'
 
 /* ─── Icons ─────────────────────────────────────────────────────────────── */
@@ -41,7 +41,7 @@ const CAT_META = {
   sports:        { color:'#DC2626', bg:'#fff1f2', g1:'#fee2e2', g2:'#fca5a5', label:'Sports'            },
   international: { color:'#2563EB', bg:'#eff6ff', g1:'#dbeafe', g2:'#93c5fd', label:'International'     },
 }
-const catMeta = (id) => CAT_META[id] || { color:'#FF653F', bg:'#FFF3EE', g1:'#fde8df', g2:'#fdb99e', label: id }
+const catMeta = (id) => CAT_META[id] || { color:'#F06535', bg:'#FFF3EE', g1:'#fde8df', g2:'#fdb99e', label: id }
 const catIcon = (id) => CATEGORIES.find(c => c.id === id)?.icon || <_IcNews s={20} c='#fff'/>
 
 const PER_PAGE = 9
@@ -139,7 +139,7 @@ function ArticleCard({ item, index, expanded, onToggle, bookmarked, onBookmark }
         background: 'rgba(255,255,255,.88)', backdropFilter: 'blur(4px)',
         padding: '3px 9px', borderRadius: 8,
         fontSize: 10, fontWeight: 700,
-        color: today ? '#FF653F' : '#374151',
+        color: today ? '#F06535' : '#374151',
       }}>
         {today ? 'Today' : formatDate(item.date)}
       </div>
@@ -205,12 +205,12 @@ function ArticleCard({ item, index, expanded, onToggle, bookmarked, onBookmark }
             {item.detail && (
               <button onClick={() => onToggle(key)}
                 style={{
-                  fontSize: 12, fontWeight: 700, color: '#FF653F',
+                  fontSize: 12, fontWeight: 700, color: '#F06535',
                   background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                   display: 'inline-flex', alignItems: 'center', gap: 3,
                   letterSpacing: '.01em',
                 }}>
-                {isOpen ? 'Less ↑' : <><span>Read More</span><_IcArrow s={11} c='#FF653F'/></>}
+                {isOpen ? 'Less ↑' : <><span>Read More</span><_IcArrow s={11} c='#F06535'/></>}
               </button>
             )}
             <button onClick={() => onBookmark(key)} title={isSaved ? 'Remove bookmark' : 'Bookmark'}
@@ -218,7 +218,7 @@ function ArticleCard({ item, index, expanded, onToggle, bookmarked, onBookmark }
                 background: 'none', border: 'none', cursor: 'pointer',
                 padding: '3px 4px', display: 'inline-flex', alignItems: 'center',
               }}>
-              <_IcBookmark s={15} c={isSaved ? '#FF653F' : '#d1d5db'} fill={isSaved ? '#FF653F' : 'none'}/>
+              <_IcBookmark s={15} c={isSaved ? '#F06535' : '#d1d5db'} fill={isSaved ? '#F06535' : 'none'}/>
             </button>
           </div>
         </div>
@@ -249,8 +249,8 @@ function Pagination({ page, total, onChange }) {
       </>}
       {visible.map(p => (
         <button key={p} className="ca-pg-btn" onClick={() => onChange(p)}
-          style={{ background: p===page ? '#FF653F' : '#fff', color: p===page ? '#fff' : '#374151',
-            borderColor: p===page ? '#FF653F' : '#e5e7eb', fontWeight: p===page ? 700 : 500 }}>
+          style={{ background: p===page ? '#F06535' : '#fff', color: p===page ? '#fff' : '#374151',
+            borderColor: p===page ? '#F06535' : '#e5e7eb', fontWeight: p===page ? 700 : 500 }}>
           {p}
         </button>
       ))}
@@ -371,7 +371,7 @@ export default function CurrentAffairsPage({ onNav }) {
           display:flex; flex-direction:column;
         }
         .ca-card:hover{
-          border-color:#FF653F; box-shadow:0 8px 28px rgba(255,101,63,.12);
+          border-color:#F06535; box-shadow:0 8px 28px rgba(232,90,44,.12);
           transform:translateY(-2px);
         }
 
@@ -397,7 +397,7 @@ export default function CurrentAffairsPage({ onNav }) {
           transition:all .12s; display:inline-flex; align-items:center;
           justify-content:center; gap:4px;
         }
-        .ca-pg-btn:hover:not(:disabled){ border-color:#FF653F; color:#FF653F }
+        .ca-pg-btn:hover:not(:disabled){ border-color:#F06535; color:#F06535 }
         .ca-pg-btn:disabled{ cursor:default }
 
         /* Scrollbar hidden on filter row */
@@ -430,7 +430,7 @@ export default function CurrentAffairsPage({ onNav }) {
           text-align:left; transition:background .1s;
         }
         .ca-sort-opt:hover{ background:#f9fafb }
-        .ca-sort-opt.active{ color:#FF653F; font-weight:700; background:#FFF3EE }
+        .ca-sort-opt.active{ color:#F06535; font-weight:700; background:#FFF3EE }
 
         /* Responsive grid */
         .ca-grid{
@@ -459,7 +459,7 @@ export default function CurrentAffairsPage({ onNav }) {
       }}>
         {/* Glow blobs */}
         <div style={{ position:'absolute', width:340, height:340, borderRadius:'50%', background:'#3b82f6', opacity:.06, top:-80, right:'8%', filter:'blur(60px)', pointerEvents:'none' }}/>
-        <div style={{ position:'absolute', width:200, height:200, borderRadius:'50%', background:'#FF653F', opacity:.07, bottom:-60, left:'5%', filter:'blur(48px)', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', width:200, height:200, borderRadius:'50%', background:'#F06535', opacity:.07, bottom:-60, left:'5%', filter:'blur(48px)', pointerEvents:'none' }}/>
         {/* Globe */}
         <div className="ca-globe" style={{ position:'absolute', right:'4%', top:0, bottom:0, display:'flex', alignItems:'center', overflow:'hidden' }}>
           <GlobeDecor/>
@@ -469,11 +469,11 @@ export default function CurrentAffairsPage({ onNav }) {
           {/* Badge */}
           <div style={{
             display:'inline-flex', alignItems:'center', gap:7,
-            background:'rgba(255,101,63,.14)', border:'1px solid rgba(255,101,63,.28)',
-            color:'#FF653F', borderRadius:22, padding:'5px 14px',
+            background:'rgba(232,90,44,.14)', border:'1px solid rgba(232,90,44,.28)',
+            color:'#F06535', borderRadius:22, padding:'5px 14px',
             fontSize:11, fontWeight:700, marginBottom:18, letterSpacing:'.07em', textTransform:'uppercase',
           }}>
-            <span style={{ width:6, height:6, background:'#FF653F', borderRadius:'50%', display:'inline-block', animation:'ca-pulse 2s infinite', flexShrink:0 }}/>
+            <span style={{ width:6, height:6, background:'#F06535', borderRadius:'50%', display:'inline-block', animation:'ca-pulse 2s infinite', flexShrink:0 }}/>
             Updated Daily
           </div>
 
@@ -498,9 +498,9 @@ export default function CurrentAffairsPage({ onNav }) {
                 width:'100%', padding:'12px 16px 12px 42px',
                 background:'rgba(255,255,255,.09)', border:'1.5px solid rgba(255,255,255,.14)',
                 borderRadius:12, color:'#fff', fontSize:14, outline:'none',
-                transition:'border-color .15s', caretColor:'#FF653F',
+                transition:'border-color .15s', caretColor:'#F06535',
               }}
-              onFocus={e  => e.target.style.borderColor = 'rgba(255,101,63,.5)'}
+              onFocus={e  => e.target.style.borderColor = 'rgba(232,90,44,.5)'}
               onBlur={e   => e.target.style.borderColor = 'rgba(255,255,255,.14)'}
             />
             {search && (
@@ -526,8 +526,8 @@ export default function CurrentAffairsPage({ onNav }) {
             {CATEGORIES.map(c => (
               <button key={c.id} className="ca-chip" onClick={() => setCategory(c.id)}
                 style={{
-                  borderColor: category===c.id ? '#FF653F' : '#e5e7eb',
-                  background:  category===c.id ? '#FF653F' : '#f9fafb',
+                  borderColor: category===c.id ? '#F06535' : '#e5e7eb',
+                  background:  category===c.id ? '#F06535' : '#f9fafb',
                   color:       category===c.id ? '#fff'    : '#4b5563',
                 }}>
                 <span style={{ display:'inline-flex', alignItems:'center', opacity:.85 }}>{c.icon}</span>
@@ -553,7 +553,7 @@ export default function CurrentAffairsPage({ onNav }) {
             <div className="ca-date-row" style={{ marginLeft:'auto', display:'flex', gap:4, flexShrink:0 }}>
               {[['today','Today'],['week','This Week'],['month','This Month']].map(([v,l]) => (
                 <button key={v} className="ca-pill" onClick={() => setDateRange(v)}
-                  style={{ borderColor: dateRange===v?'#FF653F':'#e5e7eb', background: dateRange===v?'#FFF3EE':'#f9fafb', color: dateRange===v?'#FF653F':'#4b5563' }}>
+                  style={{ borderColor: dateRange===v?'#F06535':'#e5e7eb', background: dateRange===v?'#FFF3EE':'#f9fafb', color: dateRange===v?'#F06535':'#4b5563' }}>
                   {l}
                 </button>
               ))}
@@ -570,7 +570,7 @@ export default function CurrentAffairsPage({ onNav }) {
           <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:22, flexWrap:'wrap', gap:10 }}>
             <div>
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                <div style={{ width:4, height:22, borderRadius:2, background:'#FF653F', flexShrink:0 }}/>
+                <div style={{ width:4, height:22, borderRadius:2, background:'#F06535', flexShrink:0 }}/>
                 <h2 style={{ fontSize:20, fontWeight:800, color:'#111827', margin:0, letterSpacing:'-.3px' }}>Latest Current Affairs</h2>
               </div>
               <div style={{ marginTop:6, marginLeft:14, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
@@ -585,7 +585,7 @@ export default function CurrentAffairsPage({ onNav }) {
                 )}
                 {hasFilters && (
                   <button onClick={clearAll}
-                    style={{ fontSize:12, color:'#FF653F', background:'none', border:'1px solid #ffd0be', borderRadius:20,
+                    style={{ fontSize:12, color:'#F06535', background:'none', border:'1px solid #ffd0be', borderRadius:20,
                       cursor:'pointer', fontWeight:600, padding:'2px 10px', lineHeight:1.4 }}>
                     Clear filters ×
                   </button>
@@ -598,10 +598,10 @@ export default function CurrentAffairsPage({ onNav }) {
               <div style={{ position:'relative' }} onClick={e => e.stopPropagation()}>
                 <button onClick={() => setSortOpen(o => !o)}
                   style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'8px 14px', background:'#fff', border:'1.5px solid #e5e7eb', borderRadius:10, fontSize:13, fontWeight:600, color:'#374151', cursor:'pointer', transition:'border-color .12s' }}
-                  onMouseOver={e => e.currentTarget.style.borderColor='#FF653F'}
+                  onMouseOver={e => e.currentTarget.style.borderColor='#F06535'}
                   onMouseOut={e  => e.currentTarget.style.borderColor='#e5e7eb'}>
                   <_IcSort s={13} c='#6b7280'/>
-                  <span style={{ color:'#9ca3af', fontWeight:500 }}>Sort:</span>&nbsp;<span style={{ color:'#FF653F' }}>{sort === 'newest' ? 'Latest First' : 'Oldest First'}</span>
+                  <span style={{ color:'#9ca3af', fontWeight:500 }}>Sort:</span>&nbsp;<span style={{ color:'#F06535' }}>{sort === 'newest' ? 'Latest First' : 'Oldest First'}</span>
                   <_IcChevron s={12} c='#9ca3af' dir={sortOpen?'up':'down'}/>
                 </button>
                 {sortOpen && (
@@ -622,7 +622,7 @@ export default function CurrentAffairsPage({ onNav }) {
         {/* Loading */}
         {loading && (
           <div style={{ textAlign:'center', padding:'80px 0' }}>
-            <div style={{ width:40, height:40, border:'3px solid #fde8df', borderTopColor:'#FF653F', borderRadius:'50%', animation:'ca-spin .7s linear infinite', margin:'0 auto 16px' }}/>
+            <div style={{ width:40, height:40, border:'3px solid #fde8df', borderTopColor:'#F06535', borderRadius:'50%', animation:'ca-spin .7s linear infinite', margin:'0 auto 16px' }}/>
             <p style={{ color:'#9ca3af', fontSize:14, fontWeight:500 }}>Loading current affairs…</p>
           </div>
         )}
@@ -634,7 +634,7 @@ export default function CurrentAffairsPage({ onNav }) {
             <div style={{ fontWeight:700, color:'#dc2626', marginBottom:6, fontSize:16 }}>Could not load current affairs</div>
             <div style={{ color:'#9ca3af', fontSize:13, marginBottom:20 }}>{error}</div>
             <button onClick={() => window.location.reload()}
-              style={{ padding:'9px 20px', background:'#FF653F', color:'#fff', border:'none', borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6 }}>
+              style={{ padding:'9px 20px', background:'#F06535', color:'#fff', border:'none', borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6 }}>
               <_IcRefresh s={13} c='#fff'/> Try Again
             </button>
           </div>
@@ -653,7 +653,7 @@ export default function CurrentAffairsPage({ onNav }) {
                 : 'No current affairs for the selected filters yet. Try a different category or date range.'}
             </p>
             <button onClick={clearAll}
-              style={{ padding:'11px 28px', background:'#FF653F', color:'#fff', border:'none', borderRadius:12, fontSize:14, fontWeight:700, cursor:'pointer' }}>
+              style={{ padding:'11px 28px', background:'#F06535', color:'#fff', border:'none', borderRadius:12, fontSize:14, fontWeight:700, cursor:'pointer' }}>
               Clear Filters
             </button>
           </div>

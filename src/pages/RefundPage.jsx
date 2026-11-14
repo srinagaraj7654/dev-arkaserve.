@@ -1,4 +1,4 @@
-export default function RefundPage() {
+﻿export default function RefundPage() {
   const updated = '01 Oct 2026'
   const S = { page:{ fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", background:'#fff', color:'#111' }, inner:{ maxWidth:760, margin:'0 auto', padding:'0 24px' } }
   const sections = [
@@ -29,10 +29,10 @@ export default function RefundPage() {
               {sec.body && <p style={{ fontSize:14, color:'#374151', lineHeight:1.75 }}>{sec.body}</p>}
               {sec.list && <ul style={{ margin:0, paddingLeft:0, listStyle:'none' }}>{sec.list.map(item => (
                 <li key={item} style={{ fontSize:14, color:'#374151', lineHeight:1.75, paddingLeft:20, position:'relative', marginBottom:4 }}>
-                  <span style={{ position:'absolute', left:0, color:'#FF653F' }}>—</span>{item}
+                  <span style={{ position:'absolute', left:0, color:'#F06535' }}>—</span>{item}
                 </li>
               ))}</ul>}
-              {sec.contact && <p style={{ fontSize:14, color:'#374151', lineHeight:1.75 }}>Email: <a href="mailto:support@arkaserve.com" style={{ color:'#FF653F' }}>support@arkaserve.com</a> · Phone: +91 94902 84208</p>}
+              {sec.contact && <p style={{ fontSize:14, color:'#374151', lineHeight:1.75 }}>Email: <a href="mailto:support@arkaserve.com" style={{ color:'#F06535' }}>support@arkaserve.com</a> · Phone: +91 94902 84208</p>}
             </div>
           ))}
         </div>

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+﻿import { useState, useMemo, useEffect } from 'react'
 import { getPrediction } from '../api.js'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts'
 
@@ -50,7 +50,7 @@ function GaugeSVG({ probability = 0, dark }) {
       <text x={CX} y={CY+14} textAnchor="middle" fontSize="10" fill="rgba(255,255,255,.35)" fontFamily="Inter,sans-serif" letterSpacing=".06em">CLEARANCE PROB.</text>
       {/* center dot */}
       <circle cx={CX} cy={CY} r="6" fill="rgba(255,255,255,.15)"/>
-      <circle cx={CX} cy={CY} r="3" fill="#FF653F"/>
+      <circle cx={CX} cy={CY} r="3" fill="#F06535"/>
     </svg>
   )
 }
@@ -165,14 +165,14 @@ function buildProjection(history) {
   return [...past.map(p=>({...p,projected:null})), ...future.map(f=>({...f,score:null}))]
 }
 
-export default function PredictionPage({ history = [], user, darkMode = false, onNav }) {
+export default function PredictionPage({ history = [], user, savedPlan, darkMode = false, onNav }) {
   const dark   = darkMode
   const bg     = dark ? '#0b0f1a' : '#eef1f8'
   const card   = dark ? '#161d2e' : '#ffffff'
   const border = dark ? 'rgba(255,255,255,.07)' : '#e2e8f0'
   const txt    = dark ? '#e8edf5' : '#0d1117'
   const muted  = dark ? '#8899b4' : '#64748b'
-  const accent = '#FF653F'
+  const accent = '#F06535'
 
   const [mlData, setMlData] = useState(null)
   const [mlLoading, setMlLoading] = useState(false)
@@ -213,16 +213,16 @@ export default function PredictionPage({ history = [], user, darkMode = false, o
     })).slice(0,4)
   }, [history])
 
-  const fallbackSections = [
-    { label:'Reasoning',      key:'reasoning', current:72, cutoff:65, weight:25 },
-    { label:'Quant',          key:'quant',     current:58, cutoff:65, weight:30 },
-    { label:'Gen. Awareness', key:'ga',        current:65, cutoff:60, weight:20 },
-    { label:'English',        key:'english',   current:78, cutoff:65, weight:25 },
+  const emptySections = [
+    { label:'Reasoning',      key:'reasoning', current:0, cutoff:65, weight:25 },
+    { label:'Quant',          key:'quant',     current:0, cutoff:65, weight:30 },
+    { label:'Gen. Awareness', key:'ga',        current:0, cutoff:60, weight:20 },
+    { label:'English',        key:'english',   current:0, cutoff:65, weight:25 },
   ]
 
   const sections = usingML
     ? mlData.sections.map(s=>({ ...s, current:s.accuracy }))
-    : (sectionMetrics.length>=2 ? sectionMetrics : fallbackSections).map((s,i,arr)=>({
+    : (sectionMetrics.length>=2 ? sectionMetrics : emptySections).map((s,i,arr)=>({
         ...s, weight: Math.round(100/arr.length)
       }))
 
@@ -252,7 +252,9 @@ export default function PredictionPage({ history = [], user, darkMode = false, o
 
   const atRisk   = sectionCards.filter(s=>s.status==='At Risk')
   const onTrack  = sectionCards.filter(s=>s.status==='On Track')
-  const daysLeft = 34
+  const daysLeft = savedPlan?.exam_date
+    ? Math.max(0, Math.ceil((new Date(savedPlan.exam_date) - new Date()) / 86400000))
+    : null
 
   const improvementRate = useMemo(() => {
     const chrono = [...history].reverse()
@@ -272,7 +274,7 @@ export default function PredictionPage({ history = [], user, darkMode = false, o
         .pd-card-body{padding:14px 20px}
         .pd-sec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
         .pd-two-col{display:grid;grid-template-columns:1.2fr 1fr;gap:16px}
-        .pd-action-num{width:28px;height:28px;border-radius:50%;background:rgba(255,101,63,.12);border:1.5px solid rgba(255,101,63,.25);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:${accent};flex-shrink:0}
+        .pd-action-num{width:28px;height:28px;border-radius:50%;background:rgba(232,90,44,.12);border:1.5px solid rgba(232,90,44,.25);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:${accent};flex-shrink:0}
         @media(max-width:860px){.pd-sec-grid{grid-template-columns:1fr 1fr!important}.pd-two-col{grid-template-columns:1fr!important}.pd-sec-grid>div:last-child:nth-child(odd){grid-column:1/-1}}
         @media(max-width:560px){.pd-hero-proj{display:none!important}.pd-hero{flex-direction:column!important;gap:20px!important;align-items:center!important}}
       `}</style>
@@ -290,7 +292,7 @@ export default function PredictionPage({ history = [], user, darkMode = false, o
               Take at least 2 mock tests to unlock your AI prediction, score projection, and personalised action plan.
             </div>
             {onNav && (
-              <button onClick={()=>onNav('explore')} style={{ background:accent, color:'#fff', border:'none', borderRadius:12, padding:'12px 28px', fontWeight:800, fontSize:14, cursor:'pointer', boxShadow:'0 4px 20px rgba(255,101,63,.35)' }}>
+              <button onClick={()=>onNav('explore')} style={{ background:accent, color:'#fff', border:'none', borderRadius:12, padding:'12px 28px', fontWeight:800, fontSize:14, cursor:'pointer', boxShadow:'0 4px 20px rgba(232,90,44,.35)' }}>
                 Start a Test →
               </button>
             )}
@@ -307,9 +309,9 @@ export default function PredictionPage({ history = [], user, darkMode = false, o
           boxShadow:'0 12px 48px rgba(0,0,0,.32)',
         }}>
           {/* glow orbs */}
-          <div style={{ position:'absolute',left:-40,top:-40,width:280,height:280,background:'radial-gradient(circle,rgba(255,101,63,.14) 0%,transparent 65%)',pointerEvents:'none' }}/>
+          <div style={{ position:'absolute',left:-40,top:-40,width:280,height:280,background:'radial-gradient(circle,rgba(232,90,44,.14) 0%,transparent 65%)',pointerEvents:'none' }}/>
           <div style={{ position:'absolute',right:60,bottom:-60,width:240,height:240,background:'radial-gradient(circle,rgba(99,102,241,.09) 0%,transparent 65%)',pointerEvents:'none' }}/>
-          <div style={{ position:'absolute',top:0,left:0,right:0,height:1,background:'linear-gradient(90deg,transparent,rgba(255,101,63,.2),transparent)',pointerEvents:'none' }}/>
+          <div style={{ position:'absolute',top:0,left:0,right:0,height:1,background:'linear-gradient(90deg,transparent,rgba(232,90,44,.2),transparent)',pointerEvents:'none' }}/>
 
           {/* Gauge */}
           <div style={{ flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', gap:10, position:'relative', zIndex:1 }}>
@@ -338,7 +340,7 @@ export default function PredictionPage({ history = [], user, darkMode = false, o
             </div>
             <div style={{ fontSize:22, fontWeight:900, color:'#fff', lineHeight:1.25, marginBottom:12, letterSpacing:'-.03em' }}>
               On track to score{' '}
-              <span style={{ color:accent, textShadow:'0 0 20px rgba(255,101,63,.4)' }}>{projectedScore} marks</span>
+              <span style={{ color:accent, textShadow:'0 0 20px rgba(232,90,44,.4)' }}>{projectedScore} marks</span>
               {' '}on exam day
             </div>
             <div style={{ fontSize:13, color:'rgba(255,255,255,.45)', lineHeight:1.7, marginBottom:18, maxWidth:480 }}>
@@ -360,8 +362,8 @@ export default function PredictionPage({ history = [], user, darkMode = false, o
                 </div>
               ))}
               {atRisk.length > 0 && (
-                <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, fontWeight:700, padding:'6px 14px', borderRadius:99, background:'rgba(255,101,63,.14)', border:'1px solid rgba(255,101,63,.25)', color:'#ff9a7a' }}>
-                  {daysLeft} days to close the gap
+                <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, fontWeight:700, padding:'6px 14px', borderRadius:99, background:'rgba(232,90,44,.14)', border:'1px solid rgba(232,90,44,.25)', color:'#ff9a7a' }}>
+                  {daysLeft != null ? `${daysLeft} days to close the gap` : 'Set exam date in planner'}
                 </div>
               )}
             </div>
@@ -455,7 +457,7 @@ export default function PredictionPage({ history = [], user, darkMode = false, o
                 <BarChart data={projectionData} margin={{top:6,right:10,left:-28,bottom:2}} barCategoryGap="35%" barGap={4}>
                   <defs>
                     <linearGradient id="actBarGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#FF653F" stopOpacity={1}/>
+                      <stop offset="0%" stopColor="#F06535" stopOpacity={1}/>
                       <stop offset="100%" stopColor="#ff9a6c" stopOpacity={0.8}/>
                     </linearGradient>
                     <linearGradient id="projBarGrad" x1="0" y1="0" x2="0" y2="1">
@@ -474,7 +476,7 @@ export default function PredictionPage({ history = [], user, darkMode = false, o
                 </BarChart>
               </ResponsiveContainer>
               <div style={{ display:'flex', gap:18, marginTop:10 }}>
-                {[{color:'#FF653F',label:'Actual'},{color:'#6366f1',label:'AI Projected',opacity:.8}].map(l=>(
+                {[{color:'#F06535',label:'Actual'},{color:'#6366f1',label:'AI Projected',opacity:.8}].map(l=>(
                   <div key={l.label} style={{ display:'flex', alignItems:'center', gap:7, fontSize:11.5, color:muted, fontWeight:600 }}>
                     <span style={{ width:14, height:10, display:'inline-block', background:l.color, borderRadius:3, opacity:l.opacity||1 }}/>
                     {l.label}

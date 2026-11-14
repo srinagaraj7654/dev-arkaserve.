@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import Footer from '../components/Footer.jsx'
 
 /* ──────────────────────────────────────────────────────────────
@@ -317,7 +317,7 @@ export default function CutoffsPage({ onNav, user, onLogout }) {
     `}</style>
     <header style={{ background:'#0f172a', height:58, display:'flex', alignItems:'center', padding:'0 20px', gap:16, position:'sticky', top:0, zIndex:100, flexShrink:0 }}>
       <div style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer' }} onClick={() => onNav?.('home')}>
-        <div style={{ width:36, height:36, background:'#FF653F', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, fontSize:15, color:'#fff', letterSpacing:'-0.5px' }}>MT</div>
+        <div style={{ width:36, height:36, background:'#F06535', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, fontSize:15, color:'#fff', letterSpacing:'-0.5px' }}>MT</div>
         <div className="co-logo-text">
           <div style={{ color:'#fff', fontWeight:800, fontSize:14, lineHeight:1.1 }}>MockTest</div>
           <div style={{ color:'rgba(255,255,255,.45)', fontSize:9.5, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase' }}>Your world of mock tests</div>
@@ -329,7 +329,7 @@ export default function CutoffsPage({ onNav, user, onLogout }) {
         ) : (
           <>
             <button onClick={() => onNav?.('auth')} className="co-login-btn" style={{ background:'none', border:'none', color:'rgba(255,255,255,.82)', fontSize:13, fontWeight:500, padding:'6px 10px', cursor:'pointer' }}>Login</button>
-            <button onClick={() => onNav?.('auth')} style={{ background:'#FF653F', border:'none', borderRadius:8, color:'#fff', fontSize:13, fontWeight:700, padding:'7px 16px', cursor:'pointer', whiteSpace:'nowrap' }}>Start Free →</button>
+            <button onClick={() => onNav?.('auth')} style={{ background:'#F06535', border:'none', borderRadius:8, color:'#fff', fontSize:13, fontWeight:700, padding:'7px 16px', cursor:'pointer', whiteSpace:'nowrap' }}>Start Free →</button>
           </>
         )}
       </div>
@@ -347,8 +347,8 @@ export default function CutoffsPage({ onNav, user, onLogout }) {
             return (
               <div key={group} style={{ marginBottom:2 }}>
                 <button className="co-group-btn" onClick={() => toggle(group)}
-                  style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'9px 10px', borderRadius:8, border:'none', cursor:'pointer', background: open || hasActive ? 'rgba(255,101,63,.12)' : 'transparent', transition:'background .15s', textAlign:'left' }}>
-                  <span style={{ color: open || hasActive ? '#FF653F' : 'rgba(255,255,255,.45)', flexShrink:0, display:'flex' }}>
+                  style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'9px 10px', borderRadius:8, border:'none', cursor:'pointer', background: open || hasActive ? 'rgba(232,90,44,.12)' : 'transparent', transition:'background .15s', textAlign:'left' }}>
+                  <span style={{ color: open || hasActive ? '#F06535' : 'rgba(255,255,255,.45)', flexShrink:0, display:'flex' }}>
                     {GROUP_ICONS[group]}
                   </span>
                   <span style={{ flex:1, fontSize:13, fontWeight:600, color: open || hasActive ? '#fff' : 'rgba(255,255,255,.7)' }}>{group}</span>
@@ -361,8 +361,8 @@ export default function CutoffsPage({ onNav, user, onLogout }) {
                       return (
                         <button key={fam.name} className="co-exam-btn"
                           onClick={() => setSel(fam.exams[0].id)}
-                          style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'8px 12px', borderRadius:8, border:'none', cursor:'pointer', background: famActive ? 'rgba(255,101,63,.18)' : 'transparent', marginBottom:2, transition:'background .12s', textAlign:'left' }}>
-                          <span style={{ width:6, height:6, borderRadius:'50%', background: famActive ? '#FF653F' : 'rgba(255,255,255,.25)', flexShrink:0 }} />
+                          style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'8px 12px', borderRadius:8, border:'none', cursor:'pointer', background: famActive ? 'rgba(232,90,44,.18)' : 'transparent', marginBottom:2, transition:'background .12s', textAlign:'left' }}>
+                          <span style={{ width:6, height:6, borderRadius:'50%', background: famActive ? '#F06535' : 'rgba(255,255,255,.25)', flexShrink:0 }} />
                           <span style={{ fontSize:12.5, fontWeight: famActive ? 700 : 400, color: famActive ? '#fff' : 'rgba(255,255,255,.65)', flex:1 }}>{fam.name}</span>
                         </button>
                       )
@@ -387,7 +387,7 @@ export default function CutoffsPage({ onNav, user, onLogout }) {
                 {crumb.action ? (
                   <button onClick={() => onNav?.(crumb.action)}
                     style={{ background:'none', border:'none', padding:0, cursor:'pointer', fontSize:12.5, color:'#64748b', fontWeight:500 }}
-                    onMouseOver={e => e.currentTarget.style.color = '#FF653F'}
+                    onMouseOver={e => e.currentTarget.style.color = '#F06535'}
                     onMouseOut={e => e.currentTarget.style.color = '#64748b'}>
                     {crumb.label}
                   </button>
@@ -403,7 +403,7 @@ export default function CutoffsPage({ onNav, user, onLogout }) {
           {/* Page heading */}
           <div style={{ marginBottom:24 }}>
             <h1 style={{ fontSize:26, fontWeight:900, color:'#0f172a', margin:0, lineHeight:1.2 }}>
-              Exam <span style={{ color:'#FF653F' }}>Cut-offs</span> by Category
+              Exam <span style={{ color:'#F06535' }}>Cut-offs</span> by Category
             </h1>
             <p style={{ fontSize:13.5, color:'#64748b', marginTop:6 }}>
               Last 5 years of cut-off marks for UR, OBC, EWS, SC, ST and PwBD candidates.
@@ -412,7 +412,7 @@ export default function CutoffsPage({ onNav, user, onLogout }) {
 
           {/* Mobile selectors */}
           <div className="md:hidden" style={{ marginBottom:20 }}>
-            <div style={{ fontSize:10, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:'#FF653F', marginBottom:8 }}>Choose an exam</div>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:'#F06535', marginBottom:8 }}>Choose an exam</div>
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               <select value={exam.group}
                 onChange={e => { const first = EXAMS.find(x => x.group === e.target.value); if (first) setSel(first.id) }}
@@ -435,7 +435,7 @@ export default function CutoffsPage({ onNav, user, onLogout }) {
                   <div style={{ display:'flex', gap:4 }}>
                     {examFamily.exams.map(e => (
                       <button key={e.id} onClick={() => setSel(e.id)}
-                        style={{ fontSize:11.5, fontWeight:600, padding:'3px 10px', borderRadius:20, border:'none', cursor:'pointer', background: e.id === sel ? '#FF653F' : '#f1f5f9', color: e.id === sel ? '#fff' : '#64748b', transition:'all .12s' }}>
+                        style={{ fontSize:11.5, fontWeight:600, padding:'3px 10px', borderRadius:20, border:'none', cursor:'pointer', background: e.id === sel ? '#F06535' : '#f1f5f9', color: e.id === sel ? '#fff' : '#64748b', transition:'all .12s' }}>
                         {e.level}
                       </button>
                     ))}
@@ -453,7 +453,7 @@ export default function CutoffsPage({ onNav, user, onLogout }) {
                   <tr style={{ background:'#f8fafc' }}>
                     <th style={{ textAlign:'left', fontWeight:700, padding:'11px 20px', color:'#475569', whiteSpace:'nowrap', borderBottom:'1px solid #e2e8f0' }}>Year</th>
                     {CATS.map(c => (
-                      <th key={c} style={{ fontWeight:700, padding:'11px 16px', textAlign:'center', color: c === 'UR' ? '#FF653F' : '#475569', whiteSpace:'nowrap', borderBottom:'1px solid #e2e8f0' }}>{c}</th>
+                      <th key={c} style={{ fontWeight:700, padding:'11px 16px', textAlign:'center', color: c === 'UR' ? '#F06535' : '#475569', whiteSpace:'nowrap', borderBottom:'1px solid #e2e8f0' }}>{c}</th>
                     ))}
                   </tr>
                 </thead>
@@ -462,7 +462,7 @@ export default function CutoffsPage({ onNav, user, onLogout }) {
                     <tr key={r.year} style={{ borderBottom: i < exam.rows.length - 1 ? '1px solid #f1f5f9' : 'none', background: i % 2 === 0 ? '#fff' : '#fafbfc' }}>
                       <td style={{ padding:'12px 20px', fontWeight:700, color:'#1e293b', whiteSpace:'nowrap' }}>{r.year}</td>
                       {CATS.map(c => (
-                        <td key={c} style={{ padding:'12px 16px', textAlign:'center', fontWeight:600, whiteSpace:'nowrap', color: c === 'UR' ? '#FF653F' : '#374151' }}>
+                        <td key={c} style={{ padding:'12px 16px', textAlign:'center', fontWeight:600, whiteSpace:'nowrap', color: c === 'UR' ? '#F06535' : '#374151' }}>
                           {r[c] != null ? r[c] : '—'}
                         </td>
                       ))}
@@ -482,32 +482,32 @@ export default function CutoffsPage({ onNav, user, onLogout }) {
             {/* Illustration col */}
             <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'28px 20px 28px 32px', flexShrink:0 }} className="co-cta-illus">
               <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="96" height="96" rx="16" fill="rgba(255,101,63,.12)"/>
+                <rect width="96" height="96" rx="16" fill="rgba(232,90,44,.12)"/>
                 <rect x="20" y="18" width="40" height="52" rx="4" fill="#fff" fillOpacity=".1" stroke="rgba(255,255,255,.3)" strokeWidth="1.5"/>
                 <line x1="28" y1="30" x2="52" y2="30" stroke="rgba(255,255,255,.4)" strokeWidth="2" strokeLinecap="round"/>
                 <line x1="28" y1="38" x2="52" y2="38" stroke="rgba(255,255,255,.25)" strokeWidth="1.5" strokeLinecap="round"/>
                 <line x1="28" y1="46" x2="44" y2="46" stroke="rgba(255,255,255,.25)" strokeWidth="1.5" strokeLinecap="round"/>
-                <rect x="52" y="52" width="24" height="18" rx="4" fill="rgba(255,101,63,.15)" stroke="rgba(255,101,63,.4)" strokeWidth="1"/>
-                <rect x="56" y="62" width="4" height="6" rx="1" fill="#FF653F" fillOpacity=".7"/>
-                <rect x="62" y="58" width="4" height="10" rx="1" fill="#FF653F"/>
-                <rect x="68" y="55" width="4" height="13" rx="1" fill="#FF653F" fillOpacity=".85"/>
-                <circle cx="70" cy="32" r="12" fill="rgba(255,101,63,.2)" stroke="#FF653F" strokeWidth="1.5"/>
-                <polyline points="65,32 69,36 76,28" stroke="#FF653F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <rect x="52" y="52" width="24" height="18" rx="4" fill="rgba(232,90,44,.15)" stroke="rgba(232,90,44,.4)" strokeWidth="1"/>
+                <rect x="56" y="62" width="4" height="6" rx="1" fill="#F06535" fillOpacity=".7"/>
+                <rect x="62" y="58" width="4" height="10" rx="1" fill="#F06535"/>
+                <rect x="68" y="55" width="4" height="13" rx="1" fill="#F06535" fillOpacity=".85"/>
+                <circle cx="70" cy="32" r="12" fill="rgba(232,90,44,.2)" stroke="#F06535" strokeWidth="1.5"/>
+                <polyline points="65,32 69,36 76,28" stroke="#F06535" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
             {/* Text + button col */}
             <div className="co-cta-left" style={{ display:'flex', flexDirection:'column', justifyContent:'center' }}>
               <h2 style={{ fontSize:22, fontWeight:900, color:'#fff', margin:'0 0 10px', lineHeight:1.3 }}>
-                Will your score clear the <span style={{ color:'#FF653F' }}>cut-off?</span>
+                Will your score clear the <span style={{ color:'#F06535' }}>cut-off?</span>
               </h2>
               <p style={{ fontSize:13.5, color:'rgba(255,255,255,.6)', margin:'0 0 24px', lineHeight:1.65 }}>
                 Take a free mock test — we'll compare your score against the cut-off for <b style={{ color:'rgba(255,255,255,.85)' }}>your category</b> and show exactly what to improve.
               </p>
               <div>
                 <button onClick={() => onNav?.('auth')}
-                  style={{ background:'#FF653F', border:'none', borderRadius:10, color:'#fff', fontSize:13.5, fontWeight:700, padding:'12px 26px', cursor:'pointer', whiteSpace:'nowrap' }}
+                  style={{ background:'#F06535', border:'none', borderRadius:10, color:'#fff', fontSize:13.5, fontWeight:700, padding:'12px 26px', cursor:'pointer', whiteSpace:'nowrap' }}
                   onMouseOver={e => e.currentTarget.style.background = '#e5512f'}
-                  onMouseOut={e => e.currentTarget.style.background = '#FF653F'}>
+                  onMouseOut={e => e.currentTarget.style.background = '#F06535'}>
                   Start Free Test →
                 </button>
               </div>

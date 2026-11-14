@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect, useRef, useCallback } from 'react'
 import ChartQuestion from '../components/ChartQuestion'
 
 const _sv = (c) => ({fill:'none',stroke:c||'currentColor',strokeWidth:'1.5',strokeLinecap:'round',strokeLinejoin:'round'})
@@ -24,6 +24,7 @@ import QuestionContent from '../components/QuestionContent'
 import { generateMiniTest, generateTest } from '../api.js'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
+import DOMPurify from 'dompurify'
 
 /* ── KaTeX helpers ── */
 
@@ -65,9 +66,10 @@ function MathText({ text }) {
       {parts.map((p, i) => {
         if (!p.math) return <span key={i}>{p.val}</span>
         try {
-          const html = katex.renderToString(_toKaTeX(p.val), {
+          const raw  = katex.renderToString(_toKaTeX(p.val), {
             throwOnError: false, displayMode: false, output: 'html'
           })
+          const html = DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } })
           return <span key={i} dangerouslySetInnerHTML={{ __html: html }} />
         } catch {
           return <span key={i}>{p.val}</span>
@@ -110,7 +112,7 @@ function ShareModal({ result, studentName, onClose }) {
   const examName = examDisplay(result.exam)
   const name     = (studentName || 'Student').replace(/\b\w/g, c => c.toUpperCase())
 
-  const scoreColor = pct >= 60 ? '#10b981' : pct >= 35 ? '#f59e0b' : '#FF653F'
+  const scoreColor = pct >= 60 ? '#10b981' : pct >= 35 ? '#f59e0b' : '#F06535'
   const grade = pct >= 80 ? 'A+' : pct >= 60 ? 'A' : pct >= 40 ? 'B' : 'C'
   const gradeMsg = pct >= 80 ? 'Excellent!' : pct >= 60 ? 'Great Score!' : pct >= 40 ? 'Good Effort' : 'Keep Practising'
 
@@ -143,13 +145,13 @@ function ShareModal({ result, studentName, onClose }) {
       <div
         onClick={e => e.stopPropagation()}
         className="w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl"
-        style={{ fontFamily:"'Inter',system-ui,sans-serif" }}
+        style={{ fontFamily:"'Poppins','Inter',system-ui,sans-serif" }}
       >
         {/* Card — designed to look great when screenshotted */}
         <div style={{ background:'linear-gradient(145deg,#111 0%,#1a1a2e 100%)', padding:'32px 24px 24px' }}>
           {/* Branding */}
           <div className="flex items-center gap-2 mb-6">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background:'#FF653F' }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background:'#F06535' }}>
               <span className="text-white font-black text-xs">MT</span>
             </div>
             <span className="text-white/60 text-sm font-semibold">MockTest by Arkaserve</span>
@@ -198,7 +200,7 @@ function ShareModal({ result, studentName, onClose }) {
             </div>
             {readiness > 0 && (
               <div className="text-center">
-                <div className="text-lg font-black" style={{ color: readiness>=70?'#10b981':readiness>=40?'#f59e0b':'#FF653F' }}>{readiness.toFixed(0)}%</div>
+                <div className="text-lg font-black" style={{ color: readiness>=70?'#10b981':readiness>=40?'#f59e0b':'#F06535' }}>{readiness.toFixed(0)}%</div>
                 <div className="text-white/50 text-[10px]">Exam Readiness</div>
               </div>
             )}
@@ -210,8 +212,8 @@ function ShareModal({ result, studentName, onClose }) {
         </div>
 
         {/* Action buttons */}
-        <div className="bg-white p-4 space-y-3">
-          <p className="text-xs text-gray-500 text-center">Screenshot the card above, then share it — or share directly:</p>
+        <div className="p-4 space-y-3" style={{background:'#111'}}>
+          <p className="text-xs text-center" style={{color:'rgba(255,255,255,.45)'}}>Screenshot the card above, then share it — or share directly:</p>
           <button onClick={shareWA}
             className="w-full flex items-center justify-center gap-3 py-3 rounded-xl font-bold text-white text-sm transition-all"
             style={{ background:'#25D366' }}
@@ -223,10 +225,11 @@ function ShareModal({ result, studentName, onClose }) {
             Share on WhatsApp
           </button>
           <button onClick={copyText}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all">
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all"
+            style={{background:'rgba(255,255,255,.08)',color:'rgba(255,255,255,.85)',border:'1px solid rgba(255,255,255,.12)'}}>
             {copied ? '✓ Copied!' : 'Copy text'}
           </button>
-          <button onClick={onClose} className="w-full text-xs text-gray-400 py-1 hover:text-gray-600">Close</button>
+          <button onClick={onClose} className="w-full text-xs py-1" style={{color:'rgba(255,255,255,.35)'}}>Close</button>
         </div>
       </div>
     </div>
@@ -254,10 +257,10 @@ function SeatingDiagram({ meta }) {
   if (!arr) return null
   const topic = (meta.topic || '').toLowerCase()
   const Seat = ({name, sub}) => (
-    <div className="flex flex-col items-center justify-center rounded-xl border-2 bg-white px-3 py-2 whitespace-nowrap"
-      style={{ borderColor:'#fec9b0' }}>
-      <span className="font-black text-gray-900 text-sm">{name}</span>
-      {sub!=null && <span className="text-[10px] text-gray-400 leading-none mt-0.5">{sub}</span>}
+    <div className="flex flex-col items-center justify-center rounded-xl border-2 px-3 py-2 whitespace-nowrap"
+      style={{ borderColor:'rgba(232,90,44,.4)', background:'rgba(232,90,44,.1)' }}>
+      <span className="font-black text-sm" style={{color:'rgba(255,255,255,.9)'}}>{name}</span>
+      {sub!=null && <span className="text-[10px] leading-none mt-0.5" style={{color:'rgba(255,255,255,.4)'}}>{sub}</span>}
     </div>
   )
 
@@ -265,12 +268,12 @@ function SeatingDiagram({ meta }) {
   if (topic.includes('circular') && Array.isArray(arr)) {
     const n = arr.length, R = 110, cx = 160, cy = 160
     return (
-      <div className="rounded-2xl border border-gray-200 p-3 mb-4" style={{background:'#FFF8F4'}}>
-        <div className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1" style={{color:'#FF653F'}}><RSIcSeat s={11} c='#FF653F'/> Arrangement</div>
+      <div className="rounded-2xl p-3 mb-4" style={{background:'rgba(232,90,44,.06)', border:'1px solid rgba(232,90,44,.15)'}}>
+        <div className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1" style={{color:'#F06535'}}><RSIcSeat s={11} c='#F06535'/> Arrangement</div>
         <div className="relative mx-auto" style={{width:320, height:320}}>
-          <div className="absolute rounded-full border-2 border-dashed border-gray-300"
-            style={{ left:cx-R, top:cy-R, width:2*R, height:2*R }}/>
-          <div className="absolute text-[10px] text-gray-400" style={{left:cx-26, top:cy-6}}>facing center</div>
+          <div className="absolute rounded-full border-2 border-dashed"
+            style={{ left:cx-R, top:cy-R, width:2*R, height:2*R, borderColor:'rgba(255,255,255,.2)' }}/>
+          <div className="absolute text-[10px]" style={{left:cx-26, top:cy-6, color:'rgba(255,255,255,.35)'}}>facing center</div>
           {arr.map((name,i)=>{
             const ang = (-90 + i*360/n) * Math.PI/180
             const x = cx + R*Math.cos(ang), y = cy + R*Math.sin(ang)
@@ -287,12 +290,12 @@ function SeatingDiagram({ meta }) {
   if (topic.includes('floor') && !Array.isArray(arr)) {
     const rows = Object.entries(arr).sort((a,b)=>b[1]-a[1])
     return (
-      <div className="rounded-2xl border border-gray-200 p-3 mb-4" style={{background:'#FFF8F4'}}>
-        <div className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1" style={{color:'#FF653F'}}><RSIcSeat s={11} c='#FF653F'/> Arrangement</div>
+      <div className="rounded-2xl p-3 mb-4" style={{background:'rgba(232,90,44,.06)', border:'1px solid rgba(232,90,44,.15)'}}>
+        <div className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1" style={{color:'#F06535'}}><RSIcSeat s={11} c='#F06535'/> Arrangement</div>
         <div className="space-y-1.5">
           {rows.map(([name,fl])=>(
             <div key={name} className="flex items-center gap-3">
-              <span className="text-[10px] text-gray-400 w-12 flex-shrink-0">Floor {fl}</span>
+              <span className="text-[10px] w-12 flex-shrink-0" style={{color:'rgba(255,255,255,.4)'}}>Floor {fl}</span>
               <Seat name={name}/>
             </div>
           ))}
@@ -307,7 +310,7 @@ function SeatingDiagram({ meta }) {
     : Object.entries(arr).sort((a,b)=>a[1]-b[1])
   return (
     <div className="rounded-2xl border border-gray-200 p-3 mb-4" style={{background:'#FFF8F4'}}>
-      <div className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1" style={{color:'#FF653F'}}><RSIcSeat s={11} c='#FF653F'/> Arrangement (facing North ↑)</div>
+      <div className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1" style={{color:'#F06535'}}><RSIcSeat s={11} c='#F06535'/> Arrangement (facing North ↑)</div>
       <div className="flex items-end gap-2 overflow-x-auto pb-1">
         {seats.map(([name],i)=>(
           <div key={i} className="flex flex-col items-center gap-1 flex-shrink-0">
@@ -324,14 +327,14 @@ function Highlight({text}) {
   if (!text) return null
   const parts = text.split(/(\d+\s*correct|\d+\s*wrong|cut.?off|disqualif\w+|\d+\.?\d*%|priority|recommended|warning)/gi)
   return (
-    <p className="text-sm text-gray-700 leading-relaxed">
+    <p className="text-sm leading-relaxed" style={{color:'#374151'}}>
       {parts.map((p,i)=>{
-        if (/\d+\s*correct/i.test(p))      return <strong key={i} className="text-green-700">{p}</strong>
-        if (/\d+\s*wrong/i.test(p))        return <strong key={i} className="text-red-600">{p}</strong>
-        if (/cut.?off|disqualif/i.test(p)) return <strong key={i} className="text-orange-600">{p}</strong>
-        if (/warning/i.test(p))            return <strong key={i} className="text-red-600">{p}</strong>
-        if (/priority|recommended/i.test(p)) return <strong key={i} style={{color:"#FF653F"}}>{p}</strong>
-        if (/\d+\.?\d*%/.test(p))         return <strong key={i} className="text-indigo-600">{p}</strong>
+        if (/\d+\s*correct/i.test(p))      return <strong key={i} style={{color:'#059669'}}>{p}</strong>
+        if (/\d+\s*wrong/i.test(p))        return <strong key={i} style={{color:'#dc2626'}}>{p}</strong>
+        if (/cut.?off|disqualif/i.test(p)) return <strong key={i} style={{color:'#d97706'}}>{p}</strong>
+        if (/warning/i.test(p))            return <strong key={i} style={{color:'#dc2626'}}>{p}</strong>
+        if (/priority|recommended/i.test(p)) return <strong key={i} style={{color:"#F06535"}}>{p}</strong>
+        if (/\d+\.?\d*%/.test(p))         return <strong key={i} style={{color:'#4f46e5'}}>{p}</strong>
         return p
       })}
     </p>
@@ -343,18 +346,18 @@ function ShortcutBody({ q }) {
   const e = q?.explanation
   if (!e || typeof e !== 'object' || !e.shortcut) {
     return (
-      <p className="text-[15px] text-gray-400 italic">
+      <p className="text-[15px] italic" style={{color:'#9ca3af'}}>
         No shortcut available for this question type.
       </p>
     )
   }
   const sc = e.shortcut
   return (
-    <div className="text-[15px] text-gray-700 leading-relaxed space-y-4">
+    <div className="text-[15px] leading-relaxed space-y-4" style={{color:'#374151'}}>
       {sc.title && (
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-bold"
-          style={{ background: '#FFF3EE', color: '#FF653F', border: '1px solid #fec9b0' }}>
-          <RSIcBolt s={12} c='#FF653F'/> {sc.title}
+          style={{ background: 'rgba(232,90,44,.08)', color: '#F06535', border: '1px solid rgba(232,90,44,.2)' }}>
+          <RSIcBolt s={12} c='#F06535'/> {sc.title}
         </div>
       )}
 
@@ -365,8 +368,8 @@ function ShortcutBody({ q }) {
             {sc.steps.map((s, i) => (
               <li key={i} className="flex items-start gap-3">
                 <span className="w-6 h-6 rounded-full text-white text-xs font-black flex items-center justify-center flex-shrink-0 mt-0.5"
-                  style={{ background: '#FF653F' }}>{i + 1}</span>
-                <span className="text-gray-700 leading-relaxed">
+                  style={{ background: '#F06535' }}>{i + 1}</span>
+                <span className="leading-relaxed" style={{color:'#374151'}}>
                   <MathText text={typeof s === 'string' ? s : (s.value || String(s))} />
                 </span>
               </li>
@@ -377,11 +380,11 @@ function ShortcutBody({ q }) {
 
       {sc.vs_standard && (
         <div className="rounded-xl px-4 py-3 mt-1"
-          style={{ background: '#F0F9FF', border: '1px solid #BFDBFE' }}>
-          <div className="text-[11px] font-bold uppercase tracking-widest mb-1.5 text-blue-600">
+          style={{ background: 'rgba(232,90,44,.06)', border: '1px solid rgba(232,90,44,.2)' }}>
+          <div className="text-[11px] font-bold uppercase tracking-widest mb-1.5" style={{color:'#F06535'}}>
             vs Standard Method
           </div>
-          <p className="text-sm text-blue-900 leading-relaxed">
+          <p className="text-sm leading-relaxed" style={{color:'#374151'}}>
             <MathText text={sc.vs_standard} />
           </p>
         </div>
@@ -389,11 +392,11 @@ function ShortcutBody({ q }) {
 
       {sc.tip && (
         <div className="rounded-xl px-4 py-3"
-          style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
-          <div className="text-[11px] font-bold uppercase tracking-widest mb-1.5 text-amber-700">
+          style={{ background: 'rgba(245,158,11,.06)', border: '1px solid rgba(245,158,11,.2)' }}>
+          <div className="text-[11px] font-bold uppercase tracking-widest mb-1.5" style={{color:'#d97706'}}>
             Exam Tip
           </div>
-          <p className="text-sm text-amber-900 italic leading-relaxed">
+          <p className="text-sm italic leading-relaxed" style={{color:'#374151'}}>
             <MathText text={sc.tip} />
           </p>
         </div>
@@ -409,11 +412,11 @@ function FormulaList({ rows, startIndex = 1 }) {
     <ol className="space-y-1.5">
       {rows.map((row, i) => (
         <li key={i} className="flex items-baseline gap-2 text-[15px]">
-          <span className="shrink-0 w-5 text-right text-[11px] font-semibold text-gray-400">
+          <span className="shrink-0 w-5 text-right text-[11px] font-semibold" style={{color:'#9ca3af'}}>
             {startIndex + i}.
           </span>
-          <span className="text-gray-500 shrink-0 min-w-[120px] leading-snug">{row.label}</span>
-          <span className="font-mono font-semibold leading-snug" style={{ color: '#FF653F' }}>
+          <span className="shrink-0 min-w-[120px] leading-snug" style={{color:'#6b7280'}}>{row.label}</span>
+          <span className="font-mono font-semibold leading-snug" style={{ color: '#F06535' }}>
             {row.expr}
           </span>
         </li>
@@ -426,7 +429,7 @@ function FormulasBody({ q }) {
   const e = q?.explanation
   const kf = e?.key_formulas
   if (!kf) return (
-    <p className="text-[15px] text-gray-400 italic">No formulas available for this question type.</p>
+    <p className="text-[15px] italic" style={{color:'#9ca3af'}}>No formulas available for this question type.</p>
   )
 
   // count total rows for continuous numbering across sections
@@ -444,7 +447,7 @@ function FormulasBody({ q }) {
               <div key={si} className="mb-4">
                 {sec.heading && (
                   <p className="text-[10px] font-bold tracking-widest uppercase mb-2"
-                    style={{ color: '#FF653F' }}>{sec.heading}</p>
+                    style={{ color: '#F06535' }}>{sec.heading}</p>
                 )}
                 <FormulaList rows={sec.rows} startIndex={start} />
               </div>
@@ -453,8 +456,8 @@ function FormulasBody({ q }) {
         : Array.isArray(kf.rows) && <FormulaList rows={kf.rows} startIndex={1} />
       }
       {kf.note && (
-        <div className="mt-3 rounded-xl p-3 text-xs text-amber-900 leading-relaxed"
-          style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+        <div className="mt-3 rounded-xl p-3 text-xs leading-relaxed"
+          style={{ background: 'rgba(245,158,11,.06)', border: '1px solid rgba(245,158,11,.2)', color:'#d97706' }}>
           <span className="font-bold">Note: </span>{kf.note}
         </div>
       )}
@@ -479,16 +482,19 @@ function ExplanationWithTabs({ q }) {
   return (
     <div>
       {showTabs && (
-        <div className="flex gap-0 mb-4 border-b border-gray-200">
+        <div style={{display:'flex',borderBottom:'1px solid #e5e7eb',marginBottom:16}}>
           {tabs.map(t => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`px-4 py-2 text-[15px] font-medium border-b-2 -mb-px transition-colors ${
-                tab === t.id
-                  ? 'border-[#FF653F] text-[#FF653F]'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+              style={{
+                flex:1,padding:'8px 4px',fontSize:11.5,fontWeight:700,
+                whiteSpace:'nowrap',textAlign:'center',
+                background:'none',cursor:'pointer',
+                borderBottom: tab===t.id ? '2px solid #F06535' : '2px solid transparent',
+                color: tab===t.id ? '#F06535' : '#6b7280',
+                transition:'all .12s',letterSpacing:'.01em',
+              }}
             >
               {t.label}
             </button>
@@ -506,7 +512,7 @@ function ExplanationWithTabs({ q }) {
 function ExplSection({ label }) {
   return (
     <p className="text-[12px] font-bold uppercase tracking-widest mt-5 mb-2"
-       style={{ color: '#FF653F' }}>
+       style={{ color: '#F06535' }}>
       {label}
     </p>
   )
@@ -542,15 +548,15 @@ function ExplanationBody({ q }) {
     ).filter(Boolean)
 
     return (
-      <div className="text-[15px] text-gray-700 leading-relaxed">
+      <div className="text-[15px] leading-relaxed" style={{color:'#374151'}}>
 
         {/* ── APPROACH ── */}
         {(concept || formula) && (
           <>
             <ExplSection label="Approach" />
-            {concept && <p className="text-gray-800"><MathText text={concept} /></p>}
+            {concept && <p style={{color:'#374151'}}><MathText text={concept} /></p>}
             {formula && (
-              <p className="mt-1 font-semibold" style={{ color: '#CC3D00' }}>
+              <p className="mt-1 font-semibold" style={{ color: '#F06535' }}>
                 Formula: <MathText text={formula} />
               </p>
             )}
@@ -561,14 +567,14 @@ function ExplanationBody({ q }) {
         {steps.length > 0 && (
           <>
             <ExplSection label="Solution" />
-            <div className="rounded-xl overflow-hidden border border-gray-100 mt-1">
+            <div className="rounded-xl overflow-hidden mt-1" style={{border:'1px solid #e5e7eb'}}>
               {steps.map((s, i) => {
                 const label = typeof s === 'string' ? null : (s.label || null)
                 const value = typeof s === 'string' ? s    : (s.value || s.text || '')
                 return (
                   <div key={i}
-                    className="px-3.5 py-2 border-b border-gray-50 last:border-0 text-gray-800 font-semibold"
-                    style={{ background: i % 2 === 0 ? '#FAFAFA' : '#FFFFFF' }}>
+                    className="px-3.5 py-2 font-semibold"
+                    style={{ background: i % 2 === 0 ? '#f8f9fb' : '#ffffff', borderBottom:'1px solid #f0f2f5', color:'#111827' }}>
                     <MathText text={value} />
                   </div>
                 )
@@ -582,11 +588,11 @@ function ExplanationBody({ q }) {
           <>
             <ExplSection label="Correct Answer" />
             <p>
-              <span className="font-bold" style={{ color: '#16a34a' }}>
+              <span className="font-bold" style={{ color: '#059669' }}>
                 Option {cor}{optText(cor) ? ` — ${optText(cor)}` : ''}
               </span>
               {verify && (
-                <span className="text-gray-500 ml-1">
+                <span className="ml-1" style={{color:'#6b7280'}}>
                   (<MathText text={verify} />)
                 </span>
               )}
@@ -600,12 +606,12 @@ function ExplanationBody({ q }) {
             <ExplSection label="Why Other Options Are Wrong" />
             <div className="space-y-2">
               {Object.entries(distractors).map(([k, v]) => (
-                <p key={k} className="text-gray-700">
-                  <span className="font-bold text-gray-900">Option {k}</span>
+                <p key={k} style={{color:'#374151'}}>
+                  <span className="font-bold" style={{color:'#111827'}}>Option {k}</span>
                   {optText(k) && (
-                    <span className="font-semibold text-gray-600"> ({optText(k)})</span>
+                    <span className="font-semibold" style={{color:'#6b7280'}}> ({optText(k)})</span>
                   )}
-                  <span className="text-gray-500"> — <MathText text={v} /></span>
+                  <span style={{color:'#6b7280'}}> — <MathText text={v} /></span>
                 </p>
               ))}
             </div>
@@ -616,7 +622,7 @@ function ExplanationBody({ q }) {
         {tips.length > 0 && (
           <>
             <ExplSection label="Key Points" />
-            <ul className="space-y-0.5 list-disc list-inside text-gray-600">
+            <ul className="space-y-0.5 list-disc list-inside" style={{color:'#374151'}}>
               {tips.map((t, i) => <li key={i}><MathText text={t} /></li>)}
             </ul>
           </>
@@ -629,15 +635,15 @@ function ExplanationBody({ q }) {
   // ── plain string fallback ──────────────────────────────────────────
   const txt = typeof e === 'string' ? e : (e?.hint || e?.verify || '')
   return (
-    <div className="text-[15px] text-gray-700 leading-relaxed">
+    <div className="text-[15px] leading-relaxed" style={{color:'#374151'}}>
       {cor && (
-        <p className="font-bold mb-2" style={{ color: '#16a34a' }}>
+        <p className="font-bold mb-2" style={{ color: '#059669' }}>
           Correct Answer: Option {cor}{optText(cor) ? ` — ${optText(cor)}` : ''}
         </p>
       )}
       {txt
         ? <p>{txt}</p>
-        : <p className="text-gray-400 italic">A detailed explanation for this question is coming soon.</p>}
+        : <p className="italic" style={{color:'#9ca3af'}}>A detailed explanation for this question is coming soon.</p>}
     </div>
   )
 }
@@ -656,14 +662,23 @@ const TAB_COLORS = [
   'text-fuchsia-400','text-orange-400','text-yellow-400'
 ]
 
+const TAB_COLOR_MAP = {
+  feedback:     '#F06535',
+  weak:         '#F06535',
+  time:         '#F06535',
+  steps:        '#F06535',
+  topics:       '#F06535',
+  explanations: '#F06535',
+}
+
 function Card({title, icon, badge, children}) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden"
-      style={{ boxShadow:'0 4px 16px -4px rgba(17,17,17,.08), 0 2px 4px -2px rgba(17,17,17,.04)' }}>
+    <div className="rounded-2xl overflow-hidden"
+      style={{ background:'#ffffff', border:'1px solid #e5e7eb', boxShadow:'0 2px 12px rgba(0,0,0,.06)' }}>
       {title && (
-        <div className="flex items-center gap-2 px-4 py-3.5 border-b border-gray-100" style={{background:'#fafafa'}}>
-          {icon && <span className="text-gray-400">{icon}</span>}
-          <span className="font-bold text-gray-800 text-sm">{title}</span>
+        <div className="flex items-center gap-2 px-4 py-3.5" style={{background:'#f8f9fb', borderBottom:'1px solid #e5e7eb'}}>
+          {icon && <span style={{color:'#9ca3af'}}>{icon}</span>}
+          <span className="font-bold text-sm" style={{color:'#111827'}}>{title}</span>
           {badge && <span className="ml-auto">{badge}</span>}
         </div>
       )}
@@ -695,14 +710,14 @@ function TopicBreakdown({ questionResults }) {
   }
 
   if (strong.length === 0 && weak.length === 0)
-    return <p className="text-xs text-gray-400 text-center py-4">No sub-topic data available.</p>
+    return <p className="text-xs text-center py-4" style={{color:'#9ca3af'}}>No sub-topic data available.</p>
 
   const Row = ({item, isStrong}) => (
-    <div className="flex items-center gap-2 py-1.5 border-b border-gray-50 last:border-0">
-      <span className="text-xs" style={{color: isStrong ? '#16a34a' : '#dc2626'}}>{isStrong ? '✓' : '✗'}</span>
-      <span className="text-xs text-gray-700 flex-1 leading-snug">{item.label}</span>
+    <div className="flex items-center gap-2 py-1.5 last:border-0" style={{borderBottom:'1px solid #f0f2f5'}}>
+      <span className="text-xs" style={{color: isStrong ? '#059669' : '#dc2626'}}>{isStrong ? '✓' : '✗'}</span>
+      <span className="text-xs flex-1 leading-snug" style={{color:'#374151'}}>{item.label}</span>
       <span className="text-[11px] font-semibold shrink-0"
-        style={{color: isStrong ? '#16a34a' : '#dc2626'}}>
+        style={{color: isStrong ? '#059669' : '#dc2626'}}>
         {item.correct}/{item.total}
       </span>
     </div>
@@ -711,20 +726,20 @@ function TopicBreakdown({ questionResults }) {
   return (
     <div className="grid grid-cols-2 gap-4">
       <div>
-        <div className="text-[11px] font-bold uppercase tracking-wide text-green-700 mb-1.5">
+        <div className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{color:'#059669'}}>
           Strong ✓
         </div>
         {strong.length > 0
           ? strong.map((it,i) => <Row key={i} item={it} isStrong />)
-          : <p className="text-xs text-gray-400 italic">None yet — keep practising!</p>}
+          : <p className="text-xs italic" style={{color:'#9ca3af'}}>None yet — keep practising!</p>}
       </div>
       <div>
-        <div className="text-[11px] font-bold uppercase tracking-wide text-red-600 mb-1.5">
+        <div className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{color:'#dc2626'}}>
           Needs Work ✗
         </div>
         {weak.length > 0
           ? weak.map((it,i) => <Row key={i} item={it} isStrong={false} />)
-          : <p className="text-xs text-gray-400 italic">All sub-topics looking good!</p>}
+          : <p className="text-xs italic" style={{color:'#9ca3af'}}>All sub-topics looking good!</p>}
       </div>
     </div>
   )
@@ -739,20 +754,20 @@ function FlagItem({flag}) {
   const low = text.toLowerCase()
   const neg = /(below|prioritise|wrong|skipped|run out|lost focus|disqualif|warning|weak|needs|slow|rushed|guess|fail)/.test(low)
   const pos = /(great|strong|well done|excellent|on track|good|nicely|consistent|accuracy|kept|steady|impressive)/.test(low)
-  const tone = neg ? {c:'#dc2626', bg:'#fef2f2', bd:'#fecaca'}
-             : pos ? {c:'#16a34a', bg:'#f0fdf4', bd:'#bbf7d0'}
-                   : {c:'#FF653F', bg:'#FFF3EE', bd:'#fed7c2'}
+  const tone = neg ? {c:'#f87171', bg:'rgba(239,68,68,.1)', bd:'rgba(239,68,68,.2)', lc:'#f87171'}
+             : pos ? {c:'#34d399', bg:'rgba(16,185,129,.1)', bd:'rgba(16,185,129,.2)', lc:'#34d399'}
+                   : {c:'#F06535', bg:'rgba(232,90,44,.1)', bd:'rgba(232,90,44,.2)', lc:'#F06535'}
   const split = text.match(/^(.+?[.:])\s*([\s\S]*)$/)
   const head  = split ? split[1].replace(/[.:]$/,'') : text
   const rest  = split ? split[2] : ''
   return (
-    <div className="flex gap-3 px-4 py-3 rounded-2xl border hover:shadow-sm transition-all"
-      style={{ background:tone.bg, borderColor:tone.bd, borderLeftColor:tone.c, borderLeftWidth:4 }}>
-      <span className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-sm bg-white shadow-sm"
-        style={{ color:tone.c }}>{icon}</span>
+    <div className="flex gap-3 px-4 py-3 rounded-2xl"
+      style={{ background:tone.bg, border:`1px solid ${tone.bd}`, borderLeft:`4px solid ${tone.lc}` }}>
+      <span className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-sm"
+        style={{ background:'rgba(0,0,0,.06)', color:tone.c }}>{icon}</span>
       <div className="min-w-0">
         <div className="text-xs font-bold leading-snug" style={{ color:tone.c }}>{head}</div>
-        {rest && <div className="text-[11px] text-gray-600 leading-snug mt-0.5">{rest}</div>}
+        {rest && <div className="text-[11px] leading-snug mt-0.5" style={{color:'#6b7280'}}>{rest}</div>}
       </div>
     </div>
   )
@@ -768,11 +783,11 @@ function FlagBox({flag}) {
   const head = split ? split[1].replace(/[.:]$/,'') : body
   const rest = split ? split[2] : ''
   return (
-    <div className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 flex flex-col gap-1.5">
+    <div className="rounded-xl px-3 py-2.5 flex flex-col gap-1.5" style={{background:'#f8f9fb',border:'1px solid #e5e7eb'}}>
       <span className="w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0"
-        style={{ background:'#FFF3EE', color:'#FF653F' }}>{icon}</span>
-      <span className="text-xs font-bold text-gray-900 leading-snug">{head}</span>
-      {rest && <span className="text-[11px] text-gray-500 leading-snug">{rest}</span>}
+        style={{ background:'rgba(232,90,44,.12)', color:'#F06535' }}>{icon}</span>
+      <span className="text-xs font-bold leading-snug" style={{color:'#111827'}}>{head}</span>
+      {rest && <span className="text-[11px] leading-snug" style={{color:'#6b7280'}}>{rest}</span>}
     </div>
   )
 }
@@ -781,21 +796,45 @@ function FlagBox({flag}) {
 function RecoBanner({ children }) {
   return (
     <div className="rounded-2xl px-5 py-4 flex items-start gap-3"
-      style={{ background:'#FFF9F7', border:'1px solid #fed7c2', borderLeft:'4px solid #FF653F' }}>
-      <span className="flex-shrink-0 mt-0.5"><RSIcBulb s={18} c='#FF653F'/></span>
-      <p className="text-sm text-gray-700 leading-relaxed">
-        <b style={{ color:'#FF653F' }}>Tip: </b>{children}
+      style={{ background:'rgba(232,90,44,.1)', border:'1px solid rgba(232,90,44,.2)', borderLeft:'4px solid #F06535' }}>
+      <span className="flex-shrink-0 mt-0.5"><RSIcBulb s={18} c='#F06535'/></span>
+      <p className="text-sm leading-relaxed" style={{color:'#374151'}}>
+        <b style={{ color:'#F06535' }}>Tip: </b>{children}
       </p>
     </div>
   )
 }
 
 /* ══ MAIN COMPONENT ══ */
-export default function ResultScreen({ result, studentName, onRetry, onHome, onStartTest = null, user = null }) {
+export default function ResultScreen({ result, studentName, onRetry, onHome, onViewHistory = null, onStartTest = null, user = null }) {
   const [tab, setTab] = useState('feedback')
   const [expIdx, setExpIdx] = useState(0)   // selected question in the Explanations viewer
   const [shareOpen, setShareOpen] = useState(false)
+  const tabScrollRef = useRef(null)
   const [ringFill, setRingFill] = useState(0)   // animated ring: 0 → pct
+
+  // Tab navigation history for Android back button
+  const tabHistoryRef = useRef(['feedback'])
+  const goToTab = useCallback((id) => {
+    setTab(id)
+    tabHistoryRef.current.push(id)
+  }, [])
+
+  // Android hardware back: pop tab history, exit ResultScreen when exhausted
+  useEffect(() => {
+    const handleBack = () => {
+      const hist = tabHistoryRef.current
+      if (hist.length > 1) {
+        hist.pop()
+        setTab(hist[hist.length - 1])
+        tabScrollRef.current?.scrollTo({ left: 0, behavior: 'smooth' })
+      } else {
+        onHome()
+      }
+    }
+    window.addEventListener('mt:result-back', handleBack)
+    return () => window.removeEventListener('mt:result-back', handleBack)
+  }, [onHome])
 
   // Animate score ring: start at 0, fill to actual pct after 300ms
   const pctForRing = result?.percentage ?? 0
@@ -806,7 +845,7 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
 
   if (!result) return (
     <div className="min-h-screen flex items-center justify-center">
-      <p className="text-gray-400">No result data.</p>
+      <p style={{color:'#9ca3af'}}>No result data.</p>
     </div>
   )
 
@@ -865,7 +904,7 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
   const nextDiff    = result.next_difficulty     || null
   const levelUp     = result.level_up            || false
   const levelMsg    = result.level_message       || null
-  const DIFF_BADGE  = { easy: {label:'Easy', bg:'#e8f5e9', color:'#2e7d32'}, medium: {label:'Medium', bg:'#fff8e1', color:'#f57f17'}, hard: {label:'Hard', bg:'#fce4ec', color:'#c62828'} }
+  const DIFF_BADGE  = { easy: {label:'Easy', bg:'rgba(16,185,129,.15)', color:'#6ee7b7'}, medium: {label:'Medium', bg:'rgba(245,158,11,.15)', color:'#fcd34d'}, hard: {label:'Hard', bg:'rgba(239,68,68,.15)', color:'#fca5a5'} }
 
   /* ── PDF GENERATION ── */
   const generatePDF = () => {
@@ -914,22 +953,22 @@ export default function ResultScreen({ result, studentName, onRetry, onHome, onS
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',Arial,sans-serif;color:#1a1a2e;font-size:13px;line-height:1.5;background:#fff}
+body{font-family:'Poppins','Inter',Arial,sans-serif;color:#1a1a2e;font-size:13px;line-height:1.5;background:#fff}
 .lh{background:linear-gradient(135deg,#111 0%,#1a1a2e 100%);color:#fff;padding:26px 36px 22px;display:flex;justify-content:space-between;align-items:flex-start}
 .lh-left{display:flex;align-items:center;gap:14px}
-.lh-badge{width:52px;height:52px;border-radius:14px;background:#FF653F;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;color:#fff;letter-spacing:-1px;flex-shrink:0;line-height:1}
+.lh-badge{width:52px;height:52px;border-radius:14px;background:#F06535;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;color:#fff;letter-spacing:-1px;flex-shrink:0;line-height:1}
 .lh-name{font-size:20px;font-weight:800;letter-spacing:-0.5px}
 .lh-sub{font-size:11px;color:rgba(255,255,255,.5);margin-top:3px}
-.lh-url{font-size:11px;color:#FF653F;margin-top:5px;font-weight:700}
+.lh-url{font-size:11px;color:#F06535;margin-top:5px;font-weight:700}
 .lh-right{text-align:right}
 .lh-doc{font-size:14px;font-weight:700;color:rgba(255,255,255,.85)}
 .lh-meta{font-size:10.5px;color:rgba(255,255,255,.4);margin-top:4px}
-.accent-bar{height:4px;background:linear-gradient(90deg,#FF653F 0%,#ff9c7a 55%,transparent 100%)}
+.accent-bar{height:4px;background:linear-gradient(90deg,#F06535 0%,#ff9c7a 55%,transparent 100%)}
 .cand-bar{background:#FFF3EE;padding:14px 36px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #fde8d8}
 .cand-name{font-size:16px;font-weight:800;color:#1a1a2e}
 .cand-exam{font-size:12px;color:#666;margin-top:2px}
 .cand-right{text-align:right;font-size:11px;color:#888}
-.grade-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-weight:900;font-size:15px;background:#FF653F;color:#fff;margin-bottom:4px}
+.grade-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-weight:900;font-size:15px;background:#F06535;color:#fff;margin-bottom:4px}
 .s-wrap{padding:22px 36px;border-bottom:1px solid #f0f0f0}
 .s-head{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .s-head::after{content:'';flex:1;height:1px;background:#e5e5e5}
@@ -959,12 +998,12 @@ tr:nth-child(even) td{background:#fafafa}
 .topic-item.weak{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
 .topic-item.gray{background:#f9fafb;border-color:#e5e7eb;color:#9ca3af;font-style:italic}
 .flag-list{list-style:none;display:flex;flex-direction:column;gap:6px}
-.flag-item{padding:8px 12px 8px 14px;border-radius:8px;font-size:12px;background:#FFF3EE;border-left:3px solid #FF653F;color:#444;line-height:1.5}
+.flag-item{padding:8px 12px 8px 14px;border-radius:8px;font-size:12px;background:#FFF3EE;border-left:3px solid #F06535;color:#444;line-height:1.5}
 .step-list{list-style:none;display:flex;flex-direction:column;gap:8px}
 .step-item{display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#444;line-height:1.5}
-.step-num{width:22px;height:22px;border-radius:50%;background:#FF653F;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:10px;flex-shrink:0;margin-top:1px}
+.step-num{width:22px;height:22px;border-radius:50%;background:#F06535;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:10px;flex-shrink:0;margin-top:1px}
 .footer{background:#111;color:rgba(255,255,255,.4);font-size:10px;padding:14px 36px;display:flex;justify-content:space-between;align-items:center;margin-top:8px}
-.footer-brand{color:#FF653F;font-weight:700;font-size:11px}
+.footer-brand{color:#F06535;font-weight:700;font-size:11px}
 @media print{
   body{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   @page{margin:0;size:A4}
@@ -1075,88 +1114,133 @@ ${stepsHtml ? `<div class="s-wrap">
   )
 
   return (
-    <div className="min-h-screen bg-[#ffffff]" style={{fontFamily:"'Inter',system-ui,sans-serif"}}>
+    <div className="min-h-screen" style={{fontFamily:"'Poppins','Inter',system-ui,sans-serif", background:'#f4f6f9'}}>
       {shareOpen && <ShareModal result={result} studentName={studentName} onClose={() => setShareOpen(false)} />}
 
       {/* ── HEADER ── */}
-      <header style={{background:'#111'}}
-        className="sticky top-0 z-40 shadow-md">
+      <header style={{background:'#ffffff', borderBottom:'1px solid #e5e7eb', paddingTop:'env(safe-area-inset-top,0px)'}}
+        className="sticky top-0 z-40" >
         <div className="w-full px-3 sm:px-5 h-14 flex items-center justify-between gap-2 sm:gap-4">
 
-          {/* LEFT — brand */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{background:'#FF653F'}}>
-              <span className="text-white font-black text-xs">MT</span>
-            </div>
+          {/* LEFT — back + brand */}
+          <div className="flex items-center gap-2 min-w-0">
+            <button onClick={onHome} style={{width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,background:'#f0f2f5',border:'none',borderRadius:11,cursor:'pointer',touchAction:'manipulation'}}>
+              <svg width="18" height="18" fill="none" stroke="#374151" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            </button>
             <div className="leading-none min-w-0">
-              <div className="text-white font-bold text-sm truncate">MockTest</div>
-              <div className="text-xs hidden sm:block" style={{color:'#888'}}>IBPS / SBI · Result Analysis</div>
+              <div className="font-bold text-sm" style={{color:'#111827'}}>Result Analysis</div>
+              <div className="text-[10px] hidden sm:block" style={{color:'#9ca3af'}}>IBPS / SBI Mock Test</div>
             </div>
           </div>
 
-          {/* RIGHT — actions (labels condense on mobile so Dashboard always fits) */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+          {/* RIGHT — actions */}
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button onClick={generatePDF}
-              className="text-xs font-semibold px-2.5 sm:px-3 py-2 rounded-lg text-white border border-white/25 hover:bg-white/10 transition-colors whitespace-nowrap">
-              <span className="sm:hidden">PDF</span><span className="hidden sm:inline">Download PDF</span>
+              className="hidden sm:flex text-xs font-semibold px-3 py-2 rounded-lg whitespace-nowrap"
+              style={{color:'#374151',border:'1px solid #e5e7eb',background:'#f8f9fb',touchAction:'manipulation'}}>
+              Download PDF
             </button>
             {onStartTest && weakTopics.length > 0 && (
               <button
                 onClick={() => launchNextStep({ mini_test_params: { pre_selected_topic: weakTopics[0], section: 'numerical_ability', question_count: 15 } }, -1)}
                 disabled={stepLoading === -1}
-                className="text-xs font-semibold px-3 sm:px-4 py-2 rounded-lg text-white transition-colors shadow-sm whitespace-nowrap disabled:opacity-60"
-                style={{background:'#7c3aed'}}
-                onMouseOver={e=>{ if(stepLoading !== -1) e.currentTarget.style.background='#6d28d9' }}
-                onMouseOut={e=>e.currentTarget.style.background='#7c3aed'}>
-                {stepLoading === -1 ? '…' : <><span className="sm:hidden">Retry</span><span className="hidden sm:inline">Practice Wrong Topics</span></>}
+                className="hidden sm:flex text-xs font-semibold px-3 py-2 rounded-lg text-white whitespace-nowrap disabled:opacity-60"
+                style={{background:'#F06535', touchAction:'manipulation'}}>
+                {stepLoading === -1 ? '…' : 'Practice Weak'}
+              </button>
+            )}
+            {onViewHistory && (
+              <button onClick={onViewHistory}
+                className="text-xs font-semibold px-3 py-2 rounded-xl whitespace-nowrap"
+                style={{background:'#f3f4f6',color:'#374151',border:'1px solid #e5e7eb',touchAction:'manipulation'}}>
+                All Tests
               </button>
             )}
             <button onClick={onRetry}
-              className="text-xs font-semibold px-3 sm:px-4 py-2 rounded-lg text-white transition-colors shadow-sm whitespace-nowrap"
-              style={{background:'#FF653F'}}
-              onMouseOver={e=>e.currentTarget.style.background='#e5512f'}
-              onMouseOut={e=>e.currentTarget.style.background='#FF653F'}>
-              <span className="sm:hidden">New</span><span className="hidden sm:inline">Take Another Test</span>
-            </button>
-            <button onClick={onHome}
-              className="text-xs font-semibold px-2.5 sm:px-3 py-2 rounded-lg text-white border border-white/25 hover:bg-white/10 transition-colors whitespace-nowrap">
-              <span className="sm:hidden"><RSIcHome s={13} c='#fff'/></span><span className="hidden sm:inline">← Dashboard</span>
+              className="text-xs font-bold px-3 py-2 rounded-xl text-white whitespace-nowrap"
+              style={{background:'#F06535', boxShadow:'0 2px 8px rgba(232,90,44,.4)', touchAction:'manipulation'}}>
+              New Test
             </button>
           </div>
         </div>
       </header>
 
       {/* ── BODY: full-height sidebar + right column ── */}
-      <div className="flex flex-col md:flex-row" style={{height:'calc(100vh - 64px)'}}>
+      <div className="flex flex-col md:flex-row" style={{height:'calc(100dvh - 56px - env(safe-area-inset-top,0px))'}}>
 
         {/* ── LEFT SIDEBAR (full height) ── */}
-        <aside className="w-full md:w-52 flex-shrink-0 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col overflow-y-auto" style={{background:'#fafafa'}}>
+        <aside className="w-full md:w-52 flex-shrink-0 flex flex-col overflow-y-auto" style={{background:'#ffffff', borderBottom:'1px solid #e5e7eb', borderRight:'1px solid #e5e7eb'}}>
 
           {/* Nav tabs */}
-          <div className="flex md:block overflow-x-auto border-b border-gray-100 p-2 gap-1 md:gap-0"
-            style={{WebkitOverflowScrolling:'touch', touchAction:'pan-x'}}>
+          <div style={{position:'relative'}}>
+          <div ref={tabScrollRef} className="flex md:block overflow-x-auto p-2.5 gap-2 md:gap-1"
+            style={{
+              WebkitOverflowScrolling:'touch', touchAction:'pan-x',
+              borderBottom:'1px solid #f0f2f5',
+              scrollbarWidth:'none', msOverflowStyle:'none',
+              paddingRight: 52,
+            }}>
             {TABS.map((t)=>{
               const isActive = tab === t.id
+              const tColor = TAB_COLOR_MAP[t.id] || '#F06535'
               return (
-                <button key={t.id} onClick={()=>setTab(t.id)}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap md:w-full mb-0 md:mb-0.5 ${
-                    isActive ? 'text-white' : 'text-gray-600 hover:bg-white hover:text-gray-900'
-                  }`}
-                  style={isActive
-                    ? {background:'#FF653F', boxShadow:'0 2px 8px rgba(255,101,63,.35)', touchAction:'manipulation'}
-                    : {touchAction:'manipulation'}}>
-                  <span className="w-4 text-center text-sm">{t.icon}</span>
+                <button key={t.id} onClick={()=>goToTab(t.id)}
+                  className="flex items-center gap-2.5 whitespace-nowrap md:w-full md:mb-1"
+                  style={isActive ? {
+                    background: tColor,
+                    boxShadow: `0 3px 10px ${tColor}55`,
+                    color: '#fff',
+                    padding: '9px 14px',
+                    borderRadius: 12,
+                    border: 'none',
+                    fontSize: 12,
+                    fontWeight: 800,
+                    touchAction: 'manipulation',
+                    flexShrink: 0,
+                  } : {
+                    background: '#f3f4f6',
+                    color: '#374151',
+                    padding: '9px 14px',
+                    borderRadius: 12,
+                    border: '1px solid #e5e7eb',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    touchAction: 'manipulation',
+                    flexShrink: 0,
+                  }}>
                   <span>{t.label}</span>
-                  {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/70 flex-shrink-0 hidden md:block"/>}
+                  {isActive && <span style={{marginLeft:'auto',width:6,height:6,borderRadius:'50%',background:'rgba(255,255,255,.85)',flexShrink:0}} className="hidden md:block"/>}
                 </button>
               )
             })}
           </div>
+          {/* Right fade + arrow — visible only on mobile (not on md sidebar) */}
+          <div className="md:hidden" style={{
+            position:'absolute', right:0, top:0, bottom:0, width:56,
+            pointerEvents:'none',
+            background:'linear-gradient(to right, transparent 0%, #ffffff 70%)',
+            display:'flex', alignItems:'center', justifyContent:'flex-end',
+            paddingRight:10,
+          }}>
+            <button
+              onClick={() => tabScrollRef.current?.scrollBy({ left: 160, behavior: 'smooth' })}
+              style={{
+                pointerEvents:'auto',
+                width:28, height:28, borderRadius:'50%',
+                background:'rgba(0,0,0,.08)',
+                border:'1px solid rgba(0,0,0,.12)',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                color:'#374151', fontSize:15, fontWeight:700, lineHeight:1,
+                cursor:'pointer', userSelect:'none', touchAction:'manipulation',
+                flexShrink:0,
+              }}
+            >›</button>
+          </div>
+          </div>{/* end position:relative wrapper */}
 
           {/* Section accuracy bars */}
           <div className="p-4 hidden md:block">
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Section Performance</div>
+            <div className="text-[10px] font-bold uppercase tracking-wider mb-3" style={{color:'#9ca3af'}}>Section Performance</div>
             {Object.entries(secStats).map(([sec,st])=>{
               const p = st.total>0 ? Math.round((st.correct||0)/st.total*100) : 0
               const need = cutoffSt[sec]?.cutoff
@@ -1164,19 +1248,19 @@ ${stepsHtml ? `<div class="s-wrap">
               return (
                 <div key={sec} className="mb-3.5 last:mb-0">
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-700 font-semibold truncate">{SEC[sec]||sec}</span>
-                    <span className={`font-bold text-xs ${ok?'text-green-600':'text-red-500'}`}>{p}%</span>
+                    <span className="font-semibold truncate" style={{color:'#374151'}}>{SEC[sec]||sec}</span>
+                    <span className="font-bold text-xs" style={{color: ok?'#059669':'#dc2626'}}>{p}%</span>
                   </div>
                   {need!=null && (
-                    <div className="text-[10px] mb-1" style={{color: ok?'#16a34a':'#ef4444'}}>
+                    <div className="text-[10px] mb-1" style={{color: ok?'#059669':'#dc2626'}}>
                       {ok?'✓ above':'↓ below'} cut-off (~{need}%)
                     </div>
                   )}
-                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-2 rounded-full overflow-hidden" style={{background:'#e5e7eb'}}>
                     <div className="h-full rounded-full transition-all"
                       style={{width:`${p}%`, background:ok?'#10b981':'#ef4444'}}/>
                   </div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">{st.correct||0}/{st.total||0} correct</div>
+                  <div className="text-[10px] mt-0.5" style={{color:'#9ca3af'}}>{st.correct||0}/{st.total||0} correct</div>
                 </div>
               )
             })}
@@ -1184,18 +1268,18 @@ ${stepsHtml ? `<div class="s-wrap">
         </aside>
 
         {/* ── RIGHT COLUMN: hero + scrolling content ── */}
-        <div className="flex-1 min-w-0 flex flex-col overflow-y-auto nice-scroll" style={{background:'#f5f6f8'}}>
+        <div className="flex-1 min-w-0 flex flex-col overflow-y-auto nice-scroll" style={{background:'#f4f6f9'}}>
 
           {/* ── SCORE HERO — always first on the Feedback tab ── */}
           {tab==='feedback' && (
-          <div className="border-b border-gray-100 p-4" style={{background:'linear-gradient(to bottom, #f9fafb 0%, #ffffff 100%)'}}>
+          <div className="p-4" style={{background:'linear-gradient(180deg,#eef2ff 0%,#f4f6f9 100%)', borderBottom:'1px solid #e5e7eb'}}>
             <div className="w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,0.85fr)] gap-3 items-stretch">
 
               {/* Score ring + name + stats */}
-              <div className="flex items-center gap-4 min-w-0 rounded-2xl border border-gray-200 bg-white px-4 py-3.5" style={{boxShadow:'0 2px 8px rgba(17,17,17,.06)'}}>
+              <div className="flex items-center gap-4 min-w-0 rounded-2xl px-4 py-3.5" style={{background:'#ffffff', border:'1px solid #e5e7eb', boxShadow:'0 4px 16px rgba(0,0,0,.06)'}}>
                 <div className="relative w-20 h-20 flex-shrink-0">
                   <svg viewBox="0 0 36 36" className="w-20 h-20 -rotate-90">
-                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="#eef0f3" strokeWidth="3.5"/>
+                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e5e7eb" strokeWidth="3.5"/>
                     {pct > 0 && (
                       <circle cx="18" cy="18" r="15.9" fill="none" strokeWidth="3.5" strokeLinecap="round"
                         stroke={pct>=60?"#10b981":pct>=35?"#f59e0b":"#ef4444"}
@@ -1204,26 +1288,26 @@ ${stepsHtml ? `<div class="s-wrap">
                     )}
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-lg font-black leading-none" style={{color: pct>=60?'#10b981':pct>=35?'#d97706':'#ef4444'}}>{pct.toFixed(0)}%</span>
-                    <span className="text-[9px] text-gray-400 leading-none mt-0.5 uppercase tracking-wider">score</span>
+                    <span className="text-lg font-black leading-none" style={{color: pct>=60?'#10b981':pct>=35?'#f59e0b':'#ef4444'}}>{pct.toFixed(0)}%</span>
+                    <span className="text-[9px] leading-none mt-0.5 uppercase tracking-wider" style={{color:'#9ca3af'}}>score</span>
                   </div>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-base font-black text-gray-900 leading-tight truncate">
+                  <div className="text-base font-black leading-tight truncate" style={{color:'#111827'}}>
                     {pct>=60?'Well done':'Keep going'}, {name}!
                   </div>
                   <div className="text-sm mb-2 mt-0.5">
-                    <span className="font-black text-gray-800">{score.toFixed(1)}</span>
-                    <span className="text-gray-400 text-xs"> / {maxScore} marks</span>
+                    <span className="font-black" style={{color:'#111827'}}>{score.toFixed(1)}</span>
+                    <span className="text-xs" style={{color:'#9ca3af'}}> / {maxScore} marks</span>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">✓ {correct} correct</span>
-                    <span className="text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">✗ {wrong} wrong</span>
-                    <span className="text-xs font-semibold text-gray-500 bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-full">— {skipped} skipped</span>
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{color:'#059669',background:'rgba(16,185,129,.1)',border:'1px solid rgba(16,185,129,.25)'}}>✓ {correct} correct</span>
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{color:'#dc2626',background:'rgba(239,68,68,.08)',border:'1px solid rgba(239,68,68,.2)'}}>✗ {wrong} wrong</span>
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{color:'#6b7280',background:'#f3f4f6',border:'1px solid #e5e7eb'}}>— {skipped} skipped</span>
                   </div>
                   {isFullMock && rankNum && rankTotal && (
                     <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-white text-xs font-bold"
-                      style={{background:'linear-gradient(135deg,#FF653F,#cc3d00)'}}>
+                      style={{background:'linear-gradient(135deg,#F06535,#cc3d00)'}}>
                       <RSIcTrophy s={14} c='#fff'/>
                       <span>Rank #{rankNum} of {rankTotal} students</span>
                     </div>
@@ -1245,7 +1329,7 @@ ${stepsHtml ? `<div class="s-wrap">
                         Level: {DIFF_BADGE[curDiff].label}
                       </span>
                       {nextDiff && nextDiff !== curDiff && DIFF_BADGE[nextDiff] && (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs" style={{color:'#9ca3af'}}>
                           → Next: <span style={{color: DIFF_BADGE[nextDiff].color}}>{DIFF_BADGE[nextDiff].label}</span>
                         </span>
                       )}
@@ -1256,13 +1340,13 @@ ${stepsHtml ? `<div class="s-wrap">
 
               {/* Expert Feedback — CENTER (full mock only) */}
               {isFullMock && result.ai_feedback ? (
-                <div className="rounded-2xl min-w-0 overflow-hidden" style={{background:'#FFFAF7', border:'1px solid #fde8d8', boxShadow:'0 2px 8px rgba(17,17,17,.06)'}}>
-                  <div className="flex items-center gap-2 px-4 py-3" style={{background:'#FFF3EE', borderBottom:'1px solid #fde8d8'}}>
-                    <RSIcRobot s={13} c='#FF653F'/>
-                    <span className="text-sm font-bold" style={{color:'#FF653F'}}>Expert Feedback</span>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full ml-auto" style={{background:'#fff', color:'#FF653F', border:'1px solid #fec9b0'}}>AI Analysis</span>
+                <div className="rounded-2xl min-w-0 overflow-hidden" style={{background:'#ffffff', border:'1px solid rgba(232,90,44,.2)', boxShadow:'0 4px 16px rgba(0,0,0,.05)'}}>
+                  <div className="flex items-center gap-2 px-4 py-3" style={{background:'rgba(232,90,44,.06)', borderBottom:'1px solid rgba(232,90,44,.12)'}}>
+                    <RSIcRobot s={13} c='#F06535'/>
+                    <span className="text-sm font-bold" style={{color:'#F06535'}}>Expert Feedback</span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full ml-auto" style={{background:'rgba(232,90,44,.1)', color:'#F06535', border:'1px solid rgba(232,90,44,.25)'}}>AI Analysis</span>
                   </div>
-                  <div className="px-4 py-3 text-sm text-gray-700 leading-relaxed" style={{maxHeight:130, overflowY:'auto'}}>
+                  <div className="px-4 py-3 text-sm leading-relaxed" style={{maxHeight:130, overflowY:'auto', color:'#374151'}}>
                     <Highlight text={
                       (result.ai_feedback||'')
                         .replace(/^[^.]*\.\s*/, '')
@@ -1275,10 +1359,10 @@ ${stepsHtml ? `<div class="s-wrap">
 
               {/* Readiness ring — RIGHT (full mock only) */}
               {!isFullMock ? null :
-              <div className="flex flex-row lg:flex-col items-center justify-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3.5" style={{boxShadow:'0 2px 8px rgba(17,17,17,.06)'}}>
+              <div className="flex flex-row lg:flex-col items-center justify-center gap-3 rounded-2xl px-4 py-3.5" style={{background:'#ffffff', border:'1px solid #e5e7eb', boxShadow:'0 4px 16px rgba(0,0,0,.06)'}}>
                 <div className="relative w-20 h-20 flex-shrink-0">
                   <svg viewBox="0 0 36 36" className="w-20 h-20 -rotate-90">
-                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="#eef0f3" strokeWidth="3.5"/>
+                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e5e7eb" strokeWidth="3.5"/>
                     {readiness > 0 && (
                       <circle cx="18" cy="18" r="15.9" fill="none" strokeWidth="3.5"
                         strokeLinecap="round"
@@ -1287,19 +1371,19 @@ ${stepsHtml ? `<div class="s-wrap">
                     )}
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-lg font-black leading-none" style={{color: readiness>=70?'#10b981':readiness>=40?'#d97706':'#ef4444'}}>{readiness.toFixed(0)}%</span>
-                    <span className="text-[9px] text-gray-400 leading-none mt-0.5 uppercase tracking-wider">ready</span>
+                    <span className="text-lg font-black leading-none" style={{color: readiness>=70?'#10b981':readiness>=40?'#f59e0b':'#ef4444'}}>{readiness.toFixed(0)}%</span>
+                    <span className="leading-none mt-0.5 uppercase tracking-wider text-[9px]" style={{color:'#9ca3af'}}>ready</span>
                   </div>
                 </div>
                 <div className="text-center lg:text-center">
-                  <div className="text-xs font-bold text-gray-600 mb-0.5">Exam Readiness</div>
+                  <div className="text-xs font-bold mb-0.5" style={{color:'#6b7280'}}>Exam Readiness</div>
                   <div className="text-xs font-bold px-2 py-0.5 rounded-full inline-block"
-                    style={{ color: readiness>=70?'#16a34a':readiness>=40?'#d97706':'#dc2626',
-                      background: readiness>=70?'#f0fdf4':readiness>=40?'#fffbeb':'#fef2f2' }}>
+                    style={{ color: readiness>=70?'#059669':readiness>=40?'#d97706':'#dc2626',
+                      background: readiness>=70?'rgba(16,185,129,.1)':readiness>=40?'rgba(245,158,11,.1)':'rgba(239,68,68,.1)' }}>
                     {readiness>=70 ? 'Exam ready' : readiness>=40 ? 'Almost there' : 'Needs work'}
                   </div>
                   {improve > pct && (
-                    <div className="text-[11px] font-semibold text-green-600 mt-1.5 whitespace-nowrap">
+                    <div className="text-[11px] font-semibold mt-1.5 whitespace-nowrap" style={{color:'#059669'}}>
                       Fix topics → +{(improve-pct).toFixed(1)}%
                     </div>
                   )}
@@ -1313,11 +1397,11 @@ ${stepsHtml ? `<div class="s-wrap">
           {/* ── LEVEL-UP / LEVEL FEEDBACK BANNER — mini tests only ── */}
           {!isFullMock && tab === 'feedback' && levelMsg && (
             <div className="mx-4 mt-4 mb-0 rounded-xl px-4 py-3 flex items-start gap-3 text-sm"
-              style={{background: levelUp ? '#f0fdf4' : '#fff8e1', border: levelUp ? '1px solid #86efac' : '1px solid #fcd34d'}}>
-              <span className="mt-0.5">{levelUp ? <RSIcStar s={18} c='#16a34a'/> : <RSIcArrow s={18} c='#b45309'/>}</span>
+              style={{background: levelUp ? 'rgba(16,185,129,.12)' : 'rgba(245,158,11,.12)', border: levelUp ? '1px solid rgba(16,185,129,.25)' : '1px solid rgba(245,158,11,.25)'}}>
+              <span className="mt-0.5">{levelUp ? <RSIcStar s={18} c='#34d399'/> : <RSIcArrow s={18} c='#f59e0b'/>}</span>
               <div>
-                <p className="font-bold text-gray-800 mb-0.5">{levelUp ? 'Level Up!' : 'Keep Going!'}</p>
-                <p className="text-gray-600 text-xs leading-relaxed">{levelMsg}</p>
+                <p className="font-bold mb-0.5" style={{color:levelUp?'#34d399':'#f59e0b'}}>{levelUp ? 'Level Up!' : 'Keep Going!'}</p>
+                <p className="text-xs leading-relaxed" style={{color:'#374151'}}>{levelMsg}</p>
               </div>
             </div>
           )}
@@ -1337,15 +1421,15 @@ ${stepsHtml ? `<div class="s-wrap">
                 {/* Difficulty accuracy bars */}
                 <div className="grid grid-cols-3 gap-2">
                   {bands.map(b => (
-                    <div key={b.label} className="rounded-xl border p-3 text-center"
-                      style={{background: b.bg, borderColor: b.border}}>
+                    <div key={b.label} className="rounded-xl p-3 text-center"
+                      style={{background:b.bg, border:`1px solid ${b.border}`}}>
                       <div className="text-xs font-bold mb-1" style={{color: b.color}}>{b.label}</div>
                       <div className="text-xl font-black" style={{color: b.color}}>
                         {b.acc != null ? `${b.acc}%` : '—'}
                       </div>
-                      <div className="text-xs text-gray-400 mt-0.5">{b.count} question{b.count!==1?'s':''}</div>
+                      <div className="text-xs mt-0.5" style={{color:'#6b7280'}}>{b.count} question{b.count!==1?'s':''}</div>
                       {b.acc != null && (
-                        <div className="mt-2 h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                        <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{background:'#e5e7eb'}}>
                           <div className="h-full rounded-full" style={{width:`${b.acc}%`, background: b.color}}/>
                         </div>
                       )}
@@ -1355,33 +1439,33 @@ ${stepsHtml ? `<div class="s-wrap">
                 {/* Passed / failed sub-types */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {td.passed_subtypes?.length > 0 && (
-                    <div className="rounded-xl border border-green-200 bg-green-50 p-3">
-                      <div className="text-xs font-bold text-green-700 mb-2">What you got right</div>
+                    <div className="rounded-xl p-3" style={{background:'rgba(16,185,129,.1)', border:'1px solid rgba(16,185,129,.2)'}}>
+                      <div className="text-xs font-bold mb-2" style={{color:'#34d399'}}>What you got right</div>
                       <div className="flex flex-wrap gap-1">
                         {td.passed_subtypes.map((s,i) => (
-                          <span key={i} className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-800 border border-green-200">{subLabel(s)}</span>
+                          <span key={i} className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{background:'rgba(16,185,129,.15)',color:'#34d399',border:'1px solid rgba(16,185,129,.25)'}}>{subLabel(s)}</span>
                         ))}
                       </div>
                     </div>
                   )}
                   {td.failed_subtypes?.length > 0 && (
-                    <div className="rounded-xl border border-red-200 bg-red-50 p-3">
-                      <div className="text-xs font-bold text-red-700 mb-2">Where you dropped marks</div>
+                    <div className="rounded-xl p-3" style={{background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.2)'}}>
+                      <div className="text-xs font-bold mb-2" style={{color:'#f87171'}}>Where you dropped marks</div>
                       <div className="flex flex-wrap gap-1">
                         {td.failed_subtypes.map((s,i) => (
-                          <span key={i} className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-800 border border-red-200">{subLabel(s)}</span>
+                          <span key={i} className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{background:'rgba(239,68,68,.15)',color:'#f87171',border:'1px solid rgba(239,68,68,.25)'}}>{subLabel(s)}</span>
                         ))}
                       </div>
                     </div>
                   )}
                 </div>
                 {/* 3-step action plan */}
-                <div className="rounded-xl border overflow-hidden" style={{borderColor:'#93C5FD'}}>
-                  <div className="px-4 py-2.5 flex items-center gap-2" style={{background:'#EFF6FF'}}>
-                    <RSIcTarget s={13} c='#1e40af'/>
-                    <span className="text-xs font-bold text-blue-800 uppercase tracking-wide">Your Action Plan</span>
+                <div className="rounded-xl overflow-hidden" style={{border:'1px solid rgba(99,102,241,.3)'}}>
+                  <div className="px-4 py-2.5 flex items-center gap-2" style={{background:'rgba(99,102,241,.15)'}}>
+                    <RSIcTarget s={13} c='#818cf8'/>
+                    <span className="text-xs font-bold uppercase tracking-wide" style={{color:'#818cf8'}}>Your Action Plan</span>
                   </div>
-                  <div className="divide-y divide-blue-100">
+                  <div style={{background:'rgba(99,102,241,.06)'}}>
                     {[
                       { step:1, text: td.next_step },
                       { step:2, text: td.failed_subtypes?.length > 0
@@ -1389,10 +1473,10 @@ ${stepsHtml ? `<div class="s-wrap">
                           : 'Continue with mixed practice to maintain accuracy across all model types in this topic' },
                       { step:3, text: `Predicted ${td.mock_score_current}/${td.mock_score_potential} marks in the real exam — target the full ${td.mock_score_potential} marks by clearing every sub-type` },
                     ].map(({step, text}) => (
-                      <div key={step} className="flex gap-3 px-4 py-3" style={{background:'#F0F9FF'}}>
+                      <div key={step} className="flex gap-3 px-4 py-3" style={{borderTop:'1px solid rgba(232,90,44,.1)'}}>
                         <span className="w-6 h-6 rounded-full text-white text-xs font-black flex items-center justify-center flex-shrink-0 mt-0.5"
-                          style={{background:'#3B82F6'}}>{step}</span>
-                        <p className="text-sm text-blue-900 leading-relaxed">{text}</p>
+                          style={{background:'#F06535'}}>{step}</span>
+                        <p className="text-sm leading-relaxed" style={{color:'#374151'}}>{text}</p>
                       </div>
                     ))}
                   </div>
@@ -1404,12 +1488,12 @@ ${stepsHtml ? `<div class="s-wrap">
           {/* ── MINI TEST NOTICE — shown for regular practice tests only (not diagnostic) ── */}
           {!isFullMock && !isDiagnostic && tab === 'feedback' && (
             <div className="mx-4 mt-4 mb-0 rounded-xl px-4 py-3 flex items-start gap-3 text-sm"
-              style={{background:'#FFF8F0', border:'1px solid #fec9b0'}}>
-              <span className="mt-0.5"><RSIcDoc s={18} c='#FF653F'/></span>
+              style={{background:'rgba(232,90,44,.1)', border:'1px solid rgba(232,90,44,.2)'}}>
+              <span className="mt-0.5"><RSIcDoc s={18} c='#F06535'/></span>
               <div>
-                <p className="font-bold text-gray-800 mb-0.5">Practice Test Result</p>
-                <p className="text-gray-500 text-xs leading-relaxed">
-                  Detailed analysis (Weak Areas, Time Analysis, Next Steps) is available only after a <strong>Full Mock Test</strong>.
+                <p className="font-bold mb-0.5" style={{color:'#F06535'}}>Practice Test Result</p>
+                <p className="text-xs leading-relaxed" style={{color:'#374151'}}>
+                  Detailed analysis (Weak Areas, Time Analysis, Next Steps) is available only after a <strong style={{color:'#111827'}}>Full Mock Test</strong>.
                   Take a full mock from the Dashboard to get your complete performance report and rank.
                 </p>
               </div>
@@ -1447,11 +1531,11 @@ ${stepsHtml ? `<div class="s-wrap">
                     <Card title={`${topicLabel} — What to fix`} icon={<RSIcTarget s={13}/>}>
                       <div className="space-y-2">
                         {weakPoints.map((p,i) => (
-                          <div key={i} className="flex gap-3 px-3 py-2.5 rounded-xl border border-gray-100 bg-gray-50">
+                          <div key={i} className="flex gap-3 px-3 py-2.5 rounded-xl" style={{background:'#f8f9fb',border:'1px solid #e5e7eb'}}>
                             <span className="flex-shrink-0 mt-0.5 w-5 flex items-center justify-center">{p.icon}</span>
                             <div>
-                              <div className="text-xs font-bold text-gray-800 mb-0.5">{p.head}</div>
-                              <div className="text-xs text-gray-500 leading-snug">{p.body}</div>
+                              <div className="text-xs font-bold mb-0.5" style={{color:'#111827'}}>{p.head}</div>
+                              <div className="text-xs leading-snug" style={{color:'#6b7280'}}>{p.body}</div>
                             </div>
                           </div>
                         ))}
@@ -1461,13 +1545,13 @@ ${stepsHtml ? `<div class="s-wrap">
                 })() : (
                 <Card title="How you approached this exam" icon={<RSIcBrain s={13}/>}
                   badge={
-                    <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{color:'#6b7280',background:'#f3f4f6'}}>
                       {flags.length} insights
                     </span>
                   }>
                   <div className="space-y-2">
                     {flags.length === 0
-                      ? <p className="text-xs text-gray-400">No behaviour data yet.</p>
+                      ? <p className="text-xs" style={{color:'#9ca3af'}}>No behaviour data yet.</p>
                       : flags.map((flag,i) => <FlagItem key={i} flag={flag}/>)
                     }
                   </div>
@@ -1484,11 +1568,10 @@ ${stepsHtml ? `<div class="s-wrap">
                 {isFullMock && peer && (
                   <Card title="Cut-off comparison" icon={<RSIcTarget s={13}/>}
                     badge={
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                        peer.badge_color==='green' ?'bg-green-100 text-green-700':
-                        peer.badge_color==='amber' ?'bg-amber-100 text-amber-700':
-                        peer.badge_color==='orange'?'bg-orange-100 text-orange-700':
-                        'bg-red-100 text-red-700'}`}>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{
+                        color: peer.badge_color==='green'?'#34d399':peer.badge_color==='amber'?'#f59e0b':peer.badge_color==='orange'?'#F06535':'#f87171',
+                        background: peer.badge_color==='green'?'rgba(16,185,129,.15)':peer.badge_color==='amber'?'rgba(245,158,11,.15)':peer.badge_color==='orange'?'rgba(232,90,44,.15)':'rgba(239,68,68,.15)'
+                      }}>
                         {peer.summary_badge}
                       </span>
                     }>
@@ -1496,48 +1579,50 @@ ${stepsHtml ? `<div class="s-wrap">
                       const ca = peer.cutoff_analysis
                       return (
                         <>
-                          <div className="relative h-6 bg-gray-100 rounded-lg overflow-hidden mb-1.5">
+                          <div className="relative h-6 rounded-lg overflow-hidden mb-1.5" style={{background:'#e5e7eb'}}>
                             <div className="absolute inset-0 flex">
-                              <div className="bg-red-100"   style={{width:`${ca.cutoff_min}%`}}/>
-                              <div className="bg-amber-100" style={{width:`${ca.cutoff_typical-ca.cutoff_min}%`}}/>
-                              <div className="bg-green-100" style={{flex:1}}/>
+                              <div style={{width:`${ca.cutoff_min}%`,background:'rgba(239,68,68,.25)'}}/>
+                              <div style={{width:`${ca.cutoff_typical-ca.cutoff_min}%`,background:'rgba(245,158,11,.25)'}}/>
+                              <div style={{flex:1,background:'rgba(16,185,129,.2)'}}/>
                             </div>
                             <div className="absolute top-0 h-full border-l-2 border-dashed border-amber-500"
                               style={{left:`${ca.cutoff_typical}%`}}/>
                             <div className="absolute top-0 h-full border-l-2 border-dashed border-green-600"
                               style={{left:`${Math.min(ca.cutoff_max,99)}%`}}/>
                             <div className="absolute top-0 h-full border-l-4"
-                              style={{left:`${Math.min(ca.student_score,99)}%`, borderColor:'#FF653F'}}/>
+                              style={{left:`${Math.min(ca.student_score,99)}%`, borderColor:'#F06535'}}/>
                           </div>
-                          <div className="flex justify-between text-xs text-gray-400 mb-1">
+                          <div className="flex justify-between text-xs mb-1" style={{color:'#9ca3af'}}>
                             <span>0</span>
                             <span className="text-amber-600 font-semibold">Typical {ca.cutoff_typical}</span>
                             <span className="text-green-600 font-semibold">Safe {ca.cutoff_max}</span>
                             <span>100</span>
                           </div>
-                          <div className="text-xs font-bold mb-2" style={{color:'#FF653F'}}>▲ Your score: {ca.student_score}</div>
-                          <div className={`text-xs rounded-lg px-2.5 py-2 leading-relaxed mb-2 ${
-                            peer.badge_color==='green' ?'bg-green-50 text-green-800 border border-green-200':
-                            peer.badge_color==='amber' ?'bg-amber-50 text-amber-800 border border-amber-200':
-                            peer.badge_color==='orange'?'bg-orange-50 text-orange-800 border border-orange-200':
-                            'bg-red-50 text-red-800 border border-red-200'}`}>
+                          <div className="text-xs font-bold mb-2" style={{color:'#F06535'}}>▲ Your score: {ca.student_score}</div>
+                          <div className="text-xs rounded-lg px-2.5 py-2 leading-relaxed mb-2" style={{
+                            background: peer.badge_color==='green'?'rgba(16,185,129,.08)':peer.badge_color==='amber'?'rgba(245,158,11,.08)':peer.badge_color==='orange'?'rgba(232,90,44,.08)':'rgba(239,68,68,.08)',
+                            color: peer.badge_color==='green'?'#059669':peer.badge_color==='amber'?'#d97706':peer.badge_color==='orange'?'#ea580c':'#dc2626',
+                            border: peer.badge_color==='green'?'1px solid rgba(16,185,129,.25)':peer.badge_color==='amber'?'1px solid rgba(245,158,11,.25)':peer.badge_color==='orange'?'1px solid rgba(232,90,44,.25)':'1px solid rgba(239,68,68,.25)'
+                          }}>
                             {ca.overall_message}
                           </div>
                           {ca.category_context && (
                             <div className="space-y-1.5">
-                              <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">
+                              <div className="text-xs font-bold uppercase tracking-wide mb-1" style={{color:'#9ca3af'}}>
                                 All cut-offs
                               </div>
                               {Object.entries(ca.category_context).map(([cat,data])=>(
-                                <div key={cat} className={`flex items-center gap-2 px-2 py-1 rounded-lg text-xs
-                                  ${cat===peer.category?'bg-blue-50 border border-blue-200':'bg-gray-50'}`}>
-                                  <span className={`font-bold w-10 flex-shrink-0 ${cat===peer.category?'text-orange-500':'text-gray-500'}`}>
+                                <div key={cat} className="flex items-center gap-2 px-2 py-1 rounded-lg text-xs" style={{
+                                  background: cat===peer.category?'rgba(232,90,44,.08)':'#f8f9fb',
+                                  border: cat===peer.category?'1px solid rgba(232,90,44,.2)':'1px solid #e5e7eb'
+                                }}>
+                                  <span className="font-bold w-10 flex-shrink-0" style={{color:cat===peer.category?'#F06535':'#6b7280'}}>
                                     {cat}{cat===peer.category?' ✓':''}
                                   </span>
-                                  <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                  <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'#e5e7eb'}}>
                                     <div className="h-full bg-orange-400 rounded-full" style={{width:`${data.typical}%`}}/>
                                   </div>
-                                  <span className="text-gray-500 w-24 text-right text-xs">{data.range}</span>
+                                  <span className="w-24 text-right text-xs" style={{color:'#6b7280'}}>{data.range}</span>
                                 </div>
                               ))}
                             </div>
@@ -1562,24 +1647,24 @@ ${stepsHtml ? `<div class="s-wrap">
                 : <>Start with <b>{weakTopics.slice(0,2).map(w=>tName(w.topic)).join(' and ')}</b>. These are exactly the topics most likely to cost you marks on exam day — left unfixed, they can be the difference between clearing the cut-off and missing the whole exam. Fixing them could add about <b className="text-green-700">+{Math.round(weakTopics.reduce((s,w)=>s+(Number(w.exam_impact)||0),0))} marks</b> next attempt. Practise 10–15 questions each in <b>Practice Topics</b> until your accuracy crosses 70%.</>}
             </RecoBanner>
             <Card title="Weak Areas" icon={<RSIcWarn s={13}/>}
-              badge={<span className="text-xs text-gray-400">{weakTopics.length} topics need attention</span>}>
+              badge={<span className="text-xs" style={{color:'#6b7280'}}>{weakTopics.length} topics need attention</span>}>
               {weakTopics.length === 0
-                ? <p className="text-sm text-gray-400 text-center py-8">No critical weak areas — great consistency!</p>
+                ? <p className="text-sm text-center py-8" style={{color:'#9ca3af'}}>No critical weak areas — great consistency!</p>
                 : <div className="space-y-3">
                     {weakTopics.map((w,i)=>{
                       const sc = w.severity||'moderate'
                       const scStyle = sc==='critical'
-                        ? {dot:'#dc2626', pill:'#fef2f2', pillText:'#dc2626', bar:'#ef4444', border:'#fca5a5'}
+                        ? {dot:'#dc2626', bar:'#ef4444', border:'rgba(239,68,68,.25)', pill:'rgba(239,68,68,.1)', pillText:'#dc2626'}
                         : sc==='moderate'
-                        ? {dot:'#d97706', pill:'#fffbeb', pillText:'#92400e', bar:'#f59e0b', border:'#fcd34d'}
-                        : {dot:'#FF653F', pill:'#FFF3EE', pillText:'#9a3412', bar:'#fb923c', border:'#fed7aa'}
+                        ? {dot:'#d97706', bar:'#f59e0b', border:'rgba(245,158,11,.25)', pill:'rgba(245,158,11,.1)', pillText:'#d97706'}
+                        : {dot:'#F06535', bar:'#F06535', border:'rgba(232,90,44,.25)', pill:'rgba(232,90,44,.1)', pillText:'#F06535'}
                       const acc = w.accuracy||0
                       return (
                         <div key={i} className="rounded-xl overflow-hidden"
-                          style={{border:`1px solid ${scStyle.border}`, borderLeft:`4px solid ${scStyle.dot}`}}>
+                          style={{background:'#ffffff', border:`1px solid ${scStyle.border}`, borderLeft:`4px solid ${scStyle.dot}`}}>
                           <div className="p-3.5">
                             <div className="flex items-start justify-between gap-3 mb-2.5">
-                              <span className="font-bold text-gray-900 text-sm leading-tight">{tName(w.topic)}</span>
+                              <span className="font-bold text-sm leading-tight" style={{color:'#111827'}}>{tName(w.topic)}</span>
                               <div className="flex gap-1.5 flex-shrink-0">
                                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
                                   style={{background:scStyle.pill, color:scStyle.pillText}}>
@@ -1588,20 +1673,20 @@ ${stepsHtml ? `<div class="s-wrap">
                               </div>
                             </div>
                             <div className="flex items-center gap-2.5 mb-2">
-                              <span className="text-xs text-gray-400 w-14 flex-shrink-0">Accuracy</span>
-                              <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                              <span className="text-xs w-14 flex-shrink-0" style={{color:'#9ca3af'}}>Accuracy</span>
+                              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'#e5e7eb'}}>
                                 <div className="h-full rounded-full" style={{width:`${acc}%`, background:scStyle.bar}}/>
                               </div>
                               <span className="text-xs font-bold w-10 text-right flex-shrink-0" style={{color:scStyle.dot}}>{fmt(acc)}%</span>
                             </div>
-                            {w.root_cause && <p className="text-xs text-gray-500 mb-2 leading-relaxed">{w.root_cause}</p>}
+                            {w.root_cause && <p className="text-xs mb-2 leading-relaxed" style={{color:'#6b7280'}}>{w.root_cause}</p>}
                             <div className="flex flex-wrap items-center gap-2">
                               {w.exam_impact > 0 && (
-                                <span className="text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap" style={{color:'#059669',background:'rgba(16,185,129,.1)',border:'1px solid rgba(16,185,129,.2)'}}>
                                   +{w.exam_impact} marks if fixed
                                 </span>
                               )}
-                              {w.suggested_action && <span className="text-xs text-gray-400 leading-snug">{w.suggested_action}</span>}
+                              {w.suggested_action && <span className="text-xs leading-snug" style={{color:'#9ca3af'}}>{w.suggested_action}</span>}
                             </div>
                           </div>
                         </div>
@@ -1610,14 +1695,14 @@ ${stepsHtml ? `<div class="s-wrap">
                   </div>
               }
               {strongTopics.length > 0 && (
-                <div className="mt-5 pt-5 border-t border-gray-100">
-                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Strong Topics ✓</div>
+                <div className="mt-5 pt-5" style={{borderTop:'1px solid #e5e7eb'}}>
+                  <div className="text-xs font-bold uppercase tracking-wide mb-3" style={{color:'#9ca3af'}}>Strong Topics ✓</div>
                   <div className="grid grid-cols-2 gap-2">
                     {strongTopics.slice(0,6).map((s,i)=>(
-                      <div key={i} className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                        <span className="text-green-600 text-xs">✓</span>
-                        <span className="text-xs font-semibold text-green-800">{tName(s.topic)}</span>
-                        <span className="text-xs text-green-600 ml-auto">{fmt(s.accuracy)}%</span>
+                      <div key={i} className="flex items-center gap-2 rounded-lg px-3 py-2" style={{background:'rgba(16,185,129,.08)',border:'1px solid rgba(16,185,129,.2)'}}>
+                        <span className="text-xs" style={{color:'#059669'}}>✓</span>
+                        <span className="text-xs font-semibold" style={{color:'#059669'}}>{tName(s.topic)}</span>
+                        <span className="text-xs ml-auto" style={{color:'#059669'}}>{fmt(s.accuracy)}%</span>
                       </div>
                     ))}
                   </div>
@@ -1645,14 +1730,13 @@ ${stepsHtml ? `<div class="s-wrap">
                   {label:'Sunk on skips',val:`${((timeA.sunk_time||{}).total_sunk_secs||0).toFixed(0)}s`,target:'0s',
                    ok:((timeA.sunk_time||{}).total_sunk_secs||0)<10},
                 ].map(c=>(
-                  <div key={c.label} className="p-4 rounded-xl border border-gray-200 bg-white"
-                    style={{borderTop:`3px solid ${c.ok?'#10b981':'#ef4444'}`}}>
+                  <div key={c.label} className="p-4 rounded-xl" style={{background:'#ffffff',border:'1px solid #e5e7eb',borderTop:`3px solid ${c.ok?'#10b981':'#ef4444'}`}}>
                     <div className="flex justify-between mb-1.5">
-                      <span className="text-xs text-gray-500 font-medium">{c.label}</span>
-                      <span className={`text-xs font-bold ${c.ok?'text-green-600':'text-red-500'}`}>{c.ok?'✓':'!'}</span>
+                      <span className="text-xs font-medium" style={{color:'#6b7280'}}>{c.label}</span>
+                      <span className="text-xs font-bold" style={{color:c.ok?'#059669':'#dc2626'}}>{c.ok?'✓':'!'}</span>
                     </div>
-                    <div className="text-2xl font-black text-gray-900 leading-none mb-1">{c.val}</div>
-                    <div className="text-xs" style={{color: c.ok?'#10b981':'#6b7280'}}>target {c.target}</div>
+                    <div className="text-2xl font-black leading-none mb-1" style={{color:'#111827'}}>{c.val}</div>
+                    <div className="text-xs" style={{color: c.ok?'#059669':'#9ca3af'}}>target {c.target}</div>
                   </div>
                 ))}
               </div>
@@ -1663,10 +1747,10 @@ ${stepsHtml ? `<div class="s-wrap">
                     {timeA.slowest_vs_target.map((s,i)=>(
                       <div key={i}>
                         <div className="flex justify-between text-xs mb-1">
-                          <span className="font-semibold text-gray-700">{tName(s.topic)}</span>
-                          <span className="text-red-600 font-bold">{s.student_avg}s vs {s.target}s ideal ({s.ratio}x)</span>
+                          <span className="font-semibold" style={{color:'#374151'}}>{tName(s.topic)}</span>
+                          <span className="font-bold" style={{color:'#dc2626'}}>{s.student_avg}s vs {s.target}s ideal ({s.ratio}x)</span>
                         </div>
-                        <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="relative h-3 rounded-full overflow-hidden" style={{background:'#e5e7eb'}}>
                           <div className="absolute h-full bg-red-400 rounded-full"
                             style={{width:`${Math.min(s.student_avg/2,100)}%`}}/>
                           <div className="absolute top-0 h-full border-l-2 border-green-600 border-dashed"
@@ -1686,9 +1770,9 @@ ${stepsHtml ? `<div class="s-wrap">
                     {label:'Slow',           val:timeA.slow_count||0,       color:'#f59e0b'},
                     {label:'Very slow (90s+)',val:timeA.very_slow_count||0, color:'#ef4444'},
                   ].map(c=>(
-                    <div key={c.label} className="text-center p-3 bg-gray-50 rounded-xl">
+                    <div key={c.label} className="text-center p-3 rounded-xl" style={{background:'#ffffff',border:'1px solid #e5e7eb'}}>
                       <div className="text-2xl font-black" style={{color:c.color}}>{c.val}</div>
-                      <div className="text-xs text-gray-500 mt-1">{c.label}</div>
+                      <div className="text-xs mt-1" style={{color:'#6b7280'}}>{c.label}</div>
                     </div>
                   ))}
                 </div>
@@ -1705,24 +1789,24 @@ ${stepsHtml ? `<div class="s-wrap">
                 : <>These steps are personalised from your attempt and ranked by exam impact. Do <b>step 1 first</b>, then re-test with a fresh mock to measure your gain. Aim to clear one weak topic a day and review every wrong answer to lock in the improvement.</>}
             </RecoBanner>
             <Card title="Recommended Next Steps" icon={<RSIcArrow s={13}/>}
-              badge={<span className="text-xs text-gray-400">ranked by exam impact</span>}>
+              badge={<span className="text-xs" style={{color:'#6b7280'}}>ranked by exam impact</span>}>
               {nextSteps.length === 0
-                ? <p className="text-sm text-gray-400 text-center py-8">No steps generated.</p>
+                ? <p className="text-sm text-center py-8" style={{color:'#9ca3af'}}>No steps generated.</p>
                 : <div className="space-y-3">
                     {nextSteps.map((step,i)=>(
-                      <div key={i} className="flex gap-4 p-4 border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-sm transition-all">
-                        <div className="w-8 h-8 rounded-full text-white flex items-center justify-center font-black text-sm flex-shrink-0" style={{background:'#FF653F'}}>
+                      <div key={i} className="flex gap-4 p-4 rounded-xl" style={{background:'#f8f9fb',border:'1px solid #e5e7eb'}}>
+                        <div className="w-8 h-8 rounded-full text-white flex items-center justify-center font-black text-sm flex-shrink-0" style={{background:'#F06535'}}>
                           {step.priority}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-bold text-gray-900 text-sm mb-1">{step.title}</div>
-                          <p className="text-xs text-gray-500 mb-2 leading-relaxed">{step.description}</p>
+                          <div className="font-bold text-sm mb-1" style={{color:'#111827'}}>{step.title}</div>
+                          <p className="text-xs mb-2 leading-relaxed" style={{color:'#6b7280'}}>{step.description}</p>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+                            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{color:'#059669',background:'rgba(16,185,129,.1)'}}>
                               {step.impact}
                             </span>
                             {step.mini_test_params?.difficulty && (
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${DIFF_CL[step.mini_test_params.difficulty]||'bg-gray-100 text-gray-600'}`}>
+                              <span className="text-xs px-2 py-0.5 rounded-full" style={{color:'#6b7280',background:'#f3f4f6'}}>
                                 {step.mini_test_params.difficulty}
                               </span>
                             )}
@@ -1732,8 +1816,8 @@ ${stepsHtml ? `<div class="s-wrap">
                           <button
                             onClick={() => launchNextStep(step, i)}
                             disabled={stepLoading === i}
-                            className="flex-shrink-0 text-xs font-bold border px-3 py-1.5 rounded-lg self-center disabled:opacity-50 transition-all hover:bg-orange-50"
-                            style={{color:'#FF653F', borderColor:'#fec9b0'}}>
+                            className="flex-shrink-0 text-xs font-bold border px-3 py-1.5 rounded-lg self-center disabled:opacity-50"
+                            style={{color:'#F06535', borderColor:'rgba(232,90,44,.4)',touchAction:'manipulation'}}>
                             {stepLoading === i
                               ? <span className="flex items-center gap-1"><span className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin"/>...</span>
                               : 'Start →'}
@@ -1750,10 +1834,10 @@ ${stepsHtml ? `<div class="s-wrap">
               const negPenalty = result.negative_marks ?? (wrong * 0.25)
               const hypotheticalScore = (score + negPenalty).toFixed(1)
               return (
-                <div className="rounded-2xl border-2 px-4 py-3 flex items-start gap-3" style={{background:'#fff7ed',borderColor:'#fde8d8'}}>
+                <div className="rounded-2xl px-4 py-3 flex items-start gap-3" style={{background:'rgba(245,158,11,.12)',border:'1px solid rgba(245,158,11,.25)'}}>
                   <span style={{fontSize:22,flexShrink:0,marginTop:1}}>⚠️</span>
                   <div>
-                    <div className="font-bold text-sm text-orange-800 mb-0.5">Negative Marking Impact</div>
+                    <div className="font-bold text-sm mb-0.5" style={{color:'#f59e0b'}}>Negative Marking Impact</div>
                     <div className="text-xs text-orange-700 leading-relaxed">
                       <b>{wrong} wrong answer{wrong>1?'s':''}</b> cost you <b>{negPenalty.toFixed(1)} mark{negPenalty!==1?'s':''}</b> in penalties.
                       Had you skipped them, your score would have been <b>{hypotheticalScore}</b> instead of <b>{score.toFixed(1)}</b>.
@@ -1768,11 +1852,11 @@ ${stepsHtml ? `<div class="s-wrap">
             {qResults.length > 0 && (() => {
               const secs = [...new Set(qResults.map(q => q.section || 'General'))].filter(Boolean)
               return (
-                <div className="bg-white rounded-2xl border border-gray-200 p-4" style={{boxShadow:'0 2px 8px rgba(17,17,17,.05)'}}>
-                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <div className="rounded-2xl p-4" style={{background:'#ffffff',border:'1px solid #e5e7eb'}}>
+                  <div className="text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2" style={{color:'#9ca3af'}}>
                     <RSIcChart s={13}/>
                     Question Heatmap
-                    <span className="font-normal text-gray-400 normal-case tracking-normal">· {qResults.length} questions</span>
+                    <span className="font-normal normal-case tracking-normal" style={{color:'#9ca3af'}}>· {qResults.length} questions</span>
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {qResults.map((q,i)=>{
@@ -1782,7 +1866,7 @@ ${stepsHtml ? `<div class="s-wrap">
                           className="rounded"
                           style={{
                             width:16, height:16, flexShrink:0, cursor:'default',
-                            background: s==='correct'?'#10b981' : s==='wrong'?'#ef4444' : '#e5e7eb',
+                            background: s==='correct'?'#10b981' : s==='wrong'?'#ef4444' : '#d1d5db',
                             opacity: s==='skipped'?0.6:1,
                           }}/>
                       )
@@ -1791,11 +1875,11 @@ ${stepsHtml ? `<div class="s-wrap">
                   <div className="flex items-center gap-5 mt-3">
                     {[{color:'#10b981',label:`${qResults.filter(q=>(q.status||'skipped')==='correct').length} Correct`},
                       {color:'#ef4444',label:`${qResults.filter(q=>(q.status||'skipped')==='wrong').length} Wrong`},
-                      {color:'#e5e7eb',label:`${qResults.filter(q=>!(q.status||'skipped').match(/correct|wrong/)).length} Skipped`},
+                      {color:'#d1d5db',label:`${qResults.filter(q=>!(q.status||'skipped').match(/correct|wrong/)).length} Skipped`},
                     ].map(l => (
                       <div key={l.label} className="flex items-center gap-1.5">
                         <div className="w-3 h-3 rounded-sm" style={{background:l.color}}/>
-                        <span className="text-xs text-gray-500">{l.label}</span>
+                        <span className="text-xs" style={{color:'#6b7280'}}>{l.label}</span>
                       </div>
                     ))}
                   </div>
@@ -1814,17 +1898,17 @@ ${stepsHtml ? `<div class="s-wrap">
             </RecoBanner>
             <Card title="All Topics" icon={<RSIcClip s={13}/>}>
               {Object.keys(topicR).length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-8">
+                <p className="text-sm text-center py-8" style={{color:'#9ca3af'}}>
                   No topic-level breakdown available for this attempt.
                 </p>
               ) : (
               <>
               {/* Legend */}
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 mb-6 pb-4 border-b border-gray-200">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm mb-6 pb-4" style={{color:'#6b7280',borderBottom:'1px solid #e5e7eb'}}>
                 <span className="flex items-center gap-2"><span className="w-4 h-4 rounded-full" style={{background:'#10b981'}}/>Strong (≥60%)</span>
                 <span className="flex items-center gap-2"><span className="w-4 h-4 rounded-full" style={{background:'#f59e0b'}}/>Needs work (35–59%)</span>
                 <span className="flex items-center gap-2"><span className="w-4 h-4 rounded-full" style={{background:'#ef4444'}}/>Weak (&lt;35%)</span>
-                <span className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-gray-300"/>Not attempted</span>
+                <span className="flex items-center gap-2"><span className="w-4 h-4 rounded-full" style={{background:'#d1d5db'}}/>Not attempted</span>
               </div>
 
               <div className="space-y-8">
@@ -1838,7 +1922,7 @@ ${stepsHtml ? `<div class="s-wrap">
                   return (
                     <div key={sec}>
                       <div className="flex items-center justify-between mb-4">
-                        <span className="text-base font-extrabold text-gray-700 uppercase tracking-wide">{SEC[sec]||sec}</span>
+                        <span className="text-base font-extrabold uppercase tracking-wide" style={{color:'#374151'}}>{SEC[sec]||sec}</span>
                         <span className="text-sm font-bold px-3 py-1 rounded-full" style={{ color:sCol, background:`${sCol}1a` }}>
                           {sAcc}% · {sCorr}/{sTotal}
                         </span>
@@ -1854,11 +1938,11 @@ ${stepsHtml ? `<div class="s-wrap">
                           const col   = attempted===0 ? '#9ca3af' : acc>=60?'#10b981':acc>=35?'#f59e0b':'#ef4444'
                           const status= attempted===0 ? 'Not attempted' : acc>=60?'Strong' : acc>=35?'Needs work' : 'Weak'
                           return (
-                            <div key={topic} className="rounded-2xl bg-white border-2 overflow-hidden"
-                              style={{ borderColor:`${col}44`, borderLeftColor:col, borderLeftWidth:6 }}>
+                            <div key={topic} className="rounded-2xl overflow-hidden"
+                              style={{ background:'#ffffff', border:`1px solid #e5e7eb`, borderLeft:`4px solid ${col}` }}>
                               <div className="flex items-center gap-3 px-3 pt-3 pb-1.5">
                                 <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-bold text-gray-900 truncate">{tName(topic)}</div>
+                                  <div className="text-sm font-bold truncate" style={{color:'#111827'}}>{tName(topic)}</div>
                                   <div className="text-[10px] font-bold uppercase tracking-wide mt-0.5" style={{ color:col }}>{status}</div>
                                 </div>
                                 <span className="text-base font-black flex-shrink-0" style={{ color:col }}>
@@ -1866,14 +1950,14 @@ ${stepsHtml ? `<div class="s-wrap">
                                 </span>
                               </div>
                               <div className="px-3 pb-3 space-y-1">
-                                <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-2.5 rounded-full overflow-hidden" style={{background:'#e5e7eb'}}>
                                   <div className="h-full rounded-full transition-all" style={{ width:`${acc}%`, background:col }}/>
                                 </div>
-                                <div className="text-[11px] text-gray-500">
-                                  <span className="font-bold text-green-600">{corr} correct</span>
+                                <div className="text-[11px]" style={{color:'#9ca3af'}}>
+                                  <span className="font-bold" style={{color:'#059669'}}>{corr} correct</span>
                                   {' · '}
-                                  <span className="font-bold text-red-500">{wrng} wrong</span>
-                                  {skip > 0 && <span className="text-gray-400"> · {skip} skipped</span>}
+                                  <span className="font-bold" style={{color:'#dc2626'}}>{wrng} wrong</span>
+                                  {skip > 0 && <span> · {skip} skipped</span>}
                                 </div>
                               </div>
                             </div>
@@ -1896,13 +1980,13 @@ ${stepsHtml ? `<div class="s-wrap">
               <Card title="Question Explanations" icon={<RSIcBulb s={13}/>}>
                 <div className="text-center py-10">
                   <div className="mb-3 flex justify-center"><RSIcFile s={32} c='#9ca3af'/></div>
-                  <div className="text-sm font-bold text-gray-900 mb-1">Detailed review isn't available for this attempt</div>
-                  <div className="text-xs text-gray-500 max-w-md mx-auto mb-5">
+                  <div className="text-sm font-bold mb-1" style={{color:'#111827'}}>Detailed review isn't available for this attempt</div>
+                  <div className="text-xs max-w-md mx-auto mb-5" style={{color:'#6b7280'}}>
                     This test was taken before per-question review was enabled, so its questions weren't saved.
                     New attempts are fully reviewable here — questions, your answers and step-by-step explanations.
                   </div>
                   <button onClick={onRetry}
-                    className="text-white text-sm font-bold px-5 py-2.5 rounded-xl" style={{ background:'#FF653F' }}>
+                    className="text-white text-sm font-bold px-5 py-2.5 rounded-xl" style={{ background:'#F06535' }}>
                     Take a fresh test →
                   </button>
                 </div>
@@ -1926,20 +2010,20 @@ ${stepsHtml ? `<div class="s-wrap">
                   <Card>
                     {passage && (
                       <div className="mb-4">
-                        <div className="text-xs font-bold uppercase tracking-widest mb-2 flex items-center gap-1" style={{color:'#FF653F'}}><RSIcBook s={11} c='#FF653F'/> Passage</div>
-                        <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 lg:max-h-[38vh] lg:overflow-y-auto nice-scroll">
+                        <div className="text-xs font-bold uppercase tracking-widest mb-2 flex items-center gap-1" style={{color:'#F06535'}}><RSIcBook s={11} c='#F06535'/> Passage</div>
+                        <div className="text-sm leading-relaxed whitespace-pre-line rounded-xl px-4 py-3 lg:max-h-[38vh] lg:overflow-y-auto nice-scroll" style={{color:'#374151',background:'rgba(99,102,241,.06)',border:'1px solid rgba(99,102,241,.18)'}}>
                           {passage}
                         </div>
                       </div>
                     )}
                     <div className="flex items-center gap-2 mb-3">
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
-                        st==='correct'?'text-green-700 border-green-300 bg-green-50':
-                        st==='wrong'?'text-red-700 border-red-300 bg-red-50':
-                        'text-gray-500 border-gray-300 bg-gray-50'}`}>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full border" style={
+                        st==='correct'?{color:'#059669',borderColor:'rgba(16,185,129,.3)',background:'rgba(16,185,129,.1)'}:
+                        st==='wrong'?{color:'#dc2626',borderColor:'rgba(239,68,68,.3)',background:'rgba(239,68,68,.08)'}:
+                        {color:'#6b7280',borderColor:'#e5e7eb',background:'#f3f4f6'}}>
                         Q{q.question_number} · {st==='correct'?'Correct ✓':st==='wrong'?'Incorrect ✗':'Skipped —'}
                       </span>
-                      <span className="text-xs text-gray-500">{tName(q.topic)}{q.difficulty?` · ${q.difficulty}`:''}</span>
+                      <span className="text-xs" style={{color:'#9ca3af'}}>{tName(q.topic)}{q.difficulty?` · ${q.difficulty}`:''}</span>
                     </div>
 
                     <ChartQuestion question={q} />
@@ -1953,13 +2037,15 @@ ${stepsHtml ? `<div class="s-wrap">
                         const isCor = q.correct_answer?.toUpperCase()===lbl
                         const isGiv = q.given_answer?.toUpperCase()===lbl
                         return (
-                          <div key={opt} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl border-2 text-sm ${
-                            isCor ? 'bg-green-50 border-green-300' : isGiv&&!isCor ? 'bg-red-50 border-red-300' : 'bg-white border-gray-200'}`}>
-                            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                              isCor?'bg-green-500 text-white':isGiv&&!isCor?'bg-red-500 text-white':'bg-gray-100 text-gray-600'}`}>{lbl}</span>
-                            <span className={`flex-1 ${isCor?'text-green-800 font-semibold':isGiv&&!isCor?'text-red-700':'text-gray-700'}`}>{val}</span>
-                            {isCor && <span className="text-xs font-bold text-green-600">Correct</span>}
-                            {isGiv && !isCor && <span className="text-xs font-bold text-red-600">Your answer</span>}
+                          <div key={opt} className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm" style={
+                            isCor ? {background:'rgba(16,185,129,.08)',border:'2px solid rgba(16,185,129,.3)'}
+                            : isGiv&&!isCor ? {background:'rgba(239,68,68,.07)',border:'2px solid rgba(239,68,68,.3)'}
+                            : {background:'#f8f9fb',border:'2px solid #e5e7eb'}}>
+                            <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 text-white" style={
+                              isCor?{background:'#10b981'}:isGiv&&!isCor?{background:'#ef4444'}:{background:'#d1d5db',color:'#374151'}}>{lbl}</span>
+                            <span className="flex-1" style={isCor?{color:'#059669',fontWeight:600}:isGiv&&!isCor?{color:'#dc2626'}:{color:'#374151'}}>{val}</span>
+                            {isCor && <span className="text-xs font-bold" style={{color:'#059669'}}>Correct</span>}
+                            {isGiv && !isCor && <span className="text-xs font-bold" style={{color:'#dc2626'}}>Your answer</span>}
                           </div>
                         )
                       })}
@@ -1973,15 +2059,15 @@ ${stepsHtml ? `<div class="s-wrap">
                         onClick={() => { setExpIdx(Math.max(0, expIdx - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                         disabled={expIdx === 0}
                         className="px-2 py-1 rounded-lg text-xs font-bold border transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                        style={{ borderColor: '#FF653F', color: '#FF653F' }}>
+                        style={{ borderColor: '#F06535', color: '#F06535' }}>
                         ← Prev
                       </button>
-                      <span className="text-xs text-gray-400 font-medium">{expIdx + 1}/{qResults.length}</span>
+                      <span className="text-xs font-medium" style={{color:'#6b7280'}}>{expIdx + 1}/{qResults.length}</span>
                       <button
                         onClick={() => { setExpIdx(Math.min(qResults.length - 1, expIdx + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                         disabled={expIdx === qResults.length - 1}
                         className="px-2 py-1 rounded-lg text-xs font-bold border transition-all disabled:opacity-30 disabled:cursor-not-allowed text-white"
-                        style={{ background: '#FF653F', borderColor: '#FF653F' }}>
+                        style={{ background: '#F06535', borderColor: '#F06535' }}>
                         Next →
                       </button>
                     </div>
@@ -1992,8 +2078,8 @@ ${stepsHtml ? `<div class="s-wrap">
                 </div>
 
                 {/* Quick jump grid — numbered, tap to review */}
-                <div className="mt-3 bg-white border border-gray-100 rounded-2xl p-3" style={{ boxShadow:'0 2px 10px rgba(17,17,17,.05)' }}>
-                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Jump to question</div>
+                <div className="mt-3 rounded-2xl p-3" style={{background:'#ffffff', border:'1px solid #e5e7eb'}}>
+                  <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{color:'#9ca3af'}}>Jump to question</div>
                   <div className="flex flex-wrap gap-1.5">
                     {qResults.map((qq,i)=>{
                       const s = qq.status||'skipped'
@@ -2001,12 +2087,11 @@ ${stepsHtml ? `<div class="s-wrap">
                       return (
                         <button key={i} onClick={()=>{setExpIdx(i); window.scrollTo({top:0,behavior:'smooth'})}}
                           title={`Question ${qq.question_number} · ${s}`}
-                          className={`w-8 h-8 rounded-lg text-xs font-bold border-2 transition-all ${
-                            active ? 'text-white' :
-                            s==='correct'?'bg-green-50 border-green-300 text-green-700':
-                            s==='wrong'?'bg-red-50 border-red-300 text-red-700':
-                            'bg-gray-50 border-gray-200 text-gray-500'}`}
-                          style={active?{background:'#FF653F',borderColor:'#FF653F'}:{}}>
+                          className="w-8 h-8 rounded-lg text-xs font-bold border-2"
+                          style={active?{background:'#F06535',borderColor:'#F06535',color:'#fff'}:
+                            s==='correct'?{background:'rgba(16,185,129,.08)',borderColor:'rgba(16,185,129,.25)',color:'#059669'}:
+                            s==='wrong'?{background:'rgba(239,68,68,.07)',borderColor:'rgba(239,68,68,.25)',color:'#dc2626'}:
+                            {background:'#f3f4f6',borderColor:'#e5e7eb',color:'#9ca3af'}}>
                           {qq.question_number}
                         </button>
                       )

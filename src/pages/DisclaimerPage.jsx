@@ -1,4 +1,4 @@
-export default function DisclaimerPage() {
+﻿export default function DisclaimerPage() {
   const updated = '01 Oct 2026'
   const S = { page:{ fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", background:'#fff', color:'#111' }, inner:{ maxWidth:760, margin:'0 auto', padding:'0 24px' } }
   const sections = [
@@ -27,7 +27,7 @@ export default function DisclaimerPage() {
             <div key={sec.title} style={{ marginBottom:28 }}>
               <h2 style={{ fontSize:16, fontWeight:800, marginBottom:8, color:'#111' }}>{sec.title}</h2>
               {sec.body && <p style={{ fontSize:14, color:'#374151', lineHeight:1.75 }}>{sec.body}</p>}
-              {sec.contact && <p style={{ fontSize:14, color:'#374151', lineHeight:1.75 }}>Email: <a href="mailto:support@arkaserve.com" style={{ color:'#FF653F' }}>support@arkaserve.com</a> · Phone: +91 94902 84208</p>}
+              {sec.contact && <p style={{ fontSize:14, color:'#374151', lineHeight:1.75 }}>Email: <a href="mailto:support@arkaserve.com" style={{ color:'#F06535' }}>support@arkaserve.com</a> · Phone: +91 94902 84208</p>}
             </div>
           ))}
         </div>

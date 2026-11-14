@@ -4,6 +4,9 @@ export default {
   content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Poppins', 'Inter', 'system-ui', 'sans-serif'],
+      },
       colors: {
         primary: { 50: '#eff6ff', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
         success: { 50: '#f0fdf4', 500: '#22c55e', 600: '#16a34a' },

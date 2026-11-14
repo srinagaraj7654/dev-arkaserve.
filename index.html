@@ -119,18 +119,19 @@
     </script>
   </head>
   <body>
-    <!-- Android OAuth relay: Chrome Custom Tab loads this HTTPS page after Supabase
-         redirects to /login-callback. intent:// is forwarded reliably (unlike direct
-         custom schemes from HTTP 302). Fires before React loads — no race with SDK. -->
+    <!-- OAuth relay: return native OAuth callbacks to the app before React loads. -->
     <script>
-      if (location.pathname === '/login-callback' && /Android/i.test(navigator.userAgent)) {
+      if (location.pathname === '/login-callback') {
         var p = location.hash.slice(1) || location.search.slice(1);
-        if (p) {
+        var ua = navigator.userAgent;
+        if (p && /Android/i.test(ua)) {
           location.replace(
             'intent://login-callback?' + p +
             '#Intent;scheme=com.arkaserve.prep;package=com.arkaserve.prep;' +
             'S.browser_fallback_url=' + encodeURIComponent('https://prep.arkaserve.com') + ';end'
           );
+        } else if (p && /iPhone|iPad|iPod/i.test(ua)) {
+          location.replace('com.arkaserve.prep://login-callback?' + p);
         }
       }
     </script>

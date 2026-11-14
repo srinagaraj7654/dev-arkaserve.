@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 
 // Detect iOS Safari in standalone PWA mode
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
@@ -59,7 +59,7 @@ export default function InstallPrompt() {
       >
         <div
           className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center"
-          style={{ background: '#FF653F' }}
+          style={{ background: '#F06535' }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
         </div>
@@ -70,7 +70,7 @@ export default function InstallPrompt() {
             <button
               onClick={install}
               className="text-xs font-bold px-3 py-1.5 rounded-lg text-white"
-              style={{ background: '#FF653F' }}
+              style={{ background: '#F06535' }}
             >
               Install
             </button>
@@ -101,7 +101,7 @@ export default function InstallPrompt() {
         <div className="flex items-start gap-3">
           <div
             className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center"
-            style={{ background: '#FF653F' }}
+            style={{ background: '#F06535' }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
           </div>

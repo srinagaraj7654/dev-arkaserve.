@@ -1,4 +1,4 @@
-// QuestionScanner.jsx — OCR-based topic detector, no LLM required
+﻿// QuestionScanner.jsx — OCR-based topic detector, no LLM required
 // Pipeline: image upload → Tesseract.js (WASM OCR) → keyword classifier → topic match
 
 import { useState, useRef, useCallback } from 'react'
@@ -336,7 +336,7 @@ function ProgressBar({ value }) {
     <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
       <div
         className="h-2 rounded-full transition-all duration-300"
-        style={{ width: `${value}%`, background: '#FF653F' }}
+        style={{ width: `${value}%`, background: '#F06535' }}
       />
     </div>
   )
@@ -438,7 +438,7 @@ export default function QuestionScanner({ onStartTest }) {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg" style={{ background: '#FF653F' }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg" style={{ background: '#F06535' }}>
             📷
           </div>
           <div>
@@ -498,7 +498,7 @@ export default function QuestionScanner({ onStartTest }) {
               <button
                 onClick={runOcr}
                 className="w-full py-3 rounded-xl text-white font-bold text-sm transition-all hover:opacity-90 shadow-sm"
-                style={{ background: '#FF653F' }}
+                style={{ background: '#F06535' }}
               >
                 Scan & Detect Topic
               </button>
@@ -512,7 +512,7 @@ export default function QuestionScanner({ onStartTest }) {
                       : progress < 90 ? 'Reading text from image…'
                       : 'Classifying topic…'}
                   </span>
-                  <span className="font-bold" style={{ color: '#FF653F' }}>{progress}%</span>
+                  <span className="font-bold" style={{ color: '#F06535' }}>{progress}%</span>
                 </div>
                 <ProgressBar value={progress} />
                 <p className="text-xs text-gray-400 text-center mt-1">
@@ -583,7 +583,7 @@ export default function QuestionScanner({ onStartTest }) {
                               {match.name}
                             </p>
                             {isPrimary && (
-                              <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: '#FF653F' }}>
+                              <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: '#F06535' }}>
                                 Best match
                               </span>
                             )}
@@ -604,7 +604,7 @@ export default function QuestionScanner({ onStartTest }) {
                                 className="h-full rounded-full transition-all duration-500"
                                 style={{
                                   width: `${match.confidence}%`,
-                                  background: isPrimary ? '#FF653F' : '#a78bfa',
+                                  background: isPrimary ? '#F06535' : '#a78bfa',
                                 }}
                               />
                             </div>
@@ -619,7 +619,7 @@ export default function QuestionScanner({ onStartTest }) {
                             ? 'text-white shadow-sm hover:opacity-90'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
-                        style={isPrimary ? { background: '#FF653F' } : {}}
+                        style={isPrimary ? { background: '#F06535' } : {}}
                       >
                         Practice →
                       </button>

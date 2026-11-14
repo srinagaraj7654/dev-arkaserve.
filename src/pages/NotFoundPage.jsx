@@ -1,4 +1,4 @@
-const _SearchIc = ({s=28,c}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c||'#FF653F'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+﻿const _SearchIc = ({s=28,c}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c||'#F06535'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
 
 export default function NotFoundPage({ onNav }) {
   const nav = onNav || (() => {})
@@ -29,9 +29,9 @@ export default function NotFoundPage({ onNav }) {
         <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
           <button
             onClick={() => nav('home')}
-            style={{ background:'#FF653F', color:'#fff', border:'none', borderRadius:10, padding:'11px 24px', fontSize:14, fontWeight:700, cursor:'pointer', transition:'background .15s' }}
+            style={{ background:'#F06535', color:'#fff', border:'none', borderRadius:10, padding:'11px 24px', fontSize:14, fontWeight:700, cursor:'pointer', transition:'background .15s' }}
             onMouseOver={e => e.currentTarget.style.background='#e5532e'}
-            onMouseOut={e => e.currentTarget.style.background='#FF653F'}
+            onMouseOut={e => e.currentTarget.style.background='#F06535'}
           >
             Go Home
           </button>
@@ -58,7 +58,7 @@ export default function NotFoundPage({ onNav }) {
             ].map(({ label, page }) => (
               <button key={page} onClick={() => nav(page)}
                 style={{ background:'none', border:'1px solid #E5E7EB', borderRadius:8, padding:'6px 14px', fontSize:12, color:'#6b7280', cursor:'pointer', transition:'border-color .15s, color .15s' }}
-                onMouseOver={e => { e.currentTarget.style.borderColor='#FF653F'; e.currentTarget.style.color='#FF653F' }}
+                onMouseOver={e => { e.currentTarget.style.borderColor='#F06535'; e.currentTarget.style.color='#F06535' }}
                 onMouseOut={e => { e.currentTarget.style.borderColor='#E5E7EB'; e.currentTarget.style.color='#6b7280' }}
               >{label}</button>
             ))}

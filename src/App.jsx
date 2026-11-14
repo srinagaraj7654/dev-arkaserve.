@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
+﻿import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { Capacitor } from '@capacitor/core'
+import { App as CapApp }  from '@capacitor/app'
 import { supabase }        from './supabase.js'
 import { useSEO }          from './useSEO.js'
 
 import { handleCheckoutReturn } from './payments.js'
 import { checkHealth, syncSubscriptions } from './api.js'
+import { initNotifications, rescheduleIdleNudge } from './notifications.js'
 import { toast }            from './toast.js'
 import Navbar              from './components/Navbar.jsx'
 import Footer              from './components/Footer.jsx'
@@ -46,6 +48,7 @@ const USResultScreen          = lazy(() => import('./pages/USResultScreen.jsx'))
 const CurrentAffairsPage      = lazy(() => import('./pages/CurrentAffairsPage.jsx'))
 const SyllabusPage            = lazy(() => import('./pages/SyllabusPage.jsx'))
 const ExamDatesPage           = lazy(() => import('./pages/ExamDatesPage.jsx'))
+const CategorySelectionPage   = lazy(() => import('./pages/CategorySelectionPage.jsx'))
 
 // Build-time flag set when building for APK (VITE_IS_NATIVE=true npm run build)
 const isNative = import.meta.env.VITE_IS_NATIVE === 'true'
@@ -84,20 +87,30 @@ const IDLE_TIMEOUT  = 15 * 60 * 1000
 const IDLE_WARNING  = 60 * 1000
 
 export default function App() {
-  // In native APK: always start at auth (supabase.auth.getSession redirects to dashboard if already logged in)
-  const [page,        setPage]        = useState(() => isNative ? 'auth' : (pathToPage(window.location.pathname) || 'home'))
+  // In native APK: start at category-select on first launch, auth on subsequent launches
+  const [page,        setPage]        = useState(() => {
+    if (isNative) {
+      try { return localStorage.getItem('mt-cat-done') ? 'auth' : 'category-select' } catch {}
+      return 'auth'
+    }
+    return pathToPage(window.location.pathname) || 'home'
+  })
   useEffect(() => { pageRef.current = page }, [page])
   useSEO(page)
   const [user,        setUser]        = useState(null)
   const [userRole,    setUserRole]    = useState('student')
   const [testData,    setTestData]    = useState(null)
   const [resultData,  setResultData]  = useState(null)
+  const [resultFromPage, setResultFromPage] = useState('dashboard')
   const [authChecked, setAuthChecked] = useState(false)
+  const [roleLoaded,  setRoleLoaded]  = useState(false)
   const [startMode,   setStartMode]   = useState('mock')
   const [startExamId, setStartExamId] = useState('')
-  const [planData,    setPlanData]    = useState(null)
-  const [paymentPlan, setPaymentPlan] = useState(null)
-  const [dashTab,     setDashTab]     = useState('home')
+  const [planData,      setPlanData]      = useState(null)
+  const [paymentPlan,   setPaymentPlan]   = useState(null)
+  const [dashTab,       setDashTab]       = useState('home')
+  const [studentScores, setStudentScores] = useState({})
+  const [resumeState,   setResumeState]   = useState(null)
 
   const [darkMode, setDarkMode] = useState(() => {
     try { return localStorage.getItem('mt-dark') === '1' } catch { return false }
@@ -111,6 +124,7 @@ export default function App() {
   const [showProfilePopup,  setShowProfilePopup]  = useState(false)
   const idleTimer    = useRef(null)
   const warningTimer = useRef(null)
+  const notifInitDoneRef = useRef(false)   // prevent duplicate permission dialog
   const skipPushRef    = useRef(false)
   const historyMounted = useRef(false)
   const pendingNavRef    = useRef(null)
@@ -171,9 +185,38 @@ export default function App() {
 
   // First handler to navigate after login claims navClaimedRef.
   // Subsequent handlers (handleAuth, onAuthStateChange, getSession) skip.
-  const _navigateOnce = (u) => {
+  const _navigateOnce = async (u) => {
     if (navClaimedRef.current) return
     navClaimedRef.current = true
+
+    // If the user is already on a valid authenticated page (e.g. refreshed /admin or /dashboard),
+    // don't override it. Only navigate when on an entry/public page or when a pending nav exists.
+    const ENTRY_PAGES = new Set(['home', 'auth', 'onboarding', 'category-select'])
+    console.log('[_navigateOnce] pageRef.current=', pageRef.current, 'pending=', _peekPendingNav())
+    if (!ENTRY_PAGES.has(pageRef.current) && !_peekPendingNav()) {
+      console.log('[_navigateOnce] already on valid page — skipping nav')
+      return
+    }
+
+    // Save pending_categories (selected pre-login) to Supabase if user doesn't have them yet
+    if (isNative) {
+      const existing = u?.user_metadata?.selected_categories
+      if (!existing || !existing.length) {
+        try {
+          const raw = localStorage.getItem('mt-pending-cats')
+          if (raw) {
+            const cats = JSON.parse(raw)
+            if (cats.length) {
+              supabase.auth.updateUser({ data: { selected_categories: cats } }).then(({ data }) => {
+                try { localStorage.removeItem('mt-pending-cats') } catch {}
+                if (data?.user) setUser(data.user)
+              })
+            }
+          }
+        } catch {}
+      }
+    }
+
     const pending = _consumePendingNav()
     if (pending) {
       if (pending.target === 'mocktest') {
@@ -183,7 +226,12 @@ export default function App() {
       }
       window.scrollTo(0, 0)
     } else {
-      setDashTab('home'); setPage(resolvePostAuthPage(u))
+      // Native only: show onboarding wizard for first-time users
+      if (isNative && !u?.user_metadata?.onboarding_complete) {
+        setPage('onboarding')
+      } else {
+        setDashTab('home'); setPage(await resolvePostAuthPage(u))
+      }
     }
   }
 
@@ -202,30 +250,48 @@ export default function App() {
     setDashTab('home')
     navClaimedRef.current = false
     regionSavedRef.current = false
-    setPage('home')
+    setPage(isNative ? 'auth' : 'home')
   }, [clearTimers])
 
-  // Show profile completion popup once per session when the user logs in with an incomplete profile.
+  // Show profile completion popup once per INSTALL when the user logs in with an incomplete profile.
+  // Uses localStorage (not sessionStorage) so the dismissal persists across cold starts on Android.
   useEffect(() => {
     if (!user) return
-    try { if (sessionStorage.getItem('profilePopupDismissed')) return } catch {}
+    try { if (localStorage.getItem('profilePopupDismissed_' + user.id)) return } catch {}
     const m = user.user_metadata || {}
     const fields = [m.full_name, m.phone || m.mobile, m.dob, m.gender, m.category, m.target_exam, m.level, m.state]
     const filled = fields.filter(Boolean).length
     if (filled < fields.length) setShowProfilePopup(true)
   }, [user?.id])  // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Schedule local notifications once per login session (Android only).
+  // Skip for new users who haven't completed onboarding yet — the permission
+  // dialog firing mid-onboarding confuses users. initNotifications() is called
+  // explicitly from handleOnboardingDone / handleOnboardingSkip instead.
+  // notifInitDoneRef guards against double-firing when handleOnboardingDone
+  // calls setUser() and re-triggers this effect in the same session.
+  useEffect(() => {
+    if (!isNative || !user) return
+    if (!user?.user_metadata?.onboarding_complete) return
+    if (notifInitDoneRef.current) return
+    notifInitDoneRef.current = true
+    initNotifications()
+  }, [user?.id])  // eslint-disable-line react-hooks/exhaustive-deps
+
   // Fetch role from user_roles table whenever the logged-in user changes.
   // Falls back to 'student' on any error so the app never breaks.
   useEffect(() => {
-    if (!user) { setUserRole('student'); return }
+    // Keep roleLoaded=false when user is null — only mark loaded after a real DB fetch.
+    // This prevents a stale roleLoaded=true from a previous null-user run from letting
+    // the admin guard fire before the role is actually fetched for the signed-in user.
+    if (!user) { setUserRole('student'); setRoleLoaded(false); return }
     supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
       .single()
-      .then(({ data }) => setUserRole(data?.role || 'student'))
-      .catch(() => setUserRole('student'))
+      .then(({ data }) => { setUserRole(data?.role || 'student'); setRoleLoaded(true) })
+      .catch(() => { setUserRole('student'); setRoleLoaded(true) })
   }, [user?.id])
 
   const resetIdleTimer = useCallback(() => {
@@ -267,7 +333,13 @@ export default function App() {
         const u = data.session.user
         setUser(u)
         _saveExamRegion(u)
-        _navigateOnce(u)
+        // If the user refreshed on a specific page (e.g. /admin, /dashboard), preserve it.
+        // Only call _navigateOnce when on 'home' (URL didn't match a route) or there's a pending nav.
+        if (pageRef.current === 'home' || _peekPendingNav()) {
+          _navigateOnce(u)
+        } else {
+          navClaimedRef.current = true  // prevent onAuthStateChange from also navigating
+        }
       } else if (onAuthPage && data.session?.user?.email_confirmed_at) {
         // Already logged in — redirect to Dashboard so they don't land on a blank auth page
         const u = data.session.user
@@ -317,7 +389,17 @@ export default function App() {
     return () => listener.subscription.unsubscribe()
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
-  const resolvePostAuthPage = (_u) => 'dashboard'
+  const resolvePostAuthPage = async (u) => {
+    try {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', u.id)
+        .single()
+      if (data?.role === 'super_admin') return 'admin'
+    } catch {}
+    return 'dashboard'
+  }
 
   // Failsafe for Google OAuth redirect: after OAuth the page lands at http://localhost:3000/
   // (page='home'). If the async Supabase handlers haven't fired _navigateOnce yet,
@@ -373,6 +455,29 @@ export default function App() {
     return () => { cancelled = true }
   }, [user])
 
+  // Fetch per-topic performance for TopicPractice score display.
+  useEffect(() => {
+    if (!user?.id) return
+    let cancelled = false
+    supabase
+      .from('student_topic_stats')
+      .select('topic, last_accuracy, attempts, correct, total_questions')
+      .eq('student_id', user.id)
+      .then(({ data }) => {
+        if (cancelled || !data) return
+        const scores = {}
+        data.forEach(row => {
+          scores[row.topic] = {
+            last:     Math.round(row.last_accuracy),
+            best:     row.total_questions > 0 ? Math.round(row.correct / row.total_questions * 100) : Math.round(row.last_accuracy),
+            sessions: row.attempts,
+          }
+        })
+        setStudentScores(scores)
+      })
+    return () => { cancelled = true }
+  }, [user?.id])
+
   // After returning from Stripe Checkout, verify the session and activate the plan.
   useEffect(() => {
     if (!user) return
@@ -423,6 +528,44 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPop)
   }, [user, testData, resultData])  // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Android hardware back button (Capacitor) ──────────────────────────
+  // Without this the Android back button either exits the app immediately or
+  // does nothing. We intercept it and drive our own page stack.
+  useEffect(() => {
+    if (!isNative) return
+    const atRootHandler = () => CapApp.exitApp()
+    window.addEventListener('mt:at-root', atRootHandler)
+    const appStateHandler = CapApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) rescheduleIdleNudge()
+    })
+    const handler = CapApp.addListener('backButton', () => {
+      const cur = pageRef.current
+      if (cur === 'auth' || cur === 'onboarding' || cur === 'category-select') { CapApp.exitApp(); return }
+      if (cur === 'dashboard' || cur === 'home') {
+        // Delegate to Dashboard — it pops sub-views then tabs, then dispatches mt:at-root to exit
+        window.dispatchEvent(new CustomEvent('mt:go-back'))
+        return
+      }
+      if (cur === 'result') {
+        // Delegate to ResultScreen — it pops its tab history, then calls onHome when exhausted
+        window.dispatchEvent(new CustomEvent('mt:result-back'))
+        return
+      }
+      if (cur === 'exam') {
+        // Show exit confirmation inside ExamScreen instead of navigating away immediately
+        window.dispatchEvent(new CustomEvent('mt:exam-back'))
+        return
+      }
+      if (user) { setPage('dashboard'); window.scrollTo(0, 0) }
+      else { setPage('auth') }
+    })
+    return () => {
+      handler.then(h => h.remove()).catch(() => {})
+      appStateHandler.then(h => h.remove()).catch(() => {})
+      window.removeEventListener('mt:at-root', atRootHandler)
+    }
+  }, [user])  // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!historyMounted.current) { historyMounted.current = true; return }
     if (skipPushRef.current) { skipPushRef.current = false; return }  // change came from Back
@@ -447,6 +590,13 @@ export default function App() {
   }
 
   const nav = (target, examId) => {
+    // In native mode, web-only marketing/landing pages should never render.
+    // Redirect silently to dashboard instead of showing website content.
+    const NATIVE_BLOCKED = new Set([...LANDING_TABS, 'courses', 'contact', 'blog', 'us-score-prediction'])
+    if (isNative && NATIVE_BLOCKED.has(target)) {
+      setDashTab('home'); setPage('dashboard'); return
+    }
+
     const publicList = [...LANDING_TABS,'courses','contact','privacy','terms','auth','practice','cutoffs','papers','exams','exams-banking','exams-insurance','exams-ssc','exams-railway','exams-engineering','exams-medical','blog','us-exams','us-score-prediction','current-affairs','examhome','syllabus','exam-dates']
 
     // When user clicks "Sign In" from us-exams, preserve that context so
@@ -501,11 +651,48 @@ export default function App() {
       if (data?.user) setUser(data.user)
     })
     setPage('dashboard')
+    if (isNative && !notifInitDoneRef.current) { notifInitDoneRef.current = true; initNotifications() }
   }
 
-  const handleOnboardingSkip = () => setPage('dashboard')
+  const handleOnboardingSkip = () => {
+    setPage('dashboard')
+    if (isNative && !notifInitDoneRef.current) { notifInitDoneRef.current = true; initNotifications() }
+  }
 
-  const startTest  = (data) => { if (!guardTrial()) return; setTestData(data); setPage('exam') }
+  // Pre-login category selection (first launch): store selections and proceed to auth
+  const handleCategorySelectFirst = (cats) => {
+    try {
+      localStorage.setItem('mt-pending-cats', JSON.stringify(cats))
+      localStorage.setItem('mt-cat-done', '1')
+    } catch {}
+    setPage('auth')
+  }
+
+  // Post-login category change: save directly to Supabase user metadata
+  const handleCategorySelectChange = async (cats) => {
+    try {
+      const { data } = await supabase.auth.updateUser({ data: { selected_categories: cats } })
+      if (data?.user) setUser(data.user)
+    } catch {}
+    setDashTab('home')
+    setPage('dashboard')
+  }
+
+  const startTest  = (data) => { if (!guardTrial()) return; setResumeState(null); setResultFromPage(page); setTestData(data); setPage('exam') }
+  const resumeTest = () => {
+    if (!guardTrial()) return
+    try {
+      const base = localStorage.getItem('mt-inprogress')
+      if (!base) return
+      const baseData = JSON.parse(base)
+      const stateStr = localStorage.getItem('mt-inprogress-state')
+      const state = stateStr ? JSON.parse(stateStr) : {}
+      setTestData(baseData.testData)
+      setResumeState({ answers: state.answers || {}, activeSection: state.activeSection || null, secsLeft: state.secsLeft || null })
+      setResultFromPage('dashboard')
+      setPage('exam')
+    } catch {}
+  }
   const showResult = async (data) => {
     setResultData(data)
     setPage('result')
@@ -560,11 +747,12 @@ export default function App() {
         question_results: [], _noDetail: true,
       })
     }
+    setResultFromPage(page)
     window.scrollTo(0, 0)
     setPage('result')
   }
 
-  const goHome = () => { setTestData(null); setResultData(null); setPage('dashboard') }
+  const goHome = () => { setTestData(null); setResultData(null); setResumeState(null); setPage('dashboard') }
 
   const userName = user?.user_metadata?.full_name
     || user?.email?.split('@')[0] || 'Student'
@@ -575,10 +763,10 @@ export default function App() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3" style={{background:'#FF653F'}}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3" style={{background:'#F06535'}}>
             <span className="text-white font-bold text-sm">MT</span>
           </div>
-          <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin mx-auto" style={{borderColor:'#FF653F',borderTopColor:'transparent'}}></div>
+          <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin mx-auto" style={{borderColor:'#F06535',borderTopColor:'transparent'}}></div>
         </div>
       </div>
     )
@@ -621,7 +809,7 @@ export default function App() {
         <Suspense fallback={
           <div className="flex items-center justify-center py-32">
             <div className="w-8 h-8 border-4 rounded-full animate-spin"
-              style={{ borderColor:'#fed7c2', borderTopColor:'#FF653F' }}/>
+              style={{ borderColor:'#fed7c2', borderTopColor:'#F06535' }}/>
           </div>
         }>
         {LANDING_TABS.includes(page) && <LandingPage key={page} onNav={nav} initialTab={page} />}
@@ -633,7 +821,7 @@ export default function App() {
         {page === 'disclaimer'     && <DisclaimerPage />}
         {page === 'cookies'        && <CookiesPage />}
         {page === 'cutoffs'        && <CutoffsPage onNav={nav} user={user} onLogout={handleLogout} />}
-        {page === 'papers'         && <PreviousPapersPage onNav={nav} user={user} onLogout={handleLogout} />}
+        {page === 'papers'         && <PreviousPapersPage onNav={nav} user={user} onLogout={handleLogout} isNative={isNative} />}
         {page === 'exams'              && <ExamsPage onNav={nav} isAdmin={userRole === 'super_admin'} user={user} onLogout={handleLogout} />}
         {page === 'exams-banking'     && <ExamsPage onNav={nav} category="banking"     isAdmin={userRole === 'super_admin'} user={user} onLogout={handleLogout} />}
         {page === 'exams-insurance'   && <ExamsPage onNav={nav} category="insurance"   isAdmin={userRole === 'super_admin'} user={user} onLogout={handleLogout} />}
@@ -646,7 +834,23 @@ export default function App() {
         {page === 'current-affairs'   && <CurrentAffairsPage onNav={nav} />}
         {page === 'syllabus'          && <SyllabusPage onNav={nav} />}
         {page === 'exam-dates'        && <ExamDatesPage onNav={nav} />}
-        {page === 'auth'           && <AuthScreen onAuth={handleAuth} onBack={() => setPage('home')} onNav={nav} />}
+        {page === 'auth' && !user  && <AuthScreen onAuth={handleAuth} onBack={() => setPage('home')} onNav={nav} />}
+        {page === 'onboarding' && isNative && user && (
+          <OnboardingWizard
+            user={user}
+            onDone={handleOnboardingDone}
+            onSkip={handleOnboardingSkip}
+          />
+        )}
+        {page === 'category-select' && isNative && (
+          <div style={{position:'fixed',inset:0,zIndex:9999,overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
+            <CategorySelectionPage
+              initialCategories={user?.user_metadata?.selected_categories || []}
+              isChanging={!!user}
+              onContinue={user ? handleCategorySelectChange : handleCategorySelectFirst}
+            />
+          </div>
+        )}
         {page === 'reset-password' && <ResetPasswordPage onBack={() => setPage('auth')} />}
         {page === 'payment'        && (
           <PaymentComingSoon
@@ -663,6 +867,9 @@ export default function App() {
             examRegion={user?.user_metadata?.exam_region || 'in'}
             onStartTest={(mode, examId) => {
               if (!guardTrial()) return
+              if (mode === 'mock') {
+                try { sessionStorage.setItem('mt-hs-only-tab', 'mock') } catch {}
+              }
               setStartMode(mode || 'mock')
               setStartExamId(examId || '')
               setPage('examhome')
@@ -670,6 +877,8 @@ export default function App() {
             onLogout={handleLogout}
             onNav={nav}
             onOpenResult={openSavedResult}
+            onTabChange={setDashTab}
+            onResumeTest={resumeTest}
           />
         )}
         {page === 'practice'       && (
@@ -695,7 +904,8 @@ export default function App() {
               setStartExamId(engineKey || '')
               setPage('examhome')
             }}
-            studentScores={{}}
+            studentScores={studentScores}
+            isNative={isNative}
           />
         )}
         {page === 'examhome'       && (
@@ -716,6 +926,8 @@ export default function App() {
             studentName={userName}
             onResult={showResult}
             onExit={goHome}
+            onExitToHistory={() => { setTestData(null); setResultData(null); setResumeState(null); setDashTab('performance'); setPage('dashboard') }}
+            resumeState={resumeState}
           />
         )}
         {page === 'result'         && (() => {
@@ -735,12 +947,13 @@ export default function App() {
                 result={resultData}
                 studentName={userName}
                 onRetry={() => setPage('examhome')}
-                onHome={user?.user_metadata?.exam_region === 'us' ? () => setPage('us-exams') : () => setPage('dashboard')}
+                onHome={user?.user_metadata?.exam_region === 'us' ? () => setPage('us-exams') : () => setPage(resultFromPage || 'dashboard')}
+                onViewHistory={() => { setResultData(null); setDashTab('performance'); setPage('dashboard') }}
                 onStartTest={startTest}
                 user={user}
               />
         })()}
-        {page === 'admin'          && (userRole === 'super_admin'
+        {page === 'admin'          && authChecked && (!user || roleLoaded) && (userRole === 'super_admin'
           ? <AdminPage onBack={() => setPage('dashboard')} />
           : (() => { nav('dashboard'); return null })()
         )}
@@ -751,31 +964,33 @@ export default function App() {
           'courses','contact','privacy','terms','cutoffs','papers',
           'exams','exams-banking','exams-insurance','exams-ssc','exams-railway','exams-engineering','exams-medical',
           'blog',
-          'auth','reset-password','payment','dashboard','practice','topic-practice','examhome','exam',
+          'auth','onboarding','reset-password','payment','dashboard','practice','topic-practice','examhome','exam',
           'result','admin','how-prediction-works','us-exams','us-score-prediction','current-affairs',
+          'syllabus','exam-dates','refund','disclaimer','cookies','category-select',
         ].includes(page) && <NotFoundPage onNav={nav} />}
         </Suspense>
       </main>
 
-      {isPublic && page !== 'auth' && page !== 'dashboard' && !page.startsWith('exams') && page !== 'cutoffs' && page !== 'papers' && <Footer onNav={nav} />}
+      {!isNative && isPublic && page !== 'auth' && page !== 'dashboard' && !page.startsWith('exams') && page !== 'cutoffs' && page !== 'papers' && <Footer onNav={nav} />}
       {!isNative && <CookieConsent />}
       <ToastHost />
       {!isNative && <InstallPrompt />}
 
-      {/* ── Profile completion popup ── */}
-      {showProfilePopup && user && (
+      {/* ── Profile completion popup — only on dashboard, never over onboarding/auth ── */}
+      {showProfilePopup && user && page === 'dashboard' && (
         <ProfileCompletePopup
           user={user}
           onClose={() => {
             setShowProfilePopup(false)
-            try { sessionStorage.setItem('profilePopupDismissed', '1') } catch {}
+            try { localStorage.setItem('profilePopupDismissed_' + user.id, '1') } catch {}
+            setPage('dashboard')
           }}
           onComplete={() => {
             setShowProfilePopup(false)
-            try { sessionStorage.setItem('profilePopupDismissed', '1') } catch {}
-            setDashTab('profile')
+            try { localStorage.setItem('profilePopupDismissed_' + user.id, '1') } catch {}
             setPage('dashboard')
             window.scrollTo(0, 0)
+            setTimeout(() => window.dispatchEvent(new CustomEvent('mt:switch-tab', { detail: { tab: 'profile' } })), 50)
           }}
         />
       )}
@@ -804,7 +1019,7 @@ export default function App() {
           background:'#25D366', color:'#fff',
           borderRadius:999, padding:'12px 20px 12px 14px',
           boxShadow:'0 4px 20px rgba(37,211,102,.45)',
-          textDecoration:'none', fontFamily:"'Inter',sans-serif",
+          textDecoration:'none', fontFamily:"'Poppins','Inter',sans-serif",
           fontSize:15, fontWeight:700, letterSpacing:'.01em',
           transition:'transform .2s, box-shadow .2s',
         }}
@@ -842,19 +1057,22 @@ function ProfileCompletePopup({ user, onClose, onComplete }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 10000,
-      background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(3px)',
+      background: 'rgba(0,0,0,.60)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
+      // Promote to its own GPU compositing layer so the WebView does not repaint
+      // the native Android status bar when the semi-transparent backdrop renders.
+      transform: 'translateZ(0)', willChange: 'transform',
     }}>
       <div style={{
         background: '#fff', borderRadius: 20, padding: '32px 28px', maxWidth: 420, width: '100%',
         boxShadow: '0 20px 60px rgba(0,0,0,.18)', textAlign: 'center',
-        fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
+        fontFamily: "'Poppins','Inter','Segoe UI',system-ui,sans-serif",
       }}>
         {/* Progress ring */}
         <div style={{ position: 'relative', width: 88, height: 88, margin: '0 auto 20px' }}>
           <svg width="88" height="88" viewBox="0 0 88 88" style={{ transform: 'rotate(-90deg)' }}>
             <circle cx="44" cy="44" r="36" fill="none" stroke="#f3f4f6" strokeWidth="7"/>
-            <circle cx="44" cy="44" r="36" fill="none" stroke="#FF653F" strokeWidth="7"
+            <circle cx="44" cy="44" r="36" fill="none" stroke="#F06535" strokeWidth="7"
               strokeDasharray={`${2 * Math.PI * 36 * pct / 100} ${2 * Math.PI * 36 * (1 - pct / 100)}`}
               strokeLinecap="round" style={{ transition: 'stroke-dasharray .5s ease' }}/>
           </svg>
@@ -891,6 +1109,7 @@ function ProfileCompletePopup({ user, onClose, onComplete }) {
             style={{
               flex: 1, padding: '11px 16px', borderRadius: 12, border: '1px solid #e5e7eb',
               background: '#fff', color: '#6b7280', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
             }}
             onMouseOver={e => e.currentTarget.style.background='#f9fafb'}
             onMouseOut={e => e.currentTarget.style.background='#fff'}>
@@ -899,10 +1118,11 @@ function ProfileCompletePopup({ user, onClose, onComplete }) {
           <button onClick={onComplete}
             style={{
               flex: 2, padding: '11px 16px', borderRadius: 12, border: 'none',
-              background: '#FF653F', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+              background: '#F06535', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+              touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
             }}
             onMouseOver={e => e.currentTarget.style.background='#e5512f'}
-            onMouseOut={e => e.currentTarget.style.background='#FF653F'}>
+            onMouseOut={e => e.currentTarget.style.background='#F06535'}>
             Complete Profile
           </button>
         </div>

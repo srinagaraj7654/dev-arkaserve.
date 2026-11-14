@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+﻿import { useState, useRef, useEffect, useCallback } from 'react'
 import { generateTest, generateMiniTest, generateTopicTest } from '../api.js'
 
 // ── Tab mode icons ────────────────────────────────────────────
@@ -272,7 +272,7 @@ function SATExamTab({ studentName, onStart, initialExamId = 'sat_full' }) {
           return (
             <button key={exam.id} onClick={() => { setSelected(exam); setError('') }}
               className={`text-left p-4 rounded-2xl border-2 transition-all ${active ? '' : 'border-gray-200 bg-white hover:border-orange-200'}`}
-              style={active ? { borderColor:'#FF653F', background:'#FFF3EE' } : {}}>
+              style={active ? { borderColor:'#F06535', background:'#FFF3EE' } : {}}>
               <div className="flex items-center justify-between mb-2">
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${active ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600'}`}>{exam.badge}</span>
                 {active && <span className="text-orange-500 text-sm">✓</span>}
@@ -307,9 +307,9 @@ function SATExamTab({ studentName, onStart, initialExamId = 'sat_full' }) {
 
       <button onClick={start} disabled={loading}
         className="w-full py-3.5 rounded-2xl text-white font-bold text-sm disabled:opacity-60 transition-all"
-        style={{ background:'#FF653F' }}
+        style={{ background:'#F06535' }}
         onMouseOver={e => !loading && (e.currentTarget.style.background = '#e5512f')}
-        onMouseOut={e => (e.currentTarget.style.background = '#FF653F')}>
+        onMouseOut={e => (e.currentTarget.style.background = '#F06535')}>
         {loading
           ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Generating test…</span>
           : `Start ${selected.badge} · ${selected.questions}Q · ${selected.duration}`}
@@ -404,12 +404,12 @@ function FullMockTab({ studentName, onStart, onNeedAuth, initialExamId = '', reg
             const isThis = loadingId === exam.id && loading
             return (
               <div key={exam.id} style={{border:'1.5px solid #f0f0f0',borderRadius:12,overflow:'hidden',background:'#fff',display:'flex',flexDirection:'column'}}>
-                <div style={{height:3,background:'linear-gradient(90deg,#FF653F,#ff9a72)'}}/>
+                <div style={{height:3,background:'linear-gradient(90deg,#F06535,#ff9a72)'}}/>
                 <div style={{padding:'13px 16px',flex:1,display:'flex',flexDirection:'column',gap:10}}>
                   <div>
                     <div style={{fontSize:13.5,fontWeight:900,color:'#111827',letterSpacing:'-.02em',marginBottom:5}}>{exam.name}</div>
                     <div style={{display:'flex',gap:5}}>
-                      <span style={{fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:4,background:'#FFF3EE',color:'#FF653F'}}>{exam.badge}</span>
+                      <span style={{fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:4,background:'#FFF3EE',color:'#F06535'}}>{exam.badge}</span>
                       <span style={{fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:4,background:'#f3f4f6',color:'#6b7280'}}>{exam.level}</span>
                     </div>
                   </div>
@@ -435,12 +435,12 @@ function FullMockTab({ studentName, onStart, onNeedAuth, initialExamId = '', reg
                   <button onClick={() => start(exam)} disabled={loading} style={{
                     width:'100%',padding:'10px',borderRadius:9,border:'none',
                     cursor:loading?'default':'pointer',
-                    background:'#FF653F',color:'#fff',fontWeight:800,fontSize:12.5,
-                    boxShadow:'0 3px 14px rgba(255,101,63,.25)',transition:'all .15s',
+                    background:'#F06535',color:'#fff',fontWeight:800,fontSize:12.5,
+                    boxShadow:'0 3px 14px rgba(232,90,44,.22)',transition:'all .15s',
                     opacity:loading?.75:1,marginTop:'auto',
                   }}
                     onMouseOver={e=>!loading&&(e.currentTarget.style.background='#e8501c')}
-                    onMouseOut={e=>e.currentTarget.style.background='#FF653F'}>
+                    onMouseOut={e=>e.currentTarget.style.background='#F06535'}>
                     {isThis
                       ? <span style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
                           <span style={{width:12,height:12,border:'2px solid rgba(255,255,255,.4)',borderTopColor:'#fff',borderRadius:'50%',animation:'spin 0.7s linear infinite',display:'inline-block'}}/>
@@ -457,8 +457,8 @@ function FullMockTab({ studentName, onStart, onNeedAuth, initialExamId = '', reg
 
       {/* ── RIGHT: Info sidebar ── */}
       <div className="fmock-side">
-        <div style={{background:'rgba(255,101,63,.08)',border:'1px solid rgba(255,101,63,.2)',borderRadius:16,padding:'18px 20px'}}>
-          <div style={{fontSize:10,fontWeight:800,color:'#FF653F',textTransform:'uppercase',letterSpacing:'.09em',marginBottom:12}}>Preparation Tips</div>
+        <div style={{background:'rgba(232,90,44,.08)',border:'1px solid rgba(232,90,44,.2)',borderRadius:16,padding:'18px 20px'}}>
+          <div style={{fontSize:10,fontWeight:800,color:'#F06535',textTransform:'uppercase',letterSpacing:'.09em',marginBottom:12}}>Preparation Tips</div>
           {[
             'Start with section tests to spot weak areas',
             'Review solution PDFs after every mock',
@@ -466,7 +466,7 @@ function FullMockTab({ studentName, onStart, onNeedAuth, initialExamId = '', reg
             'Maintain exam-day discipline with a timer',
           ].map((tip, i) => (
             <div key={i} style={{display:'flex',gap:10,marginBottom:i<3?10:0,fontSize:12.5,color:'#374151',lineHeight:1.6}}>
-              <span style={{color:'#FF653F',flexShrink:0,fontWeight:700,marginTop:1}}>→</span>
+              <span style={{color:'#F06535',flexShrink:0,fontWeight:700,marginTop:1}}>→</span>
               <span>{tip}</span>
             </div>
           ))}
@@ -492,13 +492,21 @@ function TopicPracticeTab({ studentName, onStart, user = null, sectionId = 'nume
   const [loading,    setLoading]   = useState(false)
   const [error,      setError]     = useState('')
 
+  // Reset topic selection when section chip changes so the config panel
+  // clears and the Start button is disabled until user picks a topic in the new section
+  useEffect(() => {
+    setTopic(null)
+    setTopicSec(null)
+    setError('')
+  }, [sectionId])
+
   const currentSection = TOPICS.find(s => s.section === sectionId) || TOPICS[0]
   const isDiagnostic   = difficulty === 'diagnostic'
 
   const pickTopic = (t, secId) => { setTopic(t); setTopicSec(secId); setError('') }
 
   const start = async () => {
-    if (!topic) return
+    if (!topic || loading) return
     setError(''); setLoading(true)
     try {
       const d = isDiagnostic
@@ -506,7 +514,8 @@ function TopicPracticeTab({ studentName, onStart, user = null, sectionId = 'nume
         : await generateMiniTest(topicSec, topic.id, count, difficulty, user?.id || studentName)
       onStart(d)
     }
-    catch(e) { setError(e.friendlyMessage||'Server error. Please try again.'); setLoading(false) }
+    catch(e) { setError(e.friendlyMessage||'Server error. Please try again.') }
+    finally { setLoading(false) }
   }
 
   const diffStyle = { easy:'bg-emerald-100 text-emerald-800 border-emerald-300', medium:'bg-amber-100 text-amber-800 border-amber-300', hard:'bg-red-100 text-red-800 border-red-300', mixed:'bg-orange-100 text-orange-800 border-orange-300', diagnostic:'bg-orange-100 text-orange-800 border-orange-300' }
@@ -527,14 +536,14 @@ function TopicPracticeTab({ studentName, onStart, user = null, sectionId = 'nume
                 onClick={() => pickTopic(t, currentSection.section)}
                 className={`text-left px-3 py-2 rounded-xl border transition-all hover:shadow-sm ${isSel ? 'border-2' : ''}`}
                 style={isSel
-                  ? { background:'#FFF3EE', borderColor:'#FF653F' }
+                  ? { background:'#FFF3EE', borderColor:'#F06535' }
                   : { background:`${currentSection.accent}0D`, borderColor:`${currentSection.accent}33`, borderLeftColor: currentSection.accent, borderLeftWidth: 4 }}>
                 <div className="flex items-center justify-between gap-1">
                   <span className="text-sm font-bold leading-tight"
                     style={{ color: isSel ? '#111' : currentSection.accent }}>
                     {t.label}
                   </span>
-                  {isSel && <span className="text-[10px] text-white px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background:'#FF653F' }}>✓</span>}
+                  {isSel && <span className="text-[10px] text-white px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background:'#F06535' }}>✓</span>}
                 </div>
               </button>
             )
@@ -544,10 +553,10 @@ function TopicPracticeTab({ studentName, onStart, user = null, sectionId = 'nume
 
       {/* ── RIGHT: config panel ── */}
       <div className="w-full xl:w-72 flex-shrink-0">
-        <div className="bg-gray-50 rounded-2xl border border-gray-200 p-4 space-y-4 xl:sticky xl:top-4">
+        <div className="bg-gray-50 rounded-2xl border border-gray-200 space-y-3 xl:sticky xl:top-4"
+          style={{padding:'16px',paddingBottom:'max(20px, calc(env(safe-area-inset-bottom, 0px) + 20px))'}}>
           <div>
-            <div className="text-xs text-gray-400 mb-0.5">{topic ? secLabel(topicSec) : 'No topic selected'}</div>
-            <div className="text-base font-black" style={{color: topic ? '#FF653F' : '#9ca3af'}}>{topic ? topic.label : 'Pick a topic →'}</div>
+            <div className="text-base font-black" style={{color: topic ? '#F06535' : '#9ca3af'}}>{topic ? topic.label : 'Pick a topic →'}</div>
           </div>
 
           {/* ── Mode: Diagnostic vs Practice ── */}
@@ -589,14 +598,14 @@ function TopicPracticeTab({ studentName, onStart, user = null, sectionId = 'nume
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Number of questions</p>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{background:'#FFF3EE', color:'#FF653F'}}>~{Math.max(5,count)} min</span>
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{background:'#FFF3EE', color:'#F06535'}}>~{Math.max(5,count)} min</span>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {[5,10,15,20,30,50].map(n=>(
                 <button key={n} onClick={()=>setCount(n)}
                   className={`h-9 text-xs font-bold rounded-xl border-2 transition-all
                     ${count===n ? 'text-white' : 'border-gray-200 text-gray-600 bg-white hover:border-orange-300'}`}
-                  style={count===n ? {borderColor:'#FF653F',background:'#FF653F'} : {}}>
+                  style={count===n ? {borderColor:'#F06535',background:'#F06535'} : {}}>
                   {n}
                 </button>
               ))}
@@ -607,9 +616,9 @@ function TopicPracticeTab({ studentName, onStart, user = null, sectionId = 'nume
 
           <button onClick={start} disabled={loading || !topic}
             className="w-full py-3 rounded-xl text-white font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            style={{background:'#FF653F'}}
+            style={{background:'#F06535'}}
             onMouseOver={e=>!loading&&topic&&(e.currentTarget.style.background='#e5512f')}
-            onMouseOut={e=>e.currentTarget.style.background='#FF653F'}>
+            onMouseOut={e=>e.currentTarget.style.background='#F06535'}>
             {loading
               ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Generating…</span>
               : !topic
@@ -644,7 +653,7 @@ function SectionTestTab({ studentName, onStart, user = null }) {
     // Strategy: pick the highest-variety topic per section
     const topic = 'all'
     const sectDiff = user?.id ? 'adaptive' : 'mixed'
-    try { const d = await generateMiniTest(sec, topic, active.q, sectDiff, user?.id || null); onStart(d) }
+    try { const d = await generateMiniTest(sec, topic, active.q, sectDiff, user?.id || null, active.mins); onStart(d) }
     catch(e) { setError(e.friendlyMessage||'Server error. Please try again.'); setLoading(false) }
   }
 
@@ -686,9 +695,9 @@ function SectionTestTab({ studentName, onStart, user = null }) {
 
       <button onClick={start} disabled={loading}
         className="w-full py-3.5 rounded-2xl text-white font-bold text-sm disabled:opacity-60 transition-all"
-        style={{background:'#FF653F'}}
+        style={{background:'#F06535'}}
         onMouseOver={e=>!loading&&(e.currentTarget.style.background='#e5512f')}
-        onMouseOut={e=>e.currentTarget.style.background='#FF653F'}>
+        onMouseOut={e=>e.currentTarget.style.background='#F06535'}>
         {loading
           ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Generating section test...</span>
           : `Start ${active.label} · ${active.q}Q · ${active.mins} min`}
@@ -706,7 +715,8 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
   // US users default to sat_full only when no specific exam was requested
   const effectiveExamId = (isUSUser && !startExamId) ? 'sat_full' : startExamId
   const [tab,          setTab]          = useState(hasExplicitNonSATExam ? startMode : (isSAT ? 'sat' : startMode))
-  const [topicSecId,   setTopicSecId]   = useState('numerical_ability')
+  const [onlyTab]                       = useState(() => { try { const v=sessionStorage.getItem('mt-hs-only-tab'); if(v){sessionStorage.removeItem('mt-hs-only-tab');return v} } catch{} return null })
+  const [topicSecId,   setTopicSecId]   = useState(() => { try { const v=sessionStorage.getItem('mt-topic-section'); if(v){sessionStorage.removeItem('mt-topic-section');return v} } catch{} return 'numerical_ability' })
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const mainRef = useRef(null)
 
@@ -718,14 +728,32 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
     ? _meta.selected_exams
     : (_meta.target_exam ? [_meta.target_exam] : [])
 
-  // Filtered bank tree based on subscription (lifted here so header nav stays in sync)
+  // Category filter — narrows banks shown in the exam picker
+  const CATEGORY_TO_BANKS_HS = {
+    banking: ['IBPS','SBI','RBI','NABARD','LIC','Insurance','India Post','PSU','IBPS RRB'],
+    railway: ['RRB'],
+    ssc: ['SSC'],
+    engineering: ['EAMCET','JEE'],
+  }
+  const _selCatsHS = Array.isArray(_meta.selected_categories) ? _meta.selected_categories : []
+  const _catBanks = _selCatsHS.length > 0
+    ? new Set(_selCatsHS.flatMap(c => CATEGORY_TO_BANKS_HS[c] || []))
+    : null
+
+  // Filtered bank tree based on categories + subscription (lifted here so header nav stays in sync)
   const _hasReg = registeredExamIds.length > 0
   const bankTree = (() => {
-    if (isPro || !_hasReg) return EXAM_TREE
-    const filtered = EXAM_TREE
-      .map(g => ({ ...g, exams: g.exams.filter(e => registeredExamIds.includes(e.id) || FREE_OPEN_EXAMS.has(e.id)) }))
+    const baseTree = _catBanks ? EXAM_TREE.filter(g => _catBanks.has(g.bank)) : EXAM_TREE
+    const tree = baseTree.length ? baseTree : EXAM_TREE
+    if (isPro || !_hasReg) return tree
+    const filtered = tree
+      .map(g => ({ ...g, exams: g.exams.filter(e =>
+        registeredExamIds.includes(e.id) ||
+        FREE_OPEN_EXAMS.has(e.id) ||
+        (effectiveExamId && e.id === effectiveExamId)  // always show the explore-selected exam
+      ) }))
       .filter(g => g.exams.length > 0)
-    return filtered.length ? filtered : EXAM_TREE
+    return filtered.length ? filtered : tree
   })()
 
   const _initBankForHeader = (effectiveExamId && !isSAT)
@@ -780,45 +808,42 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
     <div className="h-screen overflow-hidden flex flex-col" style={{background:'#fff'}}>
 
       {/* ── Header ── */}
-      <header className="h-14 flex items-center px-4 gap-3 flex-shrink-0" style={{ background:'#111', boxShadow:'0 2px 8px rgba(0,0,0,.3)' }}>
+      <header className="flex-shrink-0" style={{ background:'#111', boxShadow:'0 2px 8px rgba(0,0,0,.3)', paddingTop:'env(safe-area-inset-top,0px)' }}>
+      <div className="h-14 flex items-center px-4 gap-3">
         <div className="flex items-center gap-2.5 flex-shrink-0">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{background:'#FF653F'}}>
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{background:'#F06535'}}>
             <span className="text-white text-xs font-black">MT</span>
           </div>
           <div className="hidden sm:block leading-none">
             <div className="text-sm font-black tracking-tight text-white">MockTest</div>
-            <div style={{fontSize:8,fontWeight:700,color:'#FF653F',letterSpacing:'.10em',textTransform:'uppercase',marginTop:2,lineHeight:1}}>Your World of Mock Tests</div>
+            <div style={{fontSize:8,fontWeight:700,color:'#F06535',letterSpacing:'.10em',textTransform:'uppercase',marginTop:2,lineHeight:1}}>Your World of Mock Tests</div>
           </div>
         </div>
         {/* Bank nav in header — Full Mock tab only; spacer otherwise */}
         {tab === 'mock' ? (
-          <>
-            <div style={{flex:1,minWidth:0}} />
-            <div style={{overflowX:'auto',scrollbarWidth:'none',flexShrink:1,WebkitOverflowScrolling:'touch'}}>
-              <div style={{display:'flex',alignItems:'stretch',height:56,minWidth:'max-content'}}>
-                {bankTree.map(g => (
-                  <button key={g.bank} onClick={() => setActiveBank(g.bank)} style={{
-                    padding:'0 12px',fontWeight:700,fontSize:12,border:'none',cursor:'pointer',
-                    transition:'all .12s',whiteSpace:'nowrap',background:'transparent',
-                    color: activeBank===g.bank ? '#FF653F' : 'rgba(255,255,255,.5)',
-                    borderBottom: activeBank===g.bank ? '2.5px solid #FF653F' : '2.5px solid transparent',
-                    touchAction:'manipulation',
-                  }}>{g.bank}</button>
-                ))}
-              </div>
+          <div style={{flex:1,minWidth:0,overflowX:'auto',scrollbarWidth:'none',WebkitOverflowScrolling:'touch'}}>
+            <div style={{display:'flex',alignItems:'stretch',height:56,minWidth:'max-content'}}>
+              {bankTree.map(g => (
+                <button key={g.bank} onClick={() => setActiveBank(g.bank)} style={{
+                  padding:'0 12px',fontWeight:700,fontSize:12,border:'none',cursor:'pointer',
+                  transition:'all .12s',whiteSpace:'nowrap',background:'transparent',
+                  color: activeBank===g.bank ? '#F06535' : 'rgba(255,255,255,.5)',
+                  borderBottom: activeBank===g.bank ? '2.5px solid #F06535' : '2.5px solid transparent',
+                  touchAction:'manipulation',
+                }}>{g.bank}</button>
+              ))}
             </div>
-            <div style={{flex:1,minWidth:0}} />
-          </>
+          </div>
         ) : (
           <div className="flex-1" />
         )}
         {/* Trial pill */}
         {trialActive && (
           <div className="hidden sm:flex items-center gap-2 text-xs flex-shrink-0" style={{color:'rgba(255,255,255,.6)'}}>
-            <span>{trialDaysLeft === 1 ? 'Last day' : <><b style={{color:'#FF653F'}}>{trialDaysLeft}d</b> left</>}</span>
+            <span>{trialDaysLeft === 1 ? 'Last day' : <><b style={{color:'#F06535'}}>{trialDaysLeft}d</b> left</>}</span>
             <button onClick={()=>onNav?.('subscriptions')}
               className="text-white text-xs font-bold px-3 py-1 rounded-lg flex-shrink-0"
-              style={{ background:'#FF653F' }}>
+              style={{ background:'#F06535' }}>
               Upgrade
             </button>
           </div>
@@ -833,7 +858,7 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
           {userMenuOpen && <div style={{position:'fixed',inset:0,zIndex:40}} onClick={()=>setUserMenuOpen(false)}/>}
           <button onClick={()=>setUserMenuOpen(o=>!o)}
             style={{display:'flex',alignItems:'center',gap:7,background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:999,padding:'4px 10px 4px 4px',cursor:'pointer',position:'relative',zIndex:50,touchAction:'manipulation'}}>
-            <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,#FF653F,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:900,color:'#fff',flexShrink:0}}>
+            <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,#F06535,#ff8a5f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:900,color:'#fff',flexShrink:0}}>
               {initials[0]}
             </div>
             <span className="hidden sm:block" style={{fontSize:12,fontWeight:700,color:'rgba(255,255,255,.8)',maxWidth:90,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
@@ -861,6 +886,7 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
             </div>
           )}
         </div>
+      </div>
       </header>
 
       <div className="flex flex-1 min-h-0">
@@ -923,60 +949,63 @@ export default function HomeScreen({ studentName, onStart, onBack, onNav, onLogo
               </p>
             </div>
 
-            {/* Mode tab switcher */}
-            <div style={{overflowX:'auto',scrollbarWidth:'none',marginBottom:22,borderBottom:'1px solid #e5e7eb',paddingBottom:16}}>
-              <div style={{display:'flex',gap:6,minWidth:'max-content'}}>
-                {tabs.map(t => (
-                  <button key={t.id} onClick={()=>setTab(t.id)} style={{
-                    display:'inline-flex',alignItems:'center',gap:6,padding:'7px 14px',
-                    borderRadius:8,fontWeight:700,fontSize:12,cursor:'pointer',border:'1.5px solid',
-                    transition:'all .12s',whiteSpace:'nowrap',
-                    background: tab===t.id ? '#FF653F' : '#f9fafb',
-                    borderColor: tab===t.id ? '#FF653F' : '#e5e7eb',
-                    color: tab===t.id ? '#fff' : '#6b7280',
-                    boxShadow: tab===t.id ? '0 2px 10px rgba(255,101,63,.22)' : 'none',
-                  }}>
-                    <span>{t.icon}</span>{t.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Mobile-only subject selector for topic tab */}
-            {tab === 'topic' && (
-              <div className="flex md:hidden gap-2 mb-4 overflow-x-auto pb-1" style={{scrollbarWidth:'none'}}>
-                {TOPICS.map(sec => {
-                  const active = topicSecId === sec.section
-                  return (
-                    <button key={sec.section} onClick={() => setTopicSecId(sec.section)}
-                      style={{
-                        flexShrink:0,display:'flex',alignItems:'center',gap:5,padding:'6px 12px',
-                        borderRadius:20,fontSize:11,fontWeight:700,border:'1.5px solid',
-                        whiteSpace:'nowrap',cursor:'pointer',transition:'all .12s',
-                        background: active ? sec.accent : '#fff',
-                        borderColor: active ? sec.accent : `${sec.accent}44`,
-                        color: active ? '#fff' : sec.accent,
-                      }}>
-                      <span style={{width:5,height:5,borderRadius:'50%',background: active?'#fff':sec.accent,flexShrink:0}}/>
-                      {sec.label}
+            {/* Mode tab switcher — hidden when onlyTab forces a single mode */}
+            {(onlyTab ? tabs.filter(t => t.id === onlyTab) : tabs).length >= 2 && (
+              <div style={{overflowX:'auto',scrollbarWidth:'none',marginBottom:22,borderBottom:'1px solid #e5e7eb',paddingBottom:16}}>
+                <div style={{display:'flex',gap:8,minWidth:'max-content'}}>
+                  {(onlyTab ? tabs.filter(t => t.id === onlyTab) : tabs).map(t => (
+                    <button key={t.id} onClick={()=>setTab(t.id)} style={{
+                      display:'inline-flex',alignItems:'center',padding:'8px 18px',
+                      borderRadius:999,fontWeight:700,fontSize:12.5,cursor:'pointer',border:'1.5px solid',
+                      transition:'all .12s',whiteSpace:'nowrap',
+                      background: tab===t.id ? '#F06535' : '#f9fafb',
+                      borderColor: tab===t.id ? '#F06535' : '#e5e7eb',
+                      color: tab===t.id ? '#fff' : '#6b7280',
+                      boxShadow: tab===t.id ? '0 2px 10px rgba(232,90,44,.22)' : 'none',
+                    }}>
+                      {t.label}
                     </button>
-                  )
-                })}
+                  ))}
+                </div>
               </div>
             )}
 
             {/* Tab content */}
-            {tab === 'mock' ? (
+            {tab === 'mock' && (
               <FullMockTab studentName={studentName} onStart={onStart} onNeedAuth={!user ? () => onNav?.('auth') : undefined} initialExamId={isSAT ? '' : startExamId} registeredExamIds={registeredExamIds} isPro={isPro} bank={activeBank} onBankChange={setActiveBank} bankTree={bankTree} />
-            ) : (
+            )}
+            {tab === 'topic' && (
+              <div style={{overflowX:'auto',scrollbarWidth:'none',marginBottom:16,display:'flex',gap:8}}>
+                {TOPICS.map(sec => (
+                  <button key={sec.section} onClick={() => setTopicSecId(sec.section)}
+                    style={{
+                      padding:'7px 16px',borderRadius:999,fontWeight:700,fontSize:12.5,
+                      border:'1.5px solid',whiteSpace:'nowrap',flexShrink:0,cursor:'pointer',
+                      transition:'all .12s',
+                      background: topicSecId === sec.section ? sec.accent : '#f9fafb',
+                      borderColor: topicSecId === sec.section ? sec.accent : '#e5e7eb',
+                      color: topicSecId === sec.section ? '#fff' : '#6b7280',
+                      boxShadow: topicSecId === sec.section ? `0 2px 8px ${sec.accent}44` : 'none',
+                    }}>
+                    {sec.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {tab === 'topic' && (
+              <TopicPracticeTab studentName={studentName} onStart={onStart} user={user} sectionId={topicSecId} />
+            )}
+            {tab === 'section' && (
+              <SectionTestTab studentName={studentName} onStart={onStart} user={user} />
+            )}
+            {tab === 'sat' && (
               <div style={{background:'#f9fafb',borderRadius:16,border:'1px solid #e5e7eb',padding:'24px'}}>
-                {tab==='sat'     && <SATExamTab studentName={studentName} onStart={onStart} initialExamId={effectiveExamId} />}
-                {tab==='topic'   && <TopicPracticeTab key={topicSecId} studentName={studentName} onStart={onStart} user={user} sectionId={topicSecId} />}
-                {tab==='section' && <SectionTestTab studentName={studentName} onStart={onStart} user={user} />}
+                <SATExamTab studentName={studentName} onStart={onStart} initialExamId={effectiveExamId} />
               </div>
             )}
 
           </div>
+          <div style={{height:'calc(env(safe-area-inset-bottom,0px) + 72px)'}}/>
         </main>
       </div>
     </div>

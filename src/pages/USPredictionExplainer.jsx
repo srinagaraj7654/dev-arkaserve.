@@ -1,4 +1,4 @@
-import { useState } from "react"
+﻿import { useState } from "react"
 
 const _sv = (c) => ({fill:'none',stroke:c||'currentColor',strokeWidth:'1.5',strokeLinecap:'round',strokeLinejoin:'round'})
 const UPIcSchool = ({s=20,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>
@@ -503,17 +503,17 @@ export default function USPredictionExplainer() {
 
           <Card title="12-Week Study Blueprint" subtitle="Week-by-week focus mapped to your weak areas" accent="#3b82f6">
             {[
-              { weeks:"Week 1–2",  phase:"Diagnose",  icon:<UPIcSearch s={18} c='#FF653F'/>,
+              { weeks:"Week 1–2",  phase:"Diagnose",  icon:<UPIcSearch s={18} c='#F06535'/>,
                 tasks:["Take a timed full-length SAT diagnostic","Review your section scores against target","Confirm top 3 weakest topics from this report"] },
-              { weeks:"Week 3–5",  phase:"Concept Fix", icon:<UPIcBook s={18} c='#FF653F'/>,
+              { weeks:"Week 3–5",  phase:"Concept Fix", icon:<UPIcBook s={18} c='#F06535'/>,
                 tasks:["Problem Solving & Data: 30-min concept video daily","Information & Ideas: passage strategy framework","Craft & Structure: 20 timed drills per session"] },
-              { weeks:"Week 6–8",  phase:"Speed Build", icon:<UPIcBolt s={18} c='#FF653F'/>,
+              { weeks:"Week 6–8",  phase:"Speed Build", icon:<UPIcBolt s={18} c='#F06535'/>,
                 tasks:["Advanced Math: timed quadratic + function sets","All weak topics: max 55s per question, no exceptions","1 full section practice test each weekend"] },
-              { weeks:"Week 9–10", phase:"Mock Tests",  icon:<UPIcDoc s={18} c='#FF653F'/>,
+              { weeks:"Week 9–10", phase:"Mock Tests",  icon:<UPIcDoc s={18} c='#F06535'/>,
                 tasks:["2 full SAT practice tests per week","Deep error log after each test","Re-check time per topic — staying under 55s?"] },
-              { weeks:"Week 11",   phase:"Peak",       icon:<UPIcFlame s={18} c='#FF653F'/>,
+              { weeks:"Week 11",   phase:"Peak",       icon:<UPIcFlame s={18} c='#F06535'/>,
                 tasks:["1 final full mock under real conditions","Light concept refresh on weakest 1–2 topics only","No new material — consolidate what you know"] },
-              { weeks:"Week 12",   phase:"Rest",       icon:<UPIcTrophy s={18} c='#FF653F'/>,
+              { weeks:"Week 12",   phase:"Rest",       icon:<UPIcTrophy s={18} c='#F06535'/>,
                 tasks:["Light reading and mental math only","Sleep 8 hrs minimum the night before","Arrive at the test centre 20 min early"] },
             ].map((w, i) => (
               <div key={i} style={{ display:"flex", gap:12, padding:"12px 0", borderBottom: i < 5 ? "1px solid #f3f4f6":"none" }}>

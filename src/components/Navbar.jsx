@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+﻿import { useState, useRef, useEffect } from 'react'
 
 /* ─── Navigation data — Brand → Exam → Stage (with examId for direct launch) ── */
 const NAV_GROUPS = [
@@ -222,7 +222,7 @@ function DropdownPanel({ group, onNavigate }) {
               onMouseOver={e => { if (stage.examId) hl(e) }}
               onMouseOut={unhl(false, !stage.examId)}>
               <span style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <span style={{ width:5, height:5, borderRadius:'50%', background: stage.examId ? '#FF653F' : 'rgba(255,255,255,.2)', flexShrink:0 }} />
+                <span style={{ width:5, height:5, borderRadius:'50%', background: stage.examId ? '#F06535' : 'rgba(255,255,255,.2)', flexShrink:0 }} />
                 {stage.label}
               </span>
               {!stage.examId && <span style={{ fontSize:9, color:'rgba(255,255,255,.5)', fontWeight:700 }}>SOON</span>}
@@ -276,12 +276,12 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole, d
 
           {/* ── Logo ── */}
           <button onClick={() => navigate('home')} className="flex items-center gap-2.5 flex-shrink-0 py-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#FF653F,#e5512f)' }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#F06535,#e5512f)' }}>
               <span className="text-white font-black text-xs">MT</span>
             </div>
             <div className="text-left">
               <div style={{ fontWeight: 800, color: '#fff', fontSize: 14, lineHeight: 1, letterSpacing: '-0.2px' }}>MockTest</div>
-              <div style={{ fontSize: 8.5, fontWeight: 700, color: '#FF653F', letterSpacing: '.10em', textTransform: 'uppercase', fontStyle: 'italic', marginTop: 3, lineHeight: 1 }}>
+              <div style={{ fontSize: 8.5, fontWeight: 700, color: '#F06535', letterSpacing: '.10em', textTransform: 'uppercase', fontStyle: 'italic', marginTop: 3, lineHeight: 1 }}>
                 Your World of Mock Tests
               </div>
             </div>
@@ -295,7 +295,7 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole, d
                 <button key={item.id} onClick={() => navigate(item.id)}
                   style={{
                     padding: '0 15px', background: 'none', border: 'none',
-                    borderBottom: `2px solid ${active ? '#FF653F' : 'transparent'}`,
+                    borderBottom: `2px solid ${active ? '#F06535' : 'transparent'}`,
                     cursor: 'pointer', fontSize: 15, fontWeight: 600,
                     color: active ? '#fff' : 'rgba(255,255,255,.92)', transition: 'all .15s', whiteSpace: 'nowrap',
                   }}
@@ -318,7 +318,7 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole, d
                   <button onClick={() => !group.soon && openGroup(group.id)} style={{
                     display: 'flex', alignItems: 'center', gap: 5, padding: '0 15px',
                     background: 'none', border: 'none',
-                    borderBottom: `2px solid ${open || active ? '#FF653F' : 'transparent'}`,
+                    borderBottom: `2px solid ${open || active ? '#F06535' : 'transparent'}`,
                     cursor: group.soon ? 'default' : 'pointer', fontSize: 15, fontWeight: 600,
                     color: open || active ? '#fff' : 'rgba(255,255,255,.92)',
                     transition: 'all .15s', whiteSpace: 'nowrap',
@@ -338,7 +338,7 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole, d
               <button onClick={() => navigate('admin')}
                 style={{
                   padding: '0 15px', background: 'none', border: 'none',
-                  borderBottom: `2px solid ${currentPage === 'admin' ? '#FF653F' : 'transparent'}`,
+                  borderBottom: `2px solid ${currentPage === 'admin' ? '#F06535' : 'transparent'}`,
                   cursor: 'pointer', fontSize: 15, fontWeight: 600,
                   color: currentPage === 'admin' ? '#fff' : 'rgba(255,255,255,.7)', transition: 'all .15s',
                 }}>
@@ -365,9 +365,9 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole, d
               <div className="flex items-center gap-2">
                 <button onClick={() => navigate('dashboard')}
                   className="text-white font-bold text-sm px-4 py-2 rounded-lg transition-all"
-                  style={{ background: '#FF653F' }}
+                  style={{ background: '#F06535' }}
                   onMouseOver={e => e.currentTarget.style.background = '#e5512f'}
-                  onMouseOut={e => e.currentTarget.style.background = '#FF653F'}>
+                  onMouseOut={e => e.currentTarget.style.background = '#F06535'}>
                   Dashboard
                 </button>
                 <span className="text-sm hidden lg:inline" style={{ color: 'rgba(255,255,255,.6)' }}>
@@ -391,9 +391,9 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole, d
                 </button>
                 <button onClick={() => navigate('auth')}
                   className="text-white font-bold text-sm px-4 py-2 rounded-lg transition-all"
-                  style={{ background: '#FF653F' }}
+                  style={{ background: '#F06535' }}
                   onMouseOver={e => e.currentTarget.style.background = '#e5512f'}
-                  onMouseOut={e => e.currentTarget.style.background = '#FF653F'}>
+                  onMouseOut={e => e.currentTarget.style.background = '#F06535'}>
                   Start Free →
                 </button>
               </>
@@ -422,7 +422,7 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole, d
                 <div key={group.id} style={{ borderBottom: '1px solid rgba(255,255,255,.06)' }}>
                   <button onClick={() => { setOpenAccordion(expanded ? null : group.id); setMobBrand(null); setMobExam(null) }}
                     className="w-full flex items-center justify-between px-5 py-4"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: expanded ? '#FF653F' : '#e2e8f0' }}>
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: expanded ? '#F06535' : '#e2e8f0' }}>
                     {group.label}
                     {group.soon
                       ? <span style={{ fontSize:9, color:'#f59e0b', fontWeight:800, background:'rgba(245,158,11,.15)', borderRadius:99, padding:'2px 6px' }}>SOON</span>
@@ -439,7 +439,7 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole, d
                             {/* Brand row */}
                             <button onClick={() => { setMobBrand(bOpen ? null : bKey); setMobExam(null) }}
                               className="w-full flex items-center justify-between px-9 py-3"
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: 700, color: bOpen ? '#FF653F' : '#94a3b8' }}>
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: 700, color: bOpen ? '#F06535' : '#94a3b8' }}>
                               {brand.label}
                               <Chevron open={bOpen} size={11} />
                             </button>
@@ -463,7 +463,7 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole, d
                                     }}
                                     disabled={exam.soon}
                                     className="w-full flex items-center justify-between px-14 py-2.5"
-                                    style={{ background: 'none', border: 'none', cursor: exam.soon ? 'default' : 'pointer', fontSize: 13, color: exam.soon ? '#475569' : eOpen ? '#FF653F' : '#cbd5e1', textAlign: 'left' }}>
+                                    style={{ background: 'none', border: 'none', cursor: exam.soon ? 'default' : 'pointer', fontSize: 13, color: exam.soon ? '#475569' : eOpen ? '#F06535' : '#cbd5e1', textAlign: 'left' }}>
                                     <span>{exam.label}</span>
                                     {exam.soon
                                       ? <span style={{ fontSize:9, color:'#f59e0b', fontWeight:700, flexShrink:0 }}>SOON</span>
@@ -481,7 +481,7 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole, d
                                       }}
                                       className="w-full flex items-center gap-3 text-left"
                                       style={{ background:'none', border:'none', cursor:'pointer', padding:'8px 16px 8px 56px', fontSize:12.5, color: stage.examId ? '#94a3b8' : '#475569' }}>
-                                      <span style={{ width:5, height:5, borderRadius:'50%', background: stage.examId ? '#FF653F' : 'rgba(255,255,255,.2)', flexShrink:0 }} />
+                                      <span style={{ width:5, height:5, borderRadius:'50%', background: stage.examId ? '#F06535' : 'rgba(255,255,255,.2)', flexShrink:0 }} />
                                       {stage.label}
                                       {!stage.examId && <span style={{ fontSize:9, color:'rgba(255,255,255,.3)', fontWeight:700, marginLeft:'auto' }}>SOON</span>}
                                     </button>
@@ -495,7 +495,7 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole, d
                       {group.allDest && (
                         <button onClick={() => navigate(group.dest || group.allDest)}
                           className="w-full text-left px-9 py-2.5"
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#FF653F' }}>
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#F06535' }}>
                           View All {group.label} →
                         </button>
                       )}
@@ -530,7 +530,7 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole, d
                 <>
                   <button onClick={() => navigate('dashboard')}
                     className="w-full text-white text-sm py-3 rounded-xl font-bold"
-                    style={{ background: '#FF653F', border: 'none', cursor: 'pointer' }}>
+                    style={{ background: '#F06535', border: 'none', cursor: 'pointer' }}>
                     My Dashboard
                   </button>
                   <button onClick={() => { onLogout(); setMobileOpen(false) }}
@@ -543,7 +543,7 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole, d
                 <>
                   <button onClick={() => navigate('auth')}
                     className="w-full text-white text-sm py-3 rounded-xl font-bold"
-                    style={{ background: '#FF653F', border: 'none', cursor: 'pointer' }}>
+                    style={{ background: '#F06535', border: 'none', cursor: 'pointer' }}>
                     Start Free →
                   </button>
                   <button onClick={() => navigate('auth')}

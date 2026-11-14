@@ -1,4 +1,4 @@
-/* ──────────────────────────────────────────────────────────────
+﻿/* ──────────────────────────────────────────────────────────────
    PaymentComingSoon.jsx
    Shown when student clicks "Upgrade Now" from OnboardingWizard
    or from Dashboard → Subscriptions.
@@ -18,11 +18,11 @@ export default function PaymentComingSoon({ plan = 'intermediate', onBack }) {
 
   const details = {
     intermediate: {
-      icon: <PIcStar s={32} c='#FF653F'/>,
+      icon: <PIcStar s={32} c='#F06535'/>,
       label: 'Intermediate Plan',
       price: '₹499',
       period: '/month',
-      color: '#FF653F',
+      color: '#F06535',
       bg: '#FFF3EE',
       border: '#fec9b0',
       features: [
@@ -35,11 +35,11 @@ export default function PaymentComingSoon({ plan = 'intermediate', onBack }) {
       ],
     },
     advanced: {
-      icon: <PIcRocket s={32} c='#FF653F'/>,
+      icon: <PIcRocket s={32} c='#F06535'/>,
       label: 'Advanced Plan',
       price: '₹1,199',
       period: '/3 months',
-      color: '#FF653F',
+      color: '#F06535',
       bg: '#FFF3EE',
       border: '#fec9b0',
       features: [
@@ -67,10 +67,10 @@ export default function PaymentComingSoon({ plan = 'intermediate', onBack }) {
       {/* ── HEADER NAV BAR ── */}
       <div style={{background:'#111',height:58,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 24px',flexShrink:0}}>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
-          <div style={{width:34,height:34,background:'#FF653F',borderRadius:9,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:12,fontWeight:800}}>MT</div>
+          <div style={{width:34,height:34,background:'#F06535',borderRadius:9,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:12,fontWeight:800}}>MT</div>
           <div>
             <div style={{fontSize:15,fontWeight:800,color:'#fff',lineHeight:1.1}}>MockTest</div>
-            <div style={{fontSize:8.5,fontWeight:700,color:'#FF653F',letterSpacing:'.10em',textTransform:'uppercase',fontStyle:'italic',marginTop:3,lineHeight:1}}>Your World of Mock Tests</div>
+            <div style={{fontSize:8.5,fontWeight:700,color:'#F06535',letterSpacing:'.10em',textTransform:'uppercase',fontStyle:'italic',marginTop:3,lineHeight:1}}>Your World of Mock Tests</div>
           </div>
         </div>
         <button onClick={onBack} style={{fontSize:13,fontWeight:600,color:'#fff',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.2)',borderRadius:10,padding:'8px 16px',cursor:'pointer'}}>
@@ -93,7 +93,7 @@ export default function PaymentComingSoon({ plan = 'intermediate', onBack }) {
       <div className="pcs-card" style={{
         background:'#fff', borderRadius:24, padding:'40px 36px',
         maxWidth:480, width:'100%',
-        boxShadow:'0 16px 48px rgba(255,101,63,.14)',
+        boxShadow:'0 16px 48px rgba(232,90,44,.14)',
         border:`2px solid ${d.border}`,
         textAlign:'center',
       }}>
@@ -163,7 +163,7 @@ export default function PaymentComingSoon({ plan = 'intermediate', onBack }) {
               }}
             />
             <button style={{
-              padding:'9px 16px', background:'#FF653F',
+              padding:'9px 16px', background:'#F06535',
               color:'#fff', border:'none', borderRadius:9, fontSize:12, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap',
             }}>
               Notify Me

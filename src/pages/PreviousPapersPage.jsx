@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { supabase } from '../supabase.js'
 import Footer from '../components/Footer.jsx'
 
@@ -151,6 +151,13 @@ const GROUP_ICONS = {
   Medical:     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><line x1="12" y1="8" x2="12" y2="14"/><line x1="9" y1="11" x2="15" y2="11"/></svg>,
 }
 
+const GROUP_COLORS = {
+  IBPS: '#F06535', SBI: '#1d4ed8', RRB: '#7c3aed', RBI: '#e11d48',
+  NABARD: '#16a34a', LIC: '#2563eb', Insurance: '#0891b2',
+  'India Post': '#b45309', SSC: '#d97706', Railway: '#0369a1',
+  Engineering: '#7c3aed', Medical: '#dc2626',
+}
+
 const STAGE_COLORS = {
   Prelims: { bg:'#eff6ff', color:'#2563eb', label:'Prelims' },
   Mains:   { bg:'#faf5ff', color:'#7c3aed', label:'Mains'   },
@@ -186,7 +193,7 @@ function rowsToFamilies(rows) {
   return Object.values(byExam)
 }
 
-export default function PreviousPapersPage({ onNav, user, onLogout }) {
+export default function PreviousPapersPage({ onNav, user, onLogout, isNative }) {
   // Start with the built-in list; replace with DB rows if any exist.
   const [families, setFamilies] = useState(FAMILIES)
   const [sel, setSel] = useState(FAMILIES[0].id)
@@ -221,8 +228,23 @@ export default function PreviousPapersPage({ onNav, user, onLogout }) {
   const [yearFilter, setYearFilter]   = useState('')
   const [search, setSearch]           = useState('')
 
-  const TREE = buildTree(families)
-  const fam  = families.find(f => f.id === sel) || families[0]
+  // Filter families by selected categories
+  const PAPERS_CAT_TO_GROUP = {
+    banking: ['IBPS','SBI','RRB','RBI','NABARD','LIC','Insurance','India Post'],
+    ssc: ['SSC'],
+    railway: ['Railway'],
+    engineering: ['Engineering'],
+  }
+  const _selCatsPapers = Array.isArray(user?.user_metadata?.selected_categories) ? user.user_metadata.selected_categories : []
+  const visibleFamilies = (() => {
+    if (!_selCatsPapers.length) return families
+    const allowed = new Set(_selCatsPapers.flatMap(c => PAPERS_CAT_TO_GROUP[c] || []))
+    const filtered = families.filter(f => allowed.has(f.group))
+    return filtered.length ? filtered : families
+  })()
+
+  const TREE = buildTree(visibleFamilies)
+  const fam  = visibleFamilies.find(f => f.id === sel) || visibleFamilies[0]
   const toggle = g => setOpenGroups(p => ({ [g]: !p[g] }))
 
   // Auto-open the active group in the sidebar
@@ -281,9 +303,10 @@ export default function PreviousPapersPage({ onNav, user, onLogout }) {
       @media(max-width:600px){.pp-content{padding:16px 16px 36px}}
     `}</style>
 
+    {!isNative && (
     <header style={{ background:'#0f172a', height:58, display:'flex', alignItems:'center', padding:'0 20px', gap:16, position:'sticky', top:0, zIndex:100, flexShrink:0 }}>
       <div style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer' }} onClick={() => onNav?.('home')}>
-        <div style={{ width:36, height:36, background:'#FF653F', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, fontSize:15, color:'#fff', letterSpacing:'-0.5px' }}>MT</div>
+        <div style={{ width:36, height:36, background:'#F06535', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, fontSize:15, color:'#fff', letterSpacing:'-0.5px' }}>MT</div>
         <div className="pp-logo-text">
           <div style={{ color:'#fff', fontWeight:800, fontSize:14, lineHeight:1.1 }}>MockTest</div>
           <div style={{ color:'rgba(255,255,255,.45)', fontSize:9.5, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase' }}>Your world of mock tests</div>
@@ -295,16 +318,17 @@ export default function PreviousPapersPage({ onNav, user, onLogout }) {
         ) : (
           <>
             <button onClick={() => onNav?.('auth')} className="pp-login-btn" style={{ background:'none', border:'none', color:'rgba(255,255,255,.82)', fontSize:13, fontWeight:500, padding:'6px 10px', cursor:'pointer' }}>Login</button>
-            <button onClick={() => onNav?.('auth')} style={{ background:'#FF653F', border:'none', borderRadius:8, color:'#fff', fontSize:13, fontWeight:700, padding:'7px 16px', cursor:'pointer', whiteSpace:'nowrap' }}>Start Free →</button>
+            <button onClick={() => onNav?.('auth')} style={{ background:'#F06535', border:'none', borderRadius:8, color:'#fff', fontSize:13, fontWeight:700, padding:'7px 16px', cursor:'pointer', whiteSpace:'nowrap' }}>Start Free →</button>
           </>
         )}
       </div>
     </header>
+    )}
 
     <div style={{ display:'flex', fontFamily:"'Inter',-apple-system,'Segoe UI',system-ui,sans-serif" }}>
 
       {/* ── DARK NAVY SIDEBAR ── */}
-      <aside className="pp-sidebar hidden md:flex" style={{ width:256, flexShrink:0, background:'#0f172a', flexDirection:'column', overflowY:'auto', borderRight:'1px solid rgba(255,255,255,.07)', position:'sticky', top:58, height:'calc(100vh - 58px)', alignSelf:'flex-start' }}>
+      <aside className="pp-sidebar hidden md:flex" style={{ width:256, flexShrink:0, background:'#0f172a', flexDirection:'column', overflowY:'auto', borderRight:'1px solid rgba(255,255,255,.07)', position:'sticky', top: isNative ? 0 : 58, height: isNative ? '100vh' : 'calc(100vh - 58px)', alignSelf:'flex-start' }}>
         <div style={{ padding:'16px 12px 12px' }}>
           <div style={{ fontSize:10, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:'rgba(255,255,255,.35)', padding:'0 8px 10px' }}>Exam Categories</div>
           {TREE.map(({ group, families: grpFams }) => {
@@ -312,20 +336,22 @@ export default function PreviousPapersPage({ onNav, user, onLogout }) {
             const hasActive = grpFams.some(f => f.id === sel)
             return (
               <div key={group} style={{ marginBottom:2 }}>
+                {(() => { const gc = GROUP_COLORS[group] || '#F06535'; return (
                 <button className="pp-grp-btn" onClick={() => toggle(group)}
-                  style={{ width:'100%', display:'flex', alignItems:'center', gap:9, padding:'9px 10px', borderRadius:8, border:'none', cursor:'pointer', background: open || hasActive ? 'rgba(255,101,63,.12)' : 'transparent', transition:'background .15s', textAlign:'left' }}>
-                  <span style={{ color: open || hasActive ? '#FF653F' : 'rgba(255,255,255,.4)', display:'flex', flexShrink:0 }}>{GROUP_ICONS[group]}</span>
+                  style={{ width:'100%', display:'flex', alignItems:'center', gap:9, padding:'9px 10px', borderRadius:8, border:'none', cursor:'pointer', background: open || hasActive ? `${gc}18` : 'transparent', transition:'background .15s', textAlign:'left' }}>
+                  <span style={{ width:26, height:26, borderRadius:7, background: open || hasActive ? gc : 'rgba(255,255,255,.1)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, color:'#fff', transition:'background .15s' }}>{GROUP_ICONS[group]}</span>
                   <span style={{ flex:1, fontSize:13, fontWeight:600, color: open || hasActive ? '#fff' : 'rgba(255,255,255,.65)' }}>{group} Exams</span>
                   <span style={{ fontSize:10, color:'rgba(255,255,255,.3)', transform: open ? 'rotate(180deg)' : 'none', transition:'transform .2s' }}>▼</span>
                 </button>
+                )})()}
                 {open && (
                   <div style={{ paddingLeft:8, paddingBottom:4, paddingTop:2 }}>
                     {grpFams.map(f => {
                       const active = f.id === sel
                       return (
                         <button key={f.id} className="pp-fam-btn" onClick={() => pickExam(f.id)}
-                          style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'8px 12px', borderRadius:8, border:'none', cursor:'pointer', background: active ? 'rgba(255,101,63,.2)' : 'transparent', marginBottom:2, transition:'background .12s', textAlign:'left' }}>
-                          <span style={{ width:6, height:6, borderRadius:'50%', background: active ? '#FF653F' : 'rgba(255,255,255,.2)', flexShrink:0 }}/>
+                          style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'8px 12px', borderRadius:8, border:'none', cursor:'pointer', background: active ? 'rgba(232,90,44,.2)' : 'transparent', marginBottom:2, transition:'background .12s', textAlign:'left' }}>
+                          <span style={{ width:6, height:6, borderRadius:'50%', background: active ? '#F06535' : 'rgba(255,255,255,.2)', flexShrink:0 }}/>
                           <span style={{ fontSize:12.5, fontWeight: active ? 700 : 400, color: active ? '#fff' : 'rgba(255,255,255,.6)', flex:1 }}>{f.name}</span>
                           <span style={{ fontSize:11, color:'rgba(255,255,255,.25)', fontWeight:500 }}>{f.papers.length}</span>
                         </button>
@@ -346,7 +372,7 @@ export default function PreviousPapersPage({ onNav, user, onLogout }) {
           {/* Breadcrumb */}
           <nav style={{ display:'flex', alignItems:'center', gap:6, marginBottom:18, flexWrap:'wrap' }}>
             <button onClick={() => onNav?.('home')} style={{ background:'none', border:'none', padding:0, cursor:'pointer', fontSize:12.5, color:'#64748b', fontWeight:500, display:'flex', alignItems:'center', gap:4 }}
-              onMouseOver={e => e.currentTarget.style.color = '#FF653F'}
+              onMouseOver={e => e.currentTarget.style.color = '#F06535'}
               onMouseOut={e => e.currentTarget.style.color = '#64748b'}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
               Home
@@ -358,7 +384,7 @@ export default function PreviousPapersPage({ onNav, user, onLogout }) {
           {/* Page heading */}
           <div style={{ marginBottom:20 }}>
             <h1 style={{ fontSize:26, fontWeight:900, color:'#0f172a', margin:0, lineHeight:1.2 }}>
-              Bank Exam <span style={{ color:'#FF653F' }}>Previous Year Papers</span>
+              Bank Exam <span style={{ color:'#F06535' }}>Previous Year Papers</span>
             </h1>
             <p style={{ fontSize:13.5, color:'#64748b', marginTop:6 }}>
               Real exam patterns from past years — full sectional structure, timing and negative marking. Pick an exam on the left.
@@ -398,64 +424,75 @@ export default function PreviousPapersPage({ onNav, user, onLogout }) {
           </div>
 
           {/* Paper section heading */}
-          <h2 style={{ fontSize:17, fontWeight:800, color:'#0f172a', marginBottom:14 }}>{fam.name} Papers</h2>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14, flexWrap:'wrap', gap:8 }}>
+            <h2 style={{ fontSize:17, fontWeight:800, color:'#0f172a', margin:0 }}>{fam.name} Papers</h2>
+            {filteredPapers.length > 0 && (
+              <span style={{ fontSize:12, fontWeight:700, padding:'3px 10px', borderRadius:20, background:`${GROUP_COLORS[fam.group]||'#F06535'}18`, color:GROUP_COLORS[fam.group]||'#F06535', flexShrink:0 }}>
+                {filteredPapers.length} Paper{filteredPapers.length !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
 
           {/* Paper cards */}
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             {filteredPapers.length === 0 ? (
               <div style={{ textAlign:'center', padding:'40px 20px', color:'#94a3b8', fontSize:14 }}>No papers match the selected filters.</div>
-            ) : filteredPapers.map((p, i) => (
+            ) : filteredPapers.map((p, i) => {
+              const grpColor = GROUP_COLORS[fam.group] || '#F06535'
+              return (
               <div key={i} style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:14, padding:'16px 20px', display:'flex', alignItems:'center', gap:16, flexWrap:'wrap', boxShadow:'0 1px 8px rgba(15,23,42,.05)' }}>
-                {/* Icon */}
-                <div style={{ width:44, height:44, borderRadius:10, background:'#fff3ee', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF653F" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+                {/* Icon — solid group-color background */}
+                <div style={{ width:46, height:46, borderRadius:12, background:grpColor, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:`0 4px 12px ${grpColor}40` }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
                 </div>
                 {/* Title + meta */}
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:6 }}>
-                    <span style={{ fontSize:14, fontWeight:700, color:'#0f172a', whiteSpace:'nowrap' }}>{fam.name} {p.year} · {p.stage}</span>
-                    {stageBadge(p.stage)}
+                  <div style={{ fontSize:14, fontWeight:700, color:'#0f172a', marginBottom:5 }}>
+                    {fam.name} – {p.stage}
                   </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
-                    <span style={{ fontSize:12, color:'#64748b', display:'flex', alignItems:'center', gap:4 }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                      {p.q} questions
+                  <div style={{ display:'flex', alignItems:'center', gap:5, marginBottom:6, flexWrap:'wrap' }}>
+                    {stageBadge(p.stage)}
+                    <span style={{ background:'#f1f5f9', color:'#475569', fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:20 }}>{p.year}</span>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'nowrap' }}>
+                    <span style={{ fontSize:11.5, color:'#64748b', display:'flex', alignItems:'center', gap:3, whiteSpace:'nowrap' }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                      {p.q}Q
                     </span>
-                    <span style={{ fontSize:12, color:'#64748b', display:'flex', alignItems:'center', gap:4 }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span style={{ color:'#d1d5db', fontSize:10 }}>·</span>
+                    <span style={{ fontSize:11.5, color:'#64748b', display:'flex', alignItems:'center', gap:3, whiteSpace:'nowrap' }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                       {p.mins} min
                     </span>
-                    <span style={{ fontSize:12, color:'#64748b', display:'flex', alignItems:'center', gap:4 }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                      -{p.neg} negative
-                    </span>
+                    <span style={{ color:'#d1d5db', fontSize:10 }}>·</span>
+                    <span style={{ fontSize:11.5, color:'#64748b', whiteSpace:'nowrap' }}>-{p.neg} neg</span>
                   </div>
                 </div>
                 {/* Actions */}
                 <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
                   {p.pdf ? (
                     <a href={p.pdf} target="_blank" rel="noopener noreferrer"
-                      style={{ display:'flex', alignItems:'center', gap:5, background:'#FF653F', border:'none', borderRadius:8, color:'#fff', fontSize:12.5, fontWeight:700, padding:'8px 14px', cursor:'pointer', textDecoration:'none', whiteSpace:'nowrap' }}
+                      style={{ display:'flex', alignItems:'center', gap:5, background:'#F06535', border:'none', borderRadius:8, color:'#fff', fontSize:12.5, fontWeight:700, padding:'8px 14px', cursor:'pointer', textDecoration:'none', whiteSpace:'nowrap' }}
                       onMouseOver={e => e.currentTarget.style.background = '#e5512f'}
-                      onMouseOut={e => e.currentTarget.style.background = '#FF653F'}>
+                      onMouseOut={e => e.currentTarget.style.background = '#F06535'}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                       PDF
                     </a>
                   ) : (
-                    <span style={{ display:'flex', alignItems:'center', gap:5, background:'rgba(255,101,63,.12)', border:'none', borderRadius:8, color:'#FF653F', fontSize:12.5, fontWeight:700, padding:'8px 14px', whiteSpace:'nowrap', opacity:.7 }}>
+                    <span style={{ display:'flex', alignItems:'center', gap:5, background:'rgba(232,90,44,.12)', border:'none', borderRadius:8, color:'#F06535', fontSize:12.5, fontWeight:700, padding:'8px 14px', whiteSpace:'nowrap', opacity:.7 }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                       PDF
                     </span>
                   )}
                   <button onClick={() => onNav?.('auth')}
-                    style={{ background:'none', border:'1.5px solid #fec9b0', borderRadius:8, color:'#FF653F', fontSize:12.5, fontWeight:700, padding:'7px 14px', cursor:'pointer', whiteSpace:'nowrap', transition:'all .15s' }}
-                    onMouseOver={e => { e.currentTarget.style.background = '#FF653F'; e.currentTarget.style.color = '#fff' }}
-                    onMouseOut={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#FF653F' }}>
+                    style={{ background:'none', border:'1.5px solid #fec9b0', borderRadius:8, color:'#F06535', fontSize:12.5, fontWeight:700, padding:'7px 14px', cursor:'pointer', whiteSpace:'nowrap', transition:'all .15s' }}
+                    onMouseOver={e => { e.currentTarget.style.background = '#F06535'; e.currentTarget.style.color = '#fff' }}
+                    onMouseOut={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#F06535' }}>
                     Sign up to attempt
                   </button>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
 
           {/* Footer note */}
@@ -469,32 +506,32 @@ export default function PreviousPapersPage({ onNav, user, onLogout }) {
             {/* Illustration */}
             <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'28px 20px 28px 28px', flexShrink:0 }} className="pp-cta-illus">
               <svg width="88" height="88" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="88" height="88" rx="14" fill="rgba(255,101,63,.12)"/>
+                <rect width="88" height="88" rx="14" fill="rgba(232,90,44,.12)"/>
                 <rect x="18" y="16" width="34" height="46" rx="3" fill="#fff" fillOpacity=".08" stroke="rgba(255,255,255,.25)" strokeWidth="1.5"/>
                 <line x1="25" y1="26" x2="44" y2="26" stroke="rgba(255,255,255,.4)" strokeWidth="1.5" strokeLinecap="round"/>
                 <line x1="25" y1="33" x2="44" y2="33" stroke="rgba(255,255,255,.2)" strokeWidth="1.5" strokeLinecap="round"/>
                 <line x1="25" y1="40" x2="38" y2="40" stroke="rgba(255,255,255,.2)" strokeWidth="1.5" strokeLinecap="round"/>
-                <rect x="46" y="46" width="24" height="20" rx="4" fill="rgba(255,101,63,.15)" stroke="rgba(255,101,63,.35)" strokeWidth="1"/>
-                <rect x="50" y="57" width="4" height="7" rx="1" fill="#FF653F" fillOpacity=".7"/>
-                <rect x="56" y="53" width="4" height="11" rx="1" fill="#FF653F"/>
-                <rect x="62" y="50" width="4" height="14" rx="1" fill="#FF653F" fillOpacity=".85"/>
-                <circle cx="64" cy="28" r="11" fill="rgba(255,101,63,.2)" stroke="#FF653F" strokeWidth="1.5"/>
-                <polyline points="59,28 63,32 70,24" stroke="#FF653F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <rect x="46" y="46" width="24" height="20" rx="4" fill="rgba(232,90,44,.15)" stroke="rgba(232,90,44,.35)" strokeWidth="1"/>
+                <rect x="50" y="57" width="4" height="7" rx="1" fill="#F06535" fillOpacity=".7"/>
+                <rect x="56" y="53" width="4" height="11" rx="1" fill="#F06535"/>
+                <rect x="62" y="50" width="4" height="14" rx="1" fill="#F06535" fillOpacity=".85"/>
+                <circle cx="64" cy="28" r="11" fill="rgba(232,90,44,.2)" stroke="#F06535" strokeWidth="1.5"/>
+                <polyline points="59,28 63,32 70,24" stroke="#F06535" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
             {/* Text */}
             <div style={{ flex:'1 1 260px', padding:'28px 24px', display:'flex', flexDirection:'column', justifyContent:'center' }}>
               <h2 style={{ fontSize:20, fontWeight:900, color:'#fff', margin:'0 0 10px', lineHeight:1.3 }}>
-                Attempt any paper <span style={{ color:'#FF653F' }}>free</span>
+                Attempt any paper <span style={{ color:'#F06535' }}>free</span>
               </h2>
               <p style={{ fontSize:13.5, color:'rgba(255,255,255,.6)', margin:'0 0 22px', lineHeight:1.65 }}>
                 Create a free account to attempt previous-year papers as timed mocks with instant step-by-step explanations and category-wise cut-off comparison.
               </p>
               <div>
                 <button onClick={() => onNav?.('auth')}
-                  style={{ background:'#FF653F', border:'none', borderRadius:9, color:'#fff', fontSize:13.5, fontWeight:700, padding:'11px 24px', cursor:'pointer', whiteSpace:'nowrap' }}
+                  style={{ background:'#F06535', border:'none', borderRadius:9, color:'#fff', fontSize:13.5, fontWeight:700, padding:'11px 24px', cursor:'pointer', whiteSpace:'nowrap' }}
                   onMouseOver={e => e.currentTarget.style.background = '#e5512f'}
-                  onMouseOut={e => e.currentTarget.style.background = '#FF653F'}>
+                  onMouseOut={e => e.currentTarget.style.background = '#F06535'}>
                   Start Free →
                 </button>
               </div>

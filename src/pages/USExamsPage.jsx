@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabase.js'
 
 /* ─────────────────── ICONS ─────────────────── */
@@ -41,7 +41,7 @@ const SAT_SECTIONS = [
     ],
   },
   {
-    name: 'Math', color:'#FF653F', bg:'#fff8f6', questions:44, time:'70 min', score:'200–800',
+    name: 'Math', color:'#F06535', bg:'#fff8f6', questions:44, time:'70 min', score:'200–800',
     topics:[
       { name:'Algebra',              items:['Linear equations (1 & 2 variables)','Linear inequalities','Systems of equations','Absolute value'] },
       { name:'Advanced Math',        items:['Nonlinear functions','Quadratic equations','Equivalent expressions','Radicals & Exponents'] },
@@ -61,7 +61,7 @@ const ACT_SECTIONS = [
     ],
   },
   {
-    name: 'Mathematics', color:'#FF653F', bg:'#fff8f6', questions:60, time:'60 min', score:'1–36',
+    name: 'Mathematics', color:'#F06535', bg:'#fff8f6', questions:60, time:'60 min', score:'1–36',
     topics:[
       { name:'Pre-Algebra',  items:['Integers','Fractions & decimals','Percentages','Ratios','Statistics'] },
       { name:'Algebra',      items:['Linear equations','Inequalities','Polynomials','Absolute value','Functions'] },
@@ -85,7 +85,7 @@ const ACT_SECTIONS = [
 ]
 
 const HOW_STEPS = [
-  { n:'01', color:'#FF653F', title:'Diagnose Your Baseline',
+  { n:'01', color:'#F06535', title:'Diagnose Your Baseline',
     body:'Take a full official practice test under real timed conditions before studying anything. Your raw score by section tells you exactly where to spend your hours — not guessing.',
     tips:['Use CollegeBoard Bluebook for SAT, ACT official prep for ACT','Score each section separately','Rank sections worst → best — start from the bottom'] },
   { n:'02', color:'#2563eb', title:'Build a 12-Week Plan',
@@ -106,7 +106,7 @@ const HOW_STEPS = [
 ]
 
 const OWNPREP_PLAN = [
-  { week:'Week 1–2',   phase:'Diagnose',  icon:<UIcHelp s={30} c='#FF653F'/>,   tasks:['Take diagnostic mock','Review score report','Identify top 3 weak topics'] },
+  { week:'Week 1–2',   phase:'Diagnose',  icon:<UIcHelp s={30} c='#F06535'/>,   tasks:['Take diagnostic mock','Review score report','Identify top 3 weak topics'] },
   { week:'Week 3–6',   phase:'Build',     icon:<UIcBook s={30} c='#2563eb'/>,   tasks:['Concept videos for weak areas','50 topic drills per day','Weekly section test (timed)'] },
   { week:'Week 7–10',  phase:'Practice',  icon:<UIcCons s={30} c='#7c3aed'/>,   tasks:['2 full mocks per week','Deep error analysis after each mock','Score-prediction review'] },
   { week:'Week 11–12', phase:'Peak',      icon:<UIcStar s={30} c='#f59e0b'/>,   tasks:['Light revision only','1 mock at week 11','Rest + sleep week 12'] },
@@ -115,7 +115,7 @@ const OWNPREP_PLAN = [
 const FEATURES = [
   { icon:<UIcRobot s={30} c='#2563eb'/>, title:'Adaptive Engine',      desc:'Questions adjust to your live performance — just like the real Digital SAT. Harder questions unlock as you improve.' },
   { icon:<UIcTarget s={30} c='#7c3aed'/>, title:'Targeted Drills',     desc:'Practise only the topics your diagnostic flagged as weak. No wasted repetition on what you already know.' },
-  { icon:<UIcChart s={30} c='#FF653F'/>, title:'Score Prediction',     desc:'After every mock, see a projected band (e.g. 1320–1380 SAT) and the exact topics to fix for the next 50 points.' },
+  { icon:<UIcChart s={30} c='#F06535'/>, title:'Score Prediction',     desc:'After every mock, see a projected band (e.g. 1320–1380 SAT) and the exact topics to fix for the next 50 points.' },
   { icon:<UIcDoc s={30} c='#0891b2'/>, title:'Step-by-step Solutions', desc:'Every question has a written solution that explains the reasoning — not just the answer.' },
   { icon:<UIcCal s={30} c='#059669'/>, title:'Study Calendar',         desc:'Pick your test date. We generate a day-by-day calendar with tasks, rest days, and mock-test slots baked in.' },
   { icon:<UIcBell s={30} c='#f59e0b'/>, title:'Daily Reminders',       desc:'Push notifications keep your streak alive. Students who practise daily outperform cramming students by 180+ points on average.' },
@@ -251,8 +251,8 @@ function ProgressDashboard({ user, onNav }) {
       <div style={{ background:'linear-gradient(135deg,#1e3a5f,#0f172a)', border:'1px solid rgba(255,255,255,.08)', borderRadius:20, padding:'32px 28px', marginBottom:28, display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', gap:20 }}>
         <div>
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
-            <div style={{ width:36, height:36, background:'rgba(255,101,63,.2)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <UIcUser s={18} c='#FF653F'/>
+            <div style={{ width:36, height:36, background:'rgba(232,90,44,.2)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <UIcUser s={18} c='#F06535'/>
             </div>
             <span style={{ fontSize:13, fontWeight:600, color:'rgba(255,255,255,.5)', textTransform:'uppercase', letterSpacing:'.06em' }}>Welcome, {name}</span>
           </div>
@@ -263,7 +263,7 @@ function ProgressDashboard({ user, onNav }) {
         </div>
         <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
           <button onClick={() => onNav('mocktest','sat_full')}
-            style={{ background:'#FF653F', color:'#fff', border:'none', padding:'13px 28px', borderRadius:12, fontSize:14, fontWeight:800, cursor:'pointer', boxShadow:'0 4px 16px rgba(255,101,63,.4)', whiteSpace:'nowrap' }}>
+            style={{ background:'#F06535', color:'#fff', border:'none', padding:'13px 28px', borderRadius:12, fontSize:14, fontWeight:800, cursor:'pointer', boxShadow:'0 4px 16px rgba(232,90,44,.4)', whiteSpace:'nowrap' }}>
             Start Full SAT (Free) →
           </button>
           <button onClick={() => onNav('mocktest','sat_math')}
@@ -307,12 +307,12 @@ function ProgressDashboard({ user, onNav }) {
   const recent5 = results.slice(0,5)
 
   const satSections = [
-    { key:'Math', color:'#FF653F', max:800 },
+    { key:'Math', color:'#F06535', max:800 },
     { key:'Reading & Writing', color:'#2563eb', max:800 },
   ]
   const actSections = [
     { key:'English', color:'#7c3aed', max:36 },
-    { key:'Mathematics', color:'#FF653F', max:36 },
+    { key:'Mathematics', color:'#F06535', max:36 },
     { key:'Reading', color:'#0ea5e9', max:36 },
     { key:'Science', color:'#059669', max:36 },
   ]
@@ -327,7 +327,7 @@ function ProgressDashboard({ user, onNav }) {
           <h3 style={{ fontSize:20, fontWeight:900, color:'#0f172a' }}>Hi {name}, here's your {isSATExam ? 'SAT' : 'ACT'} journey</h3>
         </div>
         <button onClick={() => onNav('mocktest', isSATExam ? 'sat_full' : 'act_full')}
-          style={{ background:'linear-gradient(135deg,#FF653F,#e5512f)', color:'#fff', border:'none', padding:'10px 22px', borderRadius:10, fontSize:13, fontWeight:800, cursor:'pointer', boxShadow:'0 4px 12px rgba(255,101,63,.35)', whiteSpace:'nowrap' }}>
+          style={{ background:'linear-gradient(135deg,#F06535,#e5512f)', color:'#fff', border:'none', padding:'10px 22px', borderRadius:10, fontSize:13, fontWeight:800, cursor:'pointer', boxShadow:'0 4px 12px rgba(232,90,44,.35)', whiteSpace:'nowrap' }}>
           + Take a New Test
         </button>
       </div>
@@ -358,7 +358,7 @@ function ProgressDashboard({ user, onNav }) {
         {/* KPI: Best */}
         <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:14, padding:'18px 16px', display:'flex', flexDirection:'column', justifyContent:'space-between' }}>
           <div style={{ width:32, height:32, background:'#fff8f6', borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:12 }}>
-            <UIcStar s={16} c='#FF653F'/>
+            <UIcStar s={16} c='#F06535'/>
           </div>
           <div>
             <div style={{ fontSize:28, fontWeight:900, color:'#0f172a', lineHeight:1 }}>{bestScore}</div>
@@ -477,7 +477,7 @@ function ProgressDashboard({ user, onNav }) {
                       </div>
                     </td>
                     <td style={{ padding:'11px 16px' }}>
-                      <button onClick={() => onNav('dashboard')} style={{ fontSize:11, fontWeight:700, color:'#FF653F', background:'#fff8f6', border:'1px solid rgba(255,101,63,.2)', borderRadius:7, padding:'5px 10px', cursor:'pointer', whiteSpace:'nowrap' }}>
+                      <button onClick={() => onNav('dashboard')} style={{ fontSize:11, fontWeight:700, color:'#F06535', background:'#fff8f6', border:'1px solid rgba(232,90,44,.2)', borderRadius:7, padding:'5px 10px', cursor:'pointer', whiteSpace:'nowrap' }}>
                         Review →
                       </button>
                     </td>
@@ -497,8 +497,8 @@ function GuestProgressBanner({ onNav }) {
   return (
     <div style={{ background:'linear-gradient(135deg,#1e3a5f 0%,#0f172a 100%)', borderRadius:20, padding:'28px 32px', marginBottom:28, display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', gap:20, boxShadow:'0 8px 32px rgba(15,23,42,.25)' }}>
       <div style={{ display:'flex', gap:16, alignItems:'flex-start' }}>
-        <div style={{ width:48, height:48, background:'rgba(255,101,63,.2)', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-          <UIcChart s={24} c='#FF653F'/>
+        <div style={{ width:48, height:48, background:'rgba(232,90,44,.2)', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+          <UIcChart s={24} c='#F06535'/>
         </div>
         <div>
           <h3 style={{ fontSize:18, fontWeight:900, color:'#fff', marginBottom:4 }}>Track Your SAT/ACT Progress</h3>
@@ -508,7 +508,7 @@ function GuestProgressBanner({ onNav }) {
         </div>
       </div>
       <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
-        <button onClick={() => onNav('auth')} style={{ background:'#FF653F', color:'#fff', border:'none', padding:'11px 24px', borderRadius:10, fontSize:13, fontWeight:800, cursor:'pointer', boxShadow:'0 4px 12px rgba(255,101,63,.4)', whiteSpace:'nowrap' }}>
+        <button onClick={() => onNav('auth')} style={{ background:'#F06535', color:'#fff', border:'none', padding:'11px 24px', borderRadius:10, fontSize:13, fontWeight:800, cursor:'pointer', boxShadow:'0 4px 12px rgba(232,90,44,.4)', whiteSpace:'nowrap' }}>
           Sign In Free →
         </button>
         <button onClick={() => onNav('mocktest','sat_full')} style={{ background:'rgba(255,255,255,.08)', color:'rgba(255,255,255,.8)', border:'1px solid rgba(255,255,255,.15)', padding:'11px 20px', borderRadius:10, fontSize:13, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap' }}>
@@ -549,20 +549,20 @@ export default function USExamsPage({ onNav, user, onLogout }) {
         .ue-nav { background:#060d1f; position:sticky; top:0; z-index:50; }
         .ue-nav-inner { max-width:1280px; margin:0 auto; padding:0 32px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
         .ue-logo { display:flex; align-items:center; gap:10px; padding:14px 0; cursor:pointer; flex-shrink:0; }
-        .ue-logo-badge { width:34px; height:34px; background:#FF653F; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:12px; color:#fff; flex-shrink:0; box-shadow:0 2px 8px rgba(255,101,63,.4); }
+        .ue-logo-badge { width:34px; height:34px; background:#F06535; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:12px; color:#fff; flex-shrink:0; box-shadow:0 2px 8px rgba(232,90,44,.4); }
         .ue-logo-text { font-size:15px; font-weight:800; color:#fff; line-height:1.1; }
-        .ue-logo-sub { font-size:10px; color:#FF653F; font-weight:600; letter-spacing:.04em; }
+        .ue-logo-sub { font-size:10px; color:#F06535; font-weight:600; letter-spacing:.04em; }
         .ue-tabs { display:flex; gap:0; overflow-x:auto; scrollbar-width:none; flex:1; min-width:0; justify-content:center; }
         .ue-tabs::-webkit-scrollbar { display:none; }
         .ue-tab { flex-shrink:0; padding:18px 22px; font-size:13.5px; font-weight:600; border:none; background:none; cursor:pointer; color:rgba(255,255,255,.5); border-bottom:2px solid transparent; transition:all .2s; white-space:nowrap; letter-spacing:.01em; }
         .ue-tab:hover { color:rgba(255,255,255,.85); }
-        .ue-tab.active { color:#fff; border-bottom-color:#FF653F; }
+        .ue-tab.active { color:#fff; border-bottom-color:#F06535; }
         .ue-nav-auth { display:flex; align-items:center; gap:8px; flex-shrink:0; }
         .ue-btn-login { font-size:13px; font-weight:600; color:rgba(255,255,255,.65); background:none; border:none; cursor:pointer; padding:8px 12px; white-space:nowrap; transition:color .15s; }
         .ue-btn-login:hover { color:#fff; }
-        .ue-btn-signup { font-size:13px; font-weight:700; color:#fff; background:#FF653F; border:none; border-radius:9px; padding:8px 18px; cursor:pointer; white-space:nowrap; transition:background .15s; box-shadow:0 2px 8px rgba(255,101,63,.35); }
+        .ue-btn-signup { font-size:13px; font-weight:700; color:#fff; background:#F06535; border:none; border-radius:9px; padding:8px 18px; cursor:pointer; white-space:nowrap; transition:background .15s; box-shadow:0 2px 8px rgba(232,90,44,.35); }
         .ue-btn-signup:hover { background:#e5512f; }
-        .ue-btn-dash { font-size:13px; font-weight:700; color:#fff; background:#FF653F; border:none; border-radius:9px; padding:8px 18px; cursor:pointer; white-space:nowrap; transition:background .15s; box-shadow:0 2px 8px rgba(255,101,63,.35); }
+        .ue-btn-dash { font-size:13px; font-weight:700; color:#fff; background:#F06535; border:none; border-radius:9px; padding:8px 18px; cursor:pointer; white-space:nowrap; transition:background .15s; box-shadow:0 2px 8px rgba(232,90,44,.35); }
         .ue-btn-dash:hover { background:#e5512f; }
         .ue-back { flex-shrink:0; font-size:13px; font-weight:600; color:rgba(255,255,255,.55); background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); border-radius:8px; padding:7px 14px; cursor:pointer; transition:all .15s; white-space:nowrap; }
         .ue-back:hover { background:rgba(255,255,255,.13); color:#fff; }
@@ -656,7 +656,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
             <div style={{ maxWidth:1280, margin:'0 auto', display:'flex', alignItems:'center', gap:12, height:44 }}>
               <span style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,.35)', letterSpacing:'.07em', textTransform:'uppercase', flexShrink:0 }}>Exam</span>
               <div style={{ position:'relative' }}>
-                <button onClick={() => setExamDropOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:8, background: examDropOpen?'rgba(255,101,63,.9)':'#FF653F', border:'none', borderRadius:8, padding:'6px 14px', fontSize:13, fontWeight:700, color:'#fff', cursor:'pointer', boxShadow:'0 2px 10px rgba(255,101,63,.4)', transition:'background .15s' }}>
+                <button onClick={() => setExamDropOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:8, background: examDropOpen?'rgba(232,90,44,.9)':'#F06535', border:'none', borderRadius:8, padding:'6px 14px', fontSize:13, fontWeight:700, color:'#fff', cursor:'pointer', boxShadow:'0 2px 10px rgba(232,90,44,.4)', transition:'background .15s' }}>
                   {selectedExam.icon}
                   <span>{selectedExam.title}</span>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" style={{ transform:examDropOpen?'rotate(180deg)':'rotate(0)', transition:'transform .2s' }}>
@@ -670,7 +670,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
                       <div style={{ fontSize:9.5, fontWeight:800, color:'rgba(255,255,255,.3)', letterSpacing:'.1em', textTransform:'uppercase', padding:'4px 16px 10px' }}>Select Exam</div>
                       {EXAM_OPTIONS.map(opt => (
                         <button key={opt.id} onClick={() => { setExamToggle(opt.id); setExamDropOpen(false) }}
-                          style={{ display:'flex', alignItems:'center', gap:12, width:'100%', padding:'10px 16px', border:'none', background:examToggle===opt.id?'rgba(255,101,63,.14)':'transparent', cursor:'pointer', textAlign:'left', transition:'background .12s', borderLeft:examToggle===opt.id?'3px solid #FF653F':'3px solid transparent' }}
+                          style={{ display:'flex', alignItems:'center', gap:12, width:'100%', padding:'10px 16px', border:'none', background:examToggle===opt.id?'rgba(232,90,44,.14)':'transparent', cursor:'pointer', textAlign:'left', transition:'background .12s', borderLeft:examToggle===opt.id?'3px solid #F06535':'3px solid transparent' }}
                           onMouseOver={e => { if(examToggle!==opt.id) e.currentTarget.style.background='rgba(255,255,255,.06)' }}
                           onMouseOut={e => { if(examToggle!==opt.id) e.currentTarget.style.background='transparent' }}>
                           <div style={{ width:36, height:36, background:'rgba(255,255,255,.08)', borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>{opt.icon}</div>
@@ -678,7 +678,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
                             <div style={{ fontSize:14, fontWeight:800, color:'#fff', lineHeight:1.2 }}>{opt.title}</div>
                             <div style={{ fontSize:11, color:'rgba(255,255,255,.4)', marginTop:3, lineHeight:1.4 }}>{opt.sub}</div>
                           </div>
-                          {examToggle===opt.id && <svg style={{ marginLeft:'auto', flexShrink:0 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FF653F" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>}
+                          {examToggle===opt.id && <svg style={{ marginLeft:'auto', flexShrink:0 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F06535" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>}
                         </button>
                       ))}
                     </div>
@@ -696,12 +696,12 @@ export default function USExamsPage({ onNav, user, onLogout }) {
         <div style={{ maxWidth:700, margin:'0 auto', position:'relative', zIndex:1 }}>
           {user ? (
             <>
-              <div style={{ display:'inline-flex', alignItems:'center', gap:7, background:'rgba(255,101,63,.15)', border:'1px solid rgba(255,101,63,.25)', borderRadius:99, padding:'5px 14px', marginBottom:16 }}>
-                <UIcUser s={13} c='#FF653F'/>
-                <span style={{ fontSize:12, fontWeight:600, color:'#FF653F' }}>Welcome back, {userName}</span>
+              <div style={{ display:'inline-flex', alignItems:'center', gap:7, background:'rgba(232,90,44,.15)', border:'1px solid rgba(232,90,44,.25)', borderRadius:99, padding:'5px 14px', marginBottom:16 }}>
+                <UIcUser s={13} c='#F06535'/>
+                <span style={{ fontSize:12, fontWeight:600, color:'#F06535' }}>Welcome back, {userName}</span>
               </div>
               <h1 style={{ fontSize:'clamp(1.5rem,4.5vw,2.4rem)', fontWeight:900, color:'#fff', lineHeight:1.18, marginBottom:14, letterSpacing:'-0.5px' }}>
-                Your <span style={{ color:'#FF653F' }}>SAT & ACT</span> Command Centre
+                Your <span style={{ color:'#F06535' }}>SAT & ACT</span> Command Centre
               </h1>
               <p style={{ fontSize:'clamp(13px,1.8vw,15px)', color:'rgba(255,255,255,.55)', lineHeight:1.7, margin:'0 auto 24px', maxWidth:520 }}>
                 Track progress, analyse weak spots, and take targeted practice — all in one place.
@@ -713,7 +713,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
                 <span style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,.6)' }}>Digital SAT · ACT · Score Prediction</span>
               </div>
               <h1 style={{ fontSize:'clamp(1.5rem,4.5vw,2.4rem)', fontWeight:900, color:'#fff', lineHeight:1.18, marginBottom:14, letterSpacing:'-0.5px' }}>
-                Crack the <span style={{ color:'#FF653F' }}>SAT & ACT</span><br/>with Expert Mock Tests
+                Crack the <span style={{ color:'#F06535' }}>SAT & ACT</span><br/>with Expert Mock Tests
               </h1>
               <p style={{ fontSize:'clamp(13px,1.8vw,15px)', color:'rgba(255,255,255,.55)', lineHeight:1.7, margin:'0 auto 24px', maxWidth:520 }}>
                 Adaptive practice tests, section drills, and score prediction — built for student growth.
@@ -721,9 +721,9 @@ export default function USExamsPage({ onNav, user, onLogout }) {
             </>
           )}
           <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
-            <button onClick={() => onNav('mocktest','sat_full')} style={{ background:'#FF653F', color:'#fff', border:'none', padding:'14px 32px', borderRadius:12, fontSize:15, fontWeight:800, cursor:'pointer', boxShadow:'0 4px 20px rgba(255,101,63,.45)', transition:'all .15s' }}
+            <button onClick={() => onNav('mocktest','sat_full')} style={{ background:'#F06535', color:'#fff', border:'none', padding:'14px 32px', borderRadius:12, fontSize:15, fontWeight:800, cursor:'pointer', boxShadow:'0 4px 20px rgba(232,90,44,.45)', transition:'all .15s' }}
               onMouseOver={e => { e.currentTarget.style.background='#e5512f'; e.currentTarget.style.transform='translateY(-1px)' }}
-              onMouseOut={e => { e.currentTarget.style.background='#FF653F'; e.currentTarget.style.transform='translateY(0)' }}>
+              onMouseOut={e => { e.currentTarget.style.background='#F06535'; e.currentTarget.style.transform='translateY(0)' }}>
               Start SAT Practice Test →
             </button>
             <button onClick={() => setTab('syllabus')} style={{ background:'rgba(255,255,255,.09)', color:'rgba(255,255,255,.85)', border:'1px solid rgba(255,255,255,.18)', padding:'14px 24px', borderRadius:12, fontSize:14, fontWeight:600, cursor:'pointer', transition:'all .15s' }}
@@ -746,8 +746,8 @@ export default function USExamsPage({ onNav, user, onLogout }) {
           <div className="ue-layout">
             <div>
               <StatBanner items={examToggle==='sat'
-                ? [[<UIcHelp s={16} c='#2563eb'/>,'98','Questions','#2563eb'],[<UIcTimer s={16} c='#7c3aed'/>,'2h 14 min','Duration','#7c3aed'],[<UIcTarget s={16} c='#FF653F'/>,'400–1600','Score','#FF653F'],[<UIcLap s={16} c='#059669'/>,'Digital','Format','#059669'],[<UIcStar s={16} c='#f59e0b'/>,'No Penalty','Marking','#f59e0b']]
-                : [[<UIcHelp s={16} c='#2563eb'/>,'215','Questions','#2563eb'],[<UIcTimer s={16} c='#7c3aed'/>,'2h 55 min','Duration','#7c3aed'],[<UIcTarget s={16} c='#FF653F'/>,'1–36','Score','#FF653F'],[<UIcDoc s={16} c='#059669'/>,'Paper+Digital','Format','#059669'],[<UIcStar s={16} c='#f59e0b'/>,'No Penalty','Marking','#f59e0b']]}
+                ? [[<UIcHelp s={16} c='#2563eb'/>,'98','Questions','#2563eb'],[<UIcTimer s={16} c='#7c3aed'/>,'2h 14 min','Duration','#7c3aed'],[<UIcTarget s={16} c='#F06535'/>,'400–1600','Score','#F06535'],[<UIcLap s={16} c='#059669'/>,'Digital','Format','#059669'],[<UIcStar s={16} c='#f59e0b'/>,'No Penalty','Marking','#f59e0b']]
+                : [[<UIcHelp s={16} c='#2563eb'/>,'215','Questions','#2563eb'],[<UIcTimer s={16} c='#7c3aed'/>,'2h 55 min','Duration','#7c3aed'],[<UIcTarget s={16} c='#F06535'/>,'1–36','Score','#F06535'],[<UIcDoc s={16} c='#059669'/>,'Paper+Digital','Format','#059669'],[<UIcStar s={16} c='#f59e0b'/>,'No Penalty','Marking','#f59e0b']]}
               />
 
               {examToggle === 'sat' && (
@@ -757,8 +757,8 @@ export default function USExamsPage({ onNav, user, onLogout }) {
                     <div style={{ fontSize:12.5, color:'rgba(255,255,255,.45)', lineHeight:1.5 }}>All options are free. No sign-up required to preview questions.</div>
                   </div>
                   <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
-                    <button onClick={() => onNav('mocktest','sat_full')} style={{ background:'#FF653F', color:'#fff', border:'none', padding:'10px 20px', borderRadius:9, fontSize:13, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 3px 10px rgba(255,101,63,.4)' }}>Full SAT — 98 Qs</button>
-                    <button onClick={() => onNav('mocktest','sat_math')} style={{ background:'rgba(255,101,63,.12)', color:'#FF653F', border:'1px solid rgba(255,101,63,.35)', padding:'10px 18px', borderRadius:9, fontSize:13, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>Math Only — 44 Qs</button>
+                    <button onClick={() => onNav('mocktest','sat_full')} style={{ background:'#F06535', color:'#fff', border:'none', padding:'10px 20px', borderRadius:9, fontSize:13, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 3px 10px rgba(232,90,44,.4)' }}>Full SAT — 98 Qs</button>
+                    <button onClick={() => onNav('mocktest','sat_math')} style={{ background:'rgba(232,90,44,.12)', color:'#F06535', border:'1px solid rgba(232,90,44,.35)', padding:'10px 18px', borderRadius:9, fontSize:13, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>Math Only — 44 Qs</button>
                     <button onClick={() => onNav('mocktest','sat_reading_writing')} style={{ background:'rgba(37,99,235,.12)', color:'#93c5fd', border:'1px solid rgba(37,99,235,.3)', padding:'10px 18px', borderRadius:9, fontSize:13, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>R&W Only — 54 Qs</button>
                   </div>
                 </div>
@@ -769,7 +769,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
                   <div>
                     <div style={{ fontSize:14, fontWeight:700, color:'#0f172a', marginBottom:3 }}>ACT Practice Tests — Coming Soon</div>
                     <div style={{ fontSize:12.5, color:'#6b7280', lineHeight:1.5 }}>
-                      ACT engines are in development. <button onClick={() => onNav('mocktest','sat_full')} style={{ background:'none', border:'none', color:'#FF653F', fontWeight:700, cursor:'pointer', padding:0, fontSize:'inherit' }}>Try the SAT full test →</button>
+                      ACT engines are in development. <button onClick={() => onNav('mocktest','sat_full')} style={{ background:'none', border:'none', color:'#F06535', fontWeight:700, cursor:'pointer', padding:0, fontSize:'inherit' }}>Try the SAT full test →</button>
                     </div>
                   </div>
                 </div>
@@ -841,8 +841,8 @@ export default function USExamsPage({ onNav, user, onLogout }) {
                 </div>
               </div>
 
-              <div style={{ borderRadius:18, overflow:'hidden', marginBottom:16, boxShadow:'0 4px 20px rgba(255,101,63,.1)', border:'1px solid #fed7aa' }}>
-                <div style={{ background:'linear-gradient(135deg,#c2410c,#FF653F)', padding:'16px 18px 14px', display:'flex', alignItems:'center', gap:10 }}>
+              <div style={{ borderRadius:18, overflow:'hidden', marginBottom:16, boxShadow:'0 4px 20px rgba(232,90,44,.1)', border:'1px solid #fed7aa' }}>
+                <div style={{ background:'linear-gradient(135deg,#c2410c,#F06535)', padding:'16px 18px 14px', display:'flex', alignItems:'center', gap:10 }}>
                   <div style={{ width:36, height:36, background:'rgba(255,255,255,.15)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center' }}><UIcDoc s={18} c='#fff'/></div>
                   <div>
                     <div style={{ fontSize:15, fontWeight:900, color:'#fff' }}>ACT</div>
@@ -856,7 +856,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
                         <span style={{ display:'inline-flex', color:'#64748b' }}>{icon}</span>
                         <span style={{ fontSize:12.5, color:'#64748b', fontWeight:500 }}>{k}</span>
                       </div>
-                      <span style={{ fontSize:13, fontWeight:800, color:'#FF653F' }}>{v}</span>
+                      <span style={{ fontSize:13, fontWeight:800, color:'#F06535' }}>{v}</span>
                     </div>
                   ))}
                 </div>
@@ -869,7 +869,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
                     <div style={{ fontSize:12, fontWeight:700, color:'#334155', marginBottom:5 }}>{l}</div>
                     <div style={{ display:'flex', gap:6 }}>
                       <span style={{ fontSize:11, background:'#eff6ff', color:'#2563eb', borderRadius:5, padding:'2px 8px', fontWeight:700 }}>SAT {s}</span>
-                      <span style={{ fontSize:11, background:'#fff8f6', color:'#FF653F', borderRadius:5, padding:'2px 8px', fontWeight:700 }}>ACT {a}</span>
+                      <span style={{ fontSize:11, background:'#fff8f6', color:'#F06535', borderRadius:5, padding:'2px 8px', fontWeight:700 }}>ACT {a}</span>
                     </div>
                   </div>
                 ))}
@@ -884,13 +884,13 @@ export default function USExamsPage({ onNav, user, onLogout }) {
         <div className="ue-page" style={{ paddingTop:16 }}>
           <div className="ue-layout">
             <div>
-              <StatBanner items={[[<UIcCal s={16} c='#2563eb'/>,'12 Weeks','Study Plan','#2563eb'],[<UIcTimer s={16} c='#7c3aed'/>,'60–90 min','Per Day','#7c3aed'],[<UIcChart s={16} c='#FF653F'/>,'200+','Avg Score Gain','#FF653F'],[<UIcBrain s={16} c='#059669'/>,'6 Steps','System','#059669'],[<UIcStar s={16} c='#f59e0b'/>,'Proven','Method','#f59e0b']]}/>
+              <StatBanner items={[[<UIcCal s={16} c='#2563eb'/>,'12 Weeks','Study Plan','#2563eb'],[<UIcTimer s={16} c='#7c3aed'/>,'60–90 min','Per Day','#7c3aed'],[<UIcChart s={16} c='#F06535'/>,'200+','Avg Score Gain','#F06535'],[<UIcBrain s={16} c='#059669'/>,'6 Steps','System','#059669'],[<UIcStar s={16} c='#f59e0b'/>,'Proven','Method','#f59e0b']]}/>
 
               {/* Roadmap */}
               <div style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:16, padding:'22px 24px', marginBottom:22, boxShadow:'0 1px 3px rgba(0,0,0,.04)', overflowX:'auto' }}>
-                <div style={{ fontSize:11, fontWeight:800, color:'#FF653F', textTransform:'uppercase', letterSpacing:'.07em', marginBottom:18 }}>12-Week Study Roadmap</div>
+                <div style={{ fontSize:11, fontWeight:800, color:'#F06535', textTransform:'uppercase', letterSpacing:'.07em', marginBottom:18 }}>12-Week Study Roadmap</div>
                 <div style={{ display:'flex', gap:0, minWidth:480 }}>
-                  {[['Wk 1–2','Diagnose','Take baseline mock, score report','#FF653F'],
+                  {[['Wk 1–2','Diagnose','Take baseline mock, score report','#F06535'],
                     ['Wk 3–6','Build','Concept review + topic drills','#2563eb'],
                     ['Wk 7–10','Practice','Timed sections + full mocks','#7c3aed'],
                     ['Wk 11–12','Peak','1 mock + rest + confidence','#059669']].map(([w,p,d,c],i) => (
@@ -960,7 +960,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
             <div>
               <div className="ue-side-card">
                 <div className="ue-side-label">2025 Test Dates</div>
-                {[['SAT','Mar 8, 2025','#2563eb','#eff6ff'],['SAT','May 3, 2025','#2563eb','#eff6ff'],['SAT','Jun 7, 2025','#2563eb','#eff6ff'],['ACT','Feb 8, 2025','#FF653F','#fff8f6'],['ACT','Apr 5, 2025','#FF653F','#fff8f6'],['ACT','Jun 14, 2025','#FF653F','#fff8f6']].map(([exam,date,c,bg],i) => (
+                {[['SAT','Mar 8, 2025','#2563eb','#eff6ff'],['SAT','May 3, 2025','#2563eb','#eff6ff'],['SAT','Jun 7, 2025','#2563eb','#eff6ff'],['ACT','Feb 8, 2025','#F06535','#fff8f6'],['ACT','Apr 5, 2025','#F06535','#fff8f6'],['ACT','Jun 14, 2025','#F06535','#fff8f6']].map(([exam,date,c,bg],i) => (
                   <div key={i} className="ue-side-row">
                     <span style={{ fontSize:11, fontWeight:700, background:bg, color:c, borderRadius:5, padding:'2px 7px' }}>{exam}</span>
                     <span style={{ fontSize:12, color:'#374151', fontWeight:500 }}>{date}</span>
@@ -978,11 +978,11 @@ export default function USExamsPage({ onNav, user, onLogout }) {
                   </div>
                 ))}
               </div>
-              <div style={{ background:'linear-gradient(135deg,#FF653F,#e5512f)', borderRadius:16, padding:'20px', textAlign:'center', boxShadow:'0 4px 16px rgba(255,101,63,.35)' }}>
+              <div style={{ background:'linear-gradient(135deg,#F06535,#e5512f)', borderRadius:16, padding:'20px', textAlign:'center', boxShadow:'0 4px 16px rgba(232,90,44,.35)' }}>
                 <div style={{ marginBottom:10, display:'flex', justifyContent:'center' }}><UIcTarget s={26} c='#fff'/></div>
                 <div style={{ fontSize:14, fontWeight:800, color:'#fff', marginBottom:6 }}>Practice Makes Perfect</div>
                 <div style={{ fontSize:12, color:'rgba(255,255,255,.75)', marginBottom:16, lineHeight:1.65 }}>Start your first adaptive SAT mock — free.</div>
-                <button onClick={() => onNav('mocktest','sat_full')} style={{ background:'#fff', color:'#FF653F', border:'none', padding:'11px 20px', borderRadius:9, fontSize:13, fontWeight:800, cursor:'pointer', width:'100%', boxShadow:'0 2px 8px rgba(0,0,0,.1)' }}>
+                <button onClick={() => onNav('mocktest','sat_full')} style={{ background:'#fff', color:'#F06535', border:'none', padding:'11px 20px', borderRadius:9, fontSize:13, fontWeight:800, cursor:'pointer', width:'100%', boxShadow:'0 2px 8px rgba(0,0,0,.1)' }}>
                   Start SAT Test →
                 </button>
               </div>
@@ -996,11 +996,11 @@ export default function USExamsPage({ onNav, user, onLogout }) {
         <div className="ue-page" style={{ paddingTop:16 }}>
           <div className="ue-layout">
             <div>
-              <StatBanner items={[[<UIcRobot s={16} c='#2563eb'/>,'AI','Powered','#2563eb'],[<UIcTarget s={16} c='#7c3aed'/>,'Targeted','Drills','#7c3aed'],[<UIcChart s={16} c='#FF653F'/>,'Score','Prediction','#FF653F'],[<UIcCal s={16} c='#059669'/>,'Custom','Calendar','#059669'],[<UIcBell s={16} c='#f59e0b'/>,'Daily','Reminders','#f59e0b']]}/>
+              <StatBanner items={[[<UIcRobot s={16} c='#2563eb'/>,'AI','Powered','#2563eb'],[<UIcTarget s={16} c='#7c3aed'/>,'Targeted','Drills','#7c3aed'],[<UIcChart s={16} c='#F06535'/>,'Score','Prediction','#F06535'],[<UIcCal s={16} c='#059669'/>,'Custom','Calendar','#059669'],[<UIcBell s={16} c='#f59e0b'/>,'Daily','Reminders','#f59e0b']]}/>
 
               <div className="ue-plan-grid">
                 {OWNPREP_PLAN.map((p,i) => {
-                  const colors = ['#FF653F','#2563eb','#7c3aed','#f59e0b']
+                  const colors = ['#F06535','#2563eb','#7c3aed','#f59e0b']
                   const c = colors[i]
                   return (
                     <div key={p.week} className="ue-plan-card">
@@ -1044,7 +1044,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
                   Digital SAT adaptive tests are ready. Take a full test, Math-only, or Reading & Writing — all free.
                 </p>
                 <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
-                  <button onClick={() => onNav('mocktest','sat_full')} style={{ background:'#FF653F', color:'#fff', border:'none', padding:'13px 32px', borderRadius:11, fontSize:14, fontWeight:700, cursor:'pointer', boxShadow:'0 4px 16px rgba(255,101,63,.4)' }}>Start Full SAT Test →</button>
+                  <button onClick={() => onNav('mocktest','sat_full')} style={{ background:'#F06535', color:'#fff', border:'none', padding:'13px 32px', borderRadius:11, fontSize:14, fontWeight:700, cursor:'pointer', boxShadow:'0 4px 16px rgba(232,90,44,.4)' }}>Start Full SAT Test →</button>
                   <button onClick={() => onNav('mocktest','sat_math')} style={{ background:'rgba(255,255,255,.09)', color:'rgba(255,255,255,.85)', border:'1px solid rgba(255,255,255,.18)', padding:'13px 24px', borderRadius:11, fontSize:13, fontWeight:600, cursor:'pointer' }}>Math Only (44 Qs)</button>
                   <button onClick={() => onNav('exams')} style={{ background:'rgba(255,255,255,.05)', color:'rgba(255,255,255,.6)', border:'1px solid rgba(255,255,255,.1)', padding:'13px 20px', borderRadius:11, fontSize:13, fontWeight:600, cursor:'pointer' }}>Browse India Exams →</button>
                 </div>
@@ -1065,7 +1065,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
               </div>
               <div className="ue-side-card" style={{ textAlign:'center' }}>
                 <div className="ue-side-label" style={{ textAlign:'left' }}>Average Score Gain</div>
-                <div style={{ fontSize:40, fontWeight:900, color:'#FF653F', lineHeight:1 }}>+180</div>
+                <div style={{ fontSize:40, fontWeight:900, color:'#F06535', lineHeight:1 }}>+180</div>
                 <div style={{ fontSize:12, color:'#94a3b8', marginBottom:20, marginTop:4 }}>SAT points (12 weeks)</div>
                 <div style={{ fontSize:36, fontWeight:900, color:'#2563eb', lineHeight:1 }}>+4.2</div>
                 <div style={{ fontSize:12, color:'#94a3b8', marginTop:4 }}>ACT composite (12 weeks)</div>
@@ -1080,12 +1080,12 @@ export default function USExamsPage({ onNav, user, onLogout }) {
         <div className="ue-page" style={{ paddingTop:16 }}>
           <div className="ue-layout">
             <div>
-              <StatBanner items={[[<UIcDoc s={16} c='#2563eb'/>,'10+','Papers','#2563eb'],[<UIcGrad s={16} c='#7c3aed'/>,'SAT+ACT','Exams','#7c3aed'],[<UIcCal s={16} c='#FF653F'/>,'2022–2024','Years','#FF653F'],[<UIcStar s={16} c='#059669'/>,'With','Answers','#059669'],[<UIcFree s={16} c='#f59e0b'/>,'Free','Access','#f59e0b']]}/>
+              <StatBanner items={[[<UIcDoc s={16} c='#2563eb'/>,'10+','Papers','#2563eb'],[<UIcGrad s={16} c='#7c3aed'/>,'SAT+ACT','Exams','#7c3aed'],[<UIcCal s={16} c='#F06535'/>,'2022–2024','Years','#F06535'],[<UIcStar s={16} c='#059669'/>,'With','Answers','#059669'],[<UIcFree s={16} c='#f59e0b'/>,'Free','Access','#f59e0b']]}/>
 
               <div className="ue-why-grid">
                 {[[<UIcTarget s={26} c='#2563eb'/>, 'Most accurate prep','Official papers mirror the exact difficulty and format of the real test — no third-party approximations.'],
                   [<UIcTimer s={26} c='#7c3aed'/>,'Builds time sense','Doing a full paper under real timed conditions is the #1 way to eliminate time panic on exam day.'],
-                  [<UIcChart s={26} c='#FF653F'/>,'Reveals patterns','SAT/ACT questions follow predictable templates. Past papers train you to recognise them instantly.'],
+                  [<UIcChart s={26} c='#F06535'/>,'Reveals patterns','SAT/ACT questions follow predictable templates. Past papers train you to recognise them instantly.'],
                   [<UIcRepeat s={26} c='#059669'/>,'Tracks progress','Retake an earlier paper after 4 weeks of prep and measure your real score growth numerically.'],
                 ].map(([icon,title,desc]) => (
                   <div key={title} className="ue-why-card">
@@ -1098,7 +1098,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
 
               <div style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:16, padding:'22px 24px', marginBottom:20, boxShadow:'0 1px 3px rgba(0,0,0,.04)' }}>
                 <div style={{ fontSize:15, fontWeight:800, color:'#0f172a', marginBottom:16 }}>How to Use Past Papers Effectively</div>
-                {[['1','Take it fully timed','Simulate test day exactly — no breaks, no pauses, strict time per section.','#FF653F'],
+                {[['1','Take it fully timed','Simulate test day exactly — no breaks, no pauses, strict time per section.','#F06535'],
                   ['2','Score it immediately','Use the official answer key. Write down your raw score per section.','#2563eb'],
                   ['3','Review every wrong answer',"Don't just note what is wrong — write WHY you chose the wrong answer.",'#7c3aed'],
                   ['4','Categorise errors','Tag each error: careless mistake / concept gap / time pressure.','#059669'],
@@ -1136,7 +1136,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
                   <div style={{ fontSize:15, fontWeight:800, color:'#0f172a', marginBottom:4 }}>Get notified when papers go live</div>
                   <div style={{ fontSize:13, color:'#64748b' }}>We'll email you the moment each paper + full solutions are uploaded.</div>
                 </div>
-                <button onClick={() => onNav('auth')} style={{ background:'#FF653F', color:'#fff', border:'none', padding:'11px 26px', borderRadius:10, fontSize:14, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 3px 10px rgba(255,101,63,.35)' }}>
+                <button onClick={() => onNav('auth')} style={{ background:'#F06535', color:'#fff', border:'none', padding:'11px 26px', borderRadius:10, fontSize:14, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 3px 10px rgba(232,90,44,.35)' }}>
                   Notify Me →
                 </button>
               </div>
@@ -1156,7 +1156,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
                 <div className="ue-side-label">Paper Strategy Tips</div>
                 {['Do full papers, not just sections','Time each section strictly','Never look up answers mid-test','Review same day while memory is fresh','Redo papers after 4 weeks to measure growth'].map((t,i) => (
                   <div key={i} style={{ display:'flex', gap:8, alignItems:'flex-start', marginBottom:10 }}>
-                    <span style={{ color:'#FF653F', fontWeight:900, fontSize:13, flexShrink:0, marginTop:1 }}>→</span>
+                    <span style={{ color:'#F06535', fontWeight:900, fontSize:13, flexShrink:0, marginTop:1 }}>→</span>
                     <span style={{ fontSize:12.5, color:'#4b5563', lineHeight:1.55 }}>{t}</span>
                   </div>
                 ))}
@@ -1179,7 +1179,7 @@ export default function USExamsPage({ onNav, user, onLogout }) {
       {user && showFloat && (
         <div className="ue-float">
           <button onClick={() => onNav('mocktest','sat_full')}
-            style={{ display:'flex', alignItems:'center', gap:10, background:'linear-gradient(135deg,#FF653F,#e5512f)', color:'#fff', border:'none', padding:'13px 22px', borderRadius:50, fontSize:14, fontWeight:800, cursor:'pointer', boxShadow:'0 6px 24px rgba(255,101,63,.5)', whiteSpace:'nowrap' }}>
+            style={{ display:'flex', alignItems:'center', gap:10, background:'linear-gradient(135deg,#F06535,#e5512f)', color:'#fff', border:'none', padding:'13px 22px', borderRadius:50, fontSize:14, fontWeight:800, cursor:'pointer', boxShadow:'0 6px 24px rgba(232,90,44,.5)', whiteSpace:'nowrap' }}>
             <UIcPlay s={14} c='#fff'/>
             Take a Test
           </button>
