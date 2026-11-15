@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef, useMemo } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { supabase } from '../supabase.js'
 import { Browser } from '@capacitor/browser'
@@ -36,6 +36,53 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
   const [googleLoad, setGoogleLoad] = useState(false)
   const [appleLoad,  setAppleLoad]  = useState(false)
   const [mode,       setMode]       = useState('login')
+
+  // True only when redirected here from /admin
+  const isAdminFlow = useMemo(() => {
+    try { return JSON.parse(sessionStorage.getItem('postAuthNav') || '{}')?.target === 'admin' } catch { return false }
+  }, [])
+
+  // Email / password login (for admin — web only)
+  const [showEmail,  setShowEmail]  = useState(isAdminFlow)
+  const [emailVal,   setEmailVal]   = useState('')
+  const [passVal,    setPassVal]    = useState('')
+  const [emailLoad,  setEmailLoad]  = useState(false)
+  const [emailErr,   setEmailErr]   = useState('')
+  const [resetSent,  setResetSent]  = useState(false)
+  const [resetLoad,  setResetLoad]  = useState(false)
+
+  const handleEmailLogin = async (e) => {
+    e.preventDefault()
+    setEmailErr('')
+    if (!emailVal.trim() || !passVal) { setEmailErr('Enter your email and password.'); return }
+    setEmailLoad(true)
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email: emailVal.trim(), password: passVal })
+      if (error) { setEmailErr(error.message); return }
+      if (data?.user) onAuth(data.user)
+    } catch (err) {
+      setEmailErr(err.message || 'Sign in failed.')
+    } finally {
+      setEmailLoad(false)
+    }
+  }
+
+  const handleForgotPassword = async () => {
+    if (!emailVal.trim()) { setEmailErr('Enter your email address first.'); return }
+    setEmailErr('')
+    setResetLoad(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(emailVal.trim(), {
+        redirectTo: window.location.origin,
+      })
+      if (error) { setEmailErr(error.message); return }
+      setResetSent(true)
+    } catch (err) {
+      setEmailErr(err.message || 'Failed to send reset email.')
+    } finally {
+      setResetLoad(false)
+    }
+  }
 
   const switchMode = (m) => setMode(m)
 
@@ -540,6 +587,55 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
                   </>
                 )}
               </div>
+
+              {/* Email / password — admin flow only */}
+              <div style={{ marginTop: 16 }}>{isAdminFlow && <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: showEmail ? 12 : 0 }}>
+                  <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
+                  <button type="button" onClick={() => { setShowEmail(v => !v); setEmailErr('') }}
+                    style={{ fontSize: 11, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', padding: '0 4px' }}>
+                    {showEmail ? '▲ Hide email login' : '▼ Sign in with email'}
+                  </button>
+                  <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
+                </div>
+
+                {showEmail && (
+                  <form onSubmit={handleEmailLogin} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <input
+                      type="email" value={emailVal} onChange={e => setEmailVal(e.target.value)}
+                      placeholder="Email address" autoComplete="email"
+                      style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1px solid #d1d5db', borderRadius: 10, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                      onFocus={e => e.target.style.borderColor = '#F06535'}
+                      onBlur={e => e.target.style.borderColor = '#d1d5db'}
+                    />
+                    <input
+                      type="password" value={passVal} onChange={e => setPassVal(e.target.value)}
+                      placeholder="Password" autoComplete="current-password"
+                      style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1px solid #d1d5db', borderRadius: 10, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                      onFocus={e => e.target.style.borderColor = '#F06535'}
+                      onBlur={e => e.target.style.borderColor = '#d1d5db'}
+                    />
+                    {isAdminFlow && (
+                      <div style={{ display:'flex', justifyContent:'flex-end' }}>
+                        <button type="button" onClick={handleForgotPassword} disabled={resetLoad}
+                          style={{ fontSize: 11.5, color: '#F06535', background: 'none', border: 'none', cursor: resetLoad ? 'not-allowed' : 'pointer', padding: 0, fontFamily: 'inherit' }}>
+                          {resetLoad ? 'Sending…' : 'Forgot / Set password?'}
+                        </button>
+                      </div>
+                    )}
+                    {resetSent && (
+                      <p style={{ fontSize: 12, color: '#16a34a', margin: 0, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '8px 10px' }}>
+                        ✓ Password reset link sent — check your inbox (and spam folder).
+                      </p>
+                    )}
+                    {emailErr && <p style={{ fontSize: 12, color: '#dc2626', margin: 0 }}>{emailErr}</p>}
+                    <button type="submit" disabled={emailLoad}
+                      style={{ width: '100%', padding: '11px 0', fontSize: 13.5, fontWeight: 700, background: emailLoad ? '#f3f4f6' : '#111827', color: emailLoad ? '#9ca3af' : '#fff', border: 'none', borderRadius: 10, cursor: emailLoad ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                      {emailLoad ? <><Spinner /><span>Signing in…</span></> : 'Sign in'}
+                    </button>
+                  </form>
+                )}
+              </>}</div>
 
               {/* Bottom mode switch */}
               <p style={{ textAlign: 'center', fontSize: 12.5, color: '#6b7280', marginTop: 18 }}>

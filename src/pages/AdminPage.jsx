@@ -86,9 +86,10 @@ const Icons = {
   dot:         <svg viewBox="0 0 24 24" fill="currentColor" className="w-2 h-2"><circle cx="12" cy="12" r="8"/></svg>,
   write:       <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>,
   trash:       <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>,
+  logout:      <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>,
 }
 
-export default function AdminPage({ onBack }) {
+export default function AdminPage({ onBack, onLogout }) {
   const [tab,          setTab]         = useState('dashboard')
   const [stats,        setStats]       = useState(null)
   const [flagged,      setFlagged]     = useState([])
@@ -107,6 +108,8 @@ export default function AdminPage({ onBack }) {
   const [caLog,        setCaLog]       = useState([])
   const [elapsed,      setElapsed]     = useState(0)
   const [sidebarOpen,  setSidebarOpen] = useState(false)
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false)
+  const adminMenuRef = useRef()
   const [writeForm,    setWriteForm]   = useState({
     exam:'', section:'', topic:'', difficulty:'medium',
     question_text:'', option_a:'', option_b:'', option_c:'', option_d:'', option_e:'',
@@ -410,41 +413,107 @@ export default function AdminPage({ onBack }) {
   )
 
   // ── Top bar ──────────────────────────────────────────────────────
-  const TopBar = () => (
-    <header className="bg-white border-b border-gray-200 px-4 lg:px-6 flex items-center gap-4 flex-shrink-0" style={{ minHeight: 64 }}>
-      <button onClick={() => setSidebarOpen(true)} className="text-gray-500 hover:text-gray-700 lg:hidden flex-shrink-0">
-        {Icons.menu}
-      </button>
-      {/* Title — left side, desktop only */}
-      <div className="hidden lg:block flex-shrink-0 min-w-0">
-        <h1 className="font-extrabold text-gray-900 leading-tight" style={{ fontSize: 22, letterSpacing: -0.8 }}>Admin Dashboard</h1>
-        <p className="text-xs" style={{ color: '#78859a', marginTop: 1 }}>Manage exams, content, current affairs, and scheduled tasks</p>
-      </div>
-      {/* Spacer */}
-      <div className="flex-1" />
-      {/* Search */}
-      <div className="relative hidden sm:block">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{Icons.search}</span>
-        <input type="text" placeholder="Search exams, content, or tasks..."
-          className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white w-72 transition-all" />
-      </div>
-      <button className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0">
-        {Icons.bell}
-        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full ring-1 ring-white" />
-      </button>
-      <div className="flex items-center gap-2 pl-1 border-l border-gray-200 ml-1 flex-shrink-0">
-        <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center">
-          <span className="text-white font-semibold text-sm">A</span>
+  const TopBar = () => {
+    // close on outside click
+    useEffect(() => {
+      if (!adminMenuOpen) return
+      const handler = (e) => { if (adminMenuRef.current && !adminMenuRef.current.contains(e.target)) setAdminMenuOpen(false) }
+      document.addEventListener('mousedown', handler)
+      return () => document.removeEventListener('mousedown', handler)
+    }, [adminMenuOpen])
+
+    const menuItems = [
+      { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={15} height={15}><rect x={3} y={3} width={7} height={7} rx={1}/><rect x={14} y={3} width={7} height={7} rx={1}/><rect x={3} y={14} width={7} height={7} rx={1}/><rect x={14} y={14} width={7} height={7} rx={1}/></svg>,
+        label: 'Dashboard', action: () => { setTab('dashboard'); setAdminMenuOpen(false) } },
+      { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={15} height={15}><circle cx={12} cy={8} r={4}/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>,
+        label: 'My Profile', action: () => setAdminMenuOpen(false) },
+      { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={15} height={15}><circle cx={12} cy={12} r={3}/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+        label: 'Settings', action: () => { setTab('settings'); setAdminMenuOpen(false) } },
+      { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={15} height={15}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1={16} y1={13} x2={8} y2={13}/><line x1={16} y1={17} x2={8} y2={17}/></svg>,
+        label: 'Current Affairs', action: () => { setTab('ca'); setAdminMenuOpen(false) } },
+      { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={15} height={15}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+        label: 'Analytics', action: () => { setTab('analytics'); setAdminMenuOpen(false) } },
+      { divider: true },
+      { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={15} height={15}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1={10} y1={14} x2={21} y2={3}/></svg>,
+        label: 'View Site', action: () => { onBack && onBack(); setAdminMenuOpen(false) } },
+      { icon: <svg viewBox="0 0 24 24" fill="currentColor" width={15} height={15}><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>,
+        label: 'Logout', action: () => { setAdminMenuOpen(false); onLogout() }, danger: true },
+    ]
+
+    return (
+      <header className="bg-white border-b border-gray-200 px-4 lg:px-6 flex items-center gap-4 flex-shrink-0" style={{ minHeight: 64 }}>
+        <button onClick={() => setSidebarOpen(true)} className="text-gray-500 hover:text-gray-700 lg:hidden flex-shrink-0">
+          {Icons.menu}
+        </button>
+        <div className="hidden lg:block flex-shrink-0 min-w-0">
+          <h1 className="font-extrabold text-gray-900 leading-tight" style={{ fontSize: 22, letterSpacing: -0.8 }}>Admin Dashboard</h1>
+          <p className="text-xs" style={{ color: '#78859a', marginTop: 1 }}>Manage exams, content, current affairs, and scheduled tasks</p>
         </div>
-        <span className="text-sm font-medium text-gray-700 hidden sm:block">Admin</span>
-        <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-gray-400 hidden sm:block"><path d="M7 10l5 5 5-5z"/></svg>
-      </div>
-      <button onClick={onBack}
-        className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 hover:border-gray-300 px-3 py-1.5 rounded-lg transition-colors ml-1 flex-shrink-0">
-        {Icons.back}<span className="hidden sm:inline">Exit Admin</span>
-      </button>
-    </header>
-  )
+        <div className="flex-1" />
+
+        {/* Admin dropdown */}
+        <div ref={adminMenuRef} style={{ position: 'relative', flexShrink: 0 }}>
+          <button
+            onClick={() => setAdminMenuOpen(v => !v)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '6px 10px 6px 6px',
+              border: adminMenuOpen ? '1.5px solid #e2e8f0' : '1.5px solid transparent',
+              borderRadius: 10, background: adminMenuOpen ? '#f8fafc' : 'transparent',
+              cursor: 'pointer', transition: 'all .15s',
+            }}
+            onMouseOver={e => { if (!adminMenuOpen) e.currentTarget.style.background = '#f8fafc' }}
+            onMouseOut={e  => { if (!adminMenuOpen) e.currentTarget.style.background = 'transparent' }}
+          >
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F06535', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span style={{ color: '#fff', fontWeight: 700, fontSize: 13 }}>A</span>
+            </div>
+            <span style={{ fontSize: 13.5, fontWeight: 600, color: '#374151' }} className="hidden sm:block">Admin</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={2.5} width={14} height={14}
+              style={{ transition: 'transform .2s', transform: adminMenuOpen ? 'rotate(180deg)' : 'none' }} className="hidden sm:block">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+
+          {adminMenuOpen && (
+            <div style={{
+              position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+              background: '#fff', border: '1px solid #e2e8f0',
+              borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,.10)',
+              minWidth: 200, zIndex: 999, overflow: 'hidden',
+              animation: 'fadeInDown .12s ease',
+            }}>
+              {/* Header */}
+              <div style={{ padding: '12px 14px 10px', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b' }}>Administrator</div>
+                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>Super Admin · ArkaServe</div>
+              </div>
+              {/* Items */}
+              <div style={{ padding: '6px 0' }}>
+                {menuItems.map((item, i) =>
+                  item.divider
+                    ? <div key={i} style={{ height: 1, background: '#f1f5f9', margin: '4px 0' }} />
+                    : <button key={i} onClick={item.action} style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        width: '100%', padding: '8px 14px',
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        fontSize: 13, fontWeight: 500,
+                        color: item.danger ? '#ef4444' : '#374151',
+                        textAlign: 'left', transition: 'background .1s',
+                      }}
+                      onMouseOver={e => e.currentTarget.style.background = item.danger ? '#fef2f2' : '#f8fafc'}
+                      onMouseOut={e  => e.currentTarget.style.background = 'none'}>
+                        <span style={{ color: item.danger ? '#ef4444' : '#64748b', display:'flex' }}>{item.icon}</span>
+                        {item.label}
+                      </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </header>
+    )
+  }
 
   // ── Dashboard view ───────────────────────────────────────────────
   const DashboardView = () => {
@@ -457,6 +526,7 @@ export default function AdminPage({ onBack }) {
       <div className="space-y-3">
         {/* Responsive grid helpers injected once */}
         <style>{`
+          @keyframes fadeInDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
           @media(max-width:1024px){.adm-feat{grid-template-columns:1fr!important}}
           @media(max-width:1024px){.adm-kpi{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
           @media(max-width:480px){.adm-kpi{grid-template-columns:1fr!important}}
@@ -507,7 +577,7 @@ export default function AdminPage({ onBack }) {
         </div>
 
         {/* CA Banner + Quick Actions row */}
-        <div className="adm-feat grid gap-3" style={{ gridTemplateColumns: 'minmax(0,1.7fr) minmax(260px,.75fr)' }}>
+        <div className="adm-feat grid gap-3" style={{ gridTemplateColumns: 'minmax(0,1.2fr) minmax(320px,.85fr)' }}>
           {/* CA Banner */}
           <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm"
                style={{ background: '#fff', minHeight: 158 }}>
@@ -543,11 +613,12 @@ export default function AdminPage({ onBack }) {
                   </button>
                 </div>
               </div>
-              {/* Right column: globe */}
-              <div className="hidden lg:flex items-center justify-center flex-shrink-0 relative" style={{ width: 170 }}>
-                <div className="relative" style={{ width: 120, height: 120, borderRadius: '50%', border: '1px solid #fdc9a3', background: 'radial-gradient(circle at 35% 30%,#fff0e6,#fde8d8 68%)', display: 'grid', placeItems: 'center', boxShadow: '0 4px 20px rgba(249,115,22,0.15)', color: '#f97316', fontSize: 68, flexShrink: 0 }}>
+              {/* Right column: illustration — overflow-hidden ensures nothing leaks into Quick Actions */}
+              <div className="hidden lg:flex items-center justify-center flex-shrink-0" style={{ width: 148, overflow: 'hidden', position: 'relative' }}>
+                <div style={{ position: 'relative', width: 108, height: 108, borderRadius: '50%', border: '1px solid #fdc9a3', background: 'radial-gradient(circle at 35% 30%,#fff0e6,#fde8d8 68%)', display: 'grid', placeItems: 'center', boxShadow: '0 4px 20px rgba(249,115,22,0.15)', color: '#f97316', fontSize: 60, flexShrink: 0 }}>
                   <span style={{ lineHeight: 1 }}>◎</span>
-                  <div style={{ position: 'absolute', right: -16, bottom: 2, width: 100, height: 68, padding: '8px 10px', borderRadius: 8, background: 'linear-gradient(135deg,#fff,#fff5ef)', color: '#20345f', transform: 'rotate(-7deg)', boxShadow: '0 8px 20px rgba(0,0,0,0.12)', pointerEvents: 'none' }}>
+                  {/* note card anchored within the circle bounds */}
+                  <div style={{ position: 'absolute', right: 0, bottom: -6, width: 86, height: 60, padding: '7px 9px', borderRadius: 7, background: 'linear-gradient(135deg,#fff,#fff5ef)', color: '#20345f', transform: 'rotate(-6deg)', transformOrigin: 'bottom right', boxShadow: '0 6px 16px rgba(0,0,0,0.11)', pointerEvents: 'none', isolation: 'isolate' }}>
                     <div style={{ fontWeight: 700, fontSize: 10, marginBottom: 4 }}>Current Affairs</div>
                     <div style={{ height: 4, background: '#f5bfa0', borderRadius: 3, marginBottom: 4 }} />
                     <div style={{ height: 3, background: '#f8d4be', borderRadius: 2, marginBottom: 3, width: '80%' }} />

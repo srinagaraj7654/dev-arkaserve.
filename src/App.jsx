@@ -511,8 +511,8 @@ export default function App() {
       const target = e.state?.appPage || pathToPage(window.location.pathname)
       skipPushRef.current = true
       // Logged in: Back always returns to the Dashboard (never a blank/loading
-      // page or a stranded public/test screen).
-      if (user) { setPage('dashboard'); return }
+      // page or a stranded public/test screen). Super-admin goes to admin page.
+      if (user) { setPage(userRole === 'super_admin' ? 'admin' : 'dashboard'); return }
       // Logged out: restore the previous page, else Home.
       setPage(target || 'home')
     }
@@ -619,6 +619,11 @@ export default function App() {
                         subscriptions:'subscriptions', profile:'profile', settings:'settings',
                         explore:'explore', billing:'billing',
                         performance:'performance', prediction:'prediction' }
+    // Super-admin never lands on the student dashboard
+    if (userRole === 'super_admin' && (target === 'dashboard' || DASH_TABS[target])) {
+      setPage('admin'); window.scrollTo(0, 0); return
+    }
+
     if (DASH_TABS[target]) {
       setDashTab(DASH_TABS[target]); setPage('dashboard'); window.scrollTo(0, 0); return
     }
@@ -858,10 +863,10 @@ export default function App() {
             onBack={() => setPage('dashboard')}
           />
         )}
-        {page === 'dashboard'      && (
+        {page === 'dashboard' && userRole !== 'super_admin' && (
           <Dashboard
             user={user}
-            isAdmin={userRole === 'super_admin'}
+            isAdmin={false}
             planData={planData}
             initialTab={dashTab}
             examRegion={user?.user_metadata?.exam_region || 'in'}
@@ -954,8 +959,12 @@ export default function App() {
               />
         })()}
         {page === 'admin'          && authChecked && (!user || roleLoaded) && (userRole === 'super_admin'
-          ? <AdminPage onBack={() => setPage('dashboard')} />
-          : (() => { nav('dashboard'); return null })()
+          ? <AdminPage onBack={() => setPage('dashboard')} onLogout={handleLogout} />
+          : (() => {
+              // Not logged in → save 'admin' as pending nav so post-login routing lands here
+              // Logged-in non-admin → redirect to dashboard
+              nav(!user ? 'admin' : 'dashboard'); return null
+            })()
         )}
 		{page === 'how-prediction-works' && <PredictionExplainer user={user} onNav={nav} />}
         {page === 'us-score-prediction' && <USPredictionExplainer />}
