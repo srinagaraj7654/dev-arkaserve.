@@ -124,6 +124,13 @@ export default function PerformancePage({ history = [], user, darkMode = false, 
   const muted  = dark ? '#8899b4' : '#64748b'
   const accent = '#F06535'
   const hasData = filteredHistory.length > 0
+
+  /* UI: analytics unlock only after 2 completed MOCK tests (topic / practice tests don't count).
+     Until then the page shows just the Test History card with a "complete N more" prompt. */
+  const UNLOCK_AT = 2
+  const mockCount = history.filter(r => !['topic_diagnostic', 'mini', 'concept_mini'].includes(r.test_type)).length
+  const unlocked  = mockCount >= UNLOCK_AT
+  const needMore  = Math.max(0, UNLOCK_AT - mockCount)
   const impDir  = stats.improvement > 0 ? '▲' : stats.improvement < 0 ? '▼' : '—'
   const impColor= stats.improvement > 0 ? '#10b981' : stats.improvement < 0 ? '#ef4444' : muted
 
@@ -151,7 +158,7 @@ export default function PerformancePage({ history = [], user, darkMode = false, 
   ]
 
   return (
-    <div style={{ color:txt, fontFamily:"'Plus Jakarta Sans','Inter',system-ui,sans-serif", background:bg, minHeight:'100%' }}>
+    <div style={{ color:txt, fontFamily:"'Plus Jakarta Sans','Inter',system-ui,sans-serif", background:'transparent', minHeight:'100%' }}>{/* UI FIX: was background:bg (#0b0f1a dark / #eef1f8 light) — a square-cornered layer that showed behind the rounded header card. Transparent lets the dashboard background show through, so only the rounded card is visible. */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
         .pp-card{background:${card};border:1px solid ${border};border-radius:20px;padding:24px;box-shadow:0 1px 0 rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,${dark?.1:.05}),0 16px 40px rgba(0,0,0,${dark?.08:.03})}
@@ -173,13 +180,23 @@ export default function PerformancePage({ history = [], user, darkMode = false, 
 
       <div style={{ padding:'0 0 56px' }}>
 
+        {/* UI: everything from the hero down to "Confidence Analysis" shows only once unlocked (2+ mock tests) */}
+        {unlocked && (<>
+
         {/* ── Hero header ── */}
+        {/* UI: cleaner card edges — the old wide 40px shadow (rgba .28) spread a grey haze around the
+            rounded corners on the light page. Now: a tight, soft shadow that sits under the card, a
+            faint 1px edge for crisp corners, and isolation so the glow orbs never bleed past the radius. */}
         <div style={{
           position:'relative', borderRadius:24, overflow:'hidden', marginBottom:20,
+          isolation:'isolate',
+          border:'1px solid rgba(255,255,255,.06)',
           background: dark
             ? 'linear-gradient(145deg,#111827 0%,#0d1520 60%,#0a1128 100%)'
             : 'linear-gradient(145deg,#1a1d2e 0%,#0f1623 100%)',
-          boxShadow:'0 8px 40px rgba(0,0,0,.28)',
+          boxShadow: dark
+            ? '0 1px 2px rgba(0,0,0,.4), 0 12px 28px -10px rgba(0,0,0,.6)'
+            : '0 1px 2px rgba(15,22,35,.08), 0 12px 28px -12px rgba(15,22,35,.35)',
         }}>
           {/* decorative orbs */}
           <div style={{ position:'absolute',right:-60,top:-60,width:300,height:300,background:'radial-gradient(circle,rgba(232,90,44,.12) 0%,transparent 65%)',pointerEvents:'none' }}/>
@@ -487,15 +504,21 @@ export default function PerformancePage({ history = [], user, darkMode = false, 
           </div>
         </div>
 
-        {/* ── Test History ── */}
+        </>)}
+
+        {/* ── Test History ── (always shown; acts as the locked/empty state until 2 mock tests are done) */}
         <div className="pp-card">
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
             <div>
               <div style={{ fontSize:16, fontWeight:800, letterSpacing:'-.02em', color:txt }}>Test History</div>
-              <div style={{ fontSize:12, color:muted, marginTop:3 }}>{hasData ? `${historyRows.length} test${historyRows.length!==1?'s':''} taken` : 'No tests yet'}</div>
+              <div style={{ fontSize:12, color:muted, marginTop:3 }}>
+                {!unlocked
+                  ? (mockCount === 0 ? 'No tests yet' : `${mockCount} of ${UNLOCK_AT} mock tests completed`)
+                  : hasData ? `${historyRows.length} test${historyRows.length!==1?'s':''} taken` : 'No tests yet'}
+              </div>
             </div>
           </div>
-          {hasData ? (
+          {unlocked && hasData ? (
             <div>
               {/* Column headers */}
               <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0 18px 10px', borderBottom:`1px solid ${border}`, marginBottom:8 }}>
@@ -535,12 +558,24 @@ export default function PerformancePage({ history = [], user, darkMode = false, 
               })}
             </div>
           ) : (
-            <div style={{ padding:'60px 0', textAlign:'center' }}>
-              <div style={{ width:72, height:72, borderRadius:22, background:dark?'rgba(255,255,255,.04)':'#f4f6fa', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 16px' }}>
-                <IcChart s={36} c={muted}/>
-              </div>
-              <div style={{ fontSize:16, fontWeight:800, color:txt, marginBottom:6 }}>No tests yet</div>
-              <div style={{ fontSize:13, color:muted }}>Complete your first test to unlock performance analytics</div>
+            <div style={{ padding:'48px 0', textAlign:'center' }}>{/* UI: chart icon removed on request; padding trimmed 60→48 */}
+              {!unlocked && mockCount > 0 ? (<>
+                {/* UI: 1 of 2 done — show progress toward unlocking analytics */}
+                <div style={{ fontSize:16, fontWeight:800, color:txt, marginBottom:6 }}>
+                  Complete {needMore} more mock test{needMore !== 1 ? 's' : ''}
+                </div>
+                <div style={{ fontSize:13, color:muted }}>Your performance analytics unlock after {UNLOCK_AT} mock tests</div>
+                <div style={{ width:220, maxWidth:'80%', height:8, borderRadius:99, background:dark?'rgba(255,255,255,.08)':'#eef2f7', margin:'16px auto 0', overflow:'hidden' }}
+                  role="progressbar" aria-valuemin={0} aria-valuemax={UNLOCK_AT} aria-valuenow={mockCount} aria-label="Mock tests completed">
+                  <div style={{ width:`${(mockCount / UNLOCK_AT) * 100}%`, height:'100%', borderRadius:99, background:`linear-gradient(90deg,${accent},#ff8a5f)` }}/>
+                </div>
+                <div style={{ fontSize:11.5, fontWeight:700, color:accent, marginTop:8 }}>{mockCount} / {UNLOCK_AT} mock tests</div>
+              </>) : (<>
+                <div style={{ fontSize:16, fontWeight:800, color:txt, marginBottom:6 }}>No tests yet</div>
+                <div style={{ fontSize:13, color:muted }}>
+                  {unlocked ? 'No tests in this time range — try “All”' : `Complete ${UNLOCK_AT} mock tests to unlock performance analytics`}
+                </div>
+              </>)}
               {onNav && (
                 <button onClick={()=>onNav('explore')} style={{ marginTop:20, background:accent, color:'#fff', border:'none', borderRadius:12, padding:'11px 24px', fontWeight:700, fontSize:13, cursor:'pointer', boxShadow:'0 4px 16px rgba(232,90,44,.3)' }}>
                   Start a Test →

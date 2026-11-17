@@ -134,7 +134,7 @@ export default function PracticePage({ user, isAdmin = false, onStartTest, onLog
   const skip    = ['admin','test','user','testuser','administrator']
   const uName   = skip.includes(raw.toLowerCase()) ? (user?.email?.split('@')[0] || raw) : raw
   const initials= uName.slice(0,2).toUpperCase()
-  // isAdmin is passed as a prop from App.jsx (resolved via user_roles DB table)
+  // isAdmin is passed as a prop from App.jsx (resolved via user_access DB table)
 
   /* registration + subscription → which exams the user may see */
   const plan  = (user?.user_metadata?.plan || user?.user_metadata?.subscription || 'free').toLowerCase()

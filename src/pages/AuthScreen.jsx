@@ -31,11 +31,13 @@ const Spinner = () => (
   <span style={{ width: 16, height: 16, border: '2px solid rgba(107,114,128,.3)', borderTopColor: '#374151', borderRadius: '50%', display: 'inline-block', animation: 'auth-spin .65s linear infinite', flexShrink: 0 }} />
 )
 
-export default function AuthScreen({ onAuth, onBack, onNav }) {
+// QA FIX #4: new props — initialMode (open on Login or Sign Up), selectedPlan (plan chosen
+// on the landing page), notice (why the user was redirected here; also QA FIX #2).
+export default function AuthScreen({ onAuth, onBack, onNav, initialMode = 'login', selectedPlan = null, notice = '' }) {
   const handleNav = (id) => { if (onNav) onNav(id); else onBack() }
   const [googleLoad, setGoogleLoad] = useState(false)
   const [appleLoad,  setAppleLoad]  = useState(false)
-  const [mode,       setMode]       = useState('login')
+  const [mode,       setMode]       = useState(initialMode === 'signup' ? 'signup' : 'login')
 
   // True only when redirected here from /admin
   const isAdminFlow = useMemo(() => {
@@ -43,7 +45,7 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
   }, [])
 
   // Email / password login (for admin — web only)
-  const [showEmail,  setShowEmail]  = useState(isAdminFlow)
+  const showEmail = isAdminFlow   // email form: always on the Login tab; also on Sign Up when coming from /admin
   const [emailVal,   setEmailVal]   = useState('')
   const [passVal,    setPassVal]    = useState('')
   const [emailLoad,  setEmailLoad]  = useState(false)
@@ -85,6 +87,14 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
   }
 
   const switchMode = (m) => setMode(m)
+
+  // QA FIX #4: new users arriving from "Choose Plan" / "Start Free" see Sign Up, not "Welcome back".
+  // Re-sync when the screen is reopened with a different intent (e.g. "Login" vs "Choose Plan").
+  useEffect(() => { setMode(initialMode === 'signup' ? 'signup' : 'login') }, [initialMode])
+
+  // QA FIX #4: always open the auth screen at the very top (the global smooth-scroll
+  // could otherwise leave it partially scrolled after navigating from a long page).
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [])
 
   /* ── Native Google OAuth deep-link callback ── */
   // Keep a stable ref so listener churn doesn't happen on every render
@@ -400,264 +410,281 @@ export default function AuthScreen({ onAuth, onBack, onNav }) {
     </div>
   )
 
-  /* ── Auth UI (web layout) ── */
+  /* ── Auth UI (web layout) ──
+     UI: static split-screen sign-in. The page is exactly one screen tall (100dvh) and never
+     scrolls on desktop/tablet: left = brand panel, right = sign-in form. Sizes use clamp()
+     with vh so everything fits short laptop screens too. All sign-in logic (Google/Apple,
+     Login/Sign Up toggle, selected plan, redirect notice) is unchanged. */
   return (
-    <div style={{ fontFamily: "'Poppins','Inter','Segoe UI',system-ui,sans-serif", background: '#ffffff', height: '100vh' }}
-      className="flex flex-col md:flex-row overflow-hidden">
+    <div className="auth-web" style={{ fontFamily: "'Poppins','Inter','Segoe UI',system-ui,sans-serif" }}>
 
-      <style>{`@keyframes auth-spin { to { transform: rotate(360deg) } }`}</style>
+      <style>{`
+        @keyframes auth-spin { to { transform: rotate(360deg) } }
+        .auth-web { display:flex; height:100vh; height:100dvh; overflow:hidden; background:#f8fafc; }
+        .auth-left { position:relative; overflow:hidden; isolation:isolate; width:50%; flex-shrink:0;
+          display:flex; flex-direction:column; justify-content:space-between;
+          padding: clamp(24px,5.5vh,56px) clamp(32px,5.5vw,80px);
+          background: linear-gradient(150deg,#050d1a 0%,#0b1120 45%,#0f1623 75%,#1a1d2e 100%); color:#fff; } /* MockTest navy (hero/footer palette) */
+        .auth-right { position:relative; flex:1; min-width:0; display:flex; flex-direction:column;
+          overflow-y:auto; scrollbar-width:none; }
+        .auth-right::-webkit-scrollbar { display:none; }
+        .auth-form { width:100%; max-width:420px; margin:auto; padding: clamp(20px,4vh,40px) 24px; }
+        .auth-h1 { font-size: clamp(26px,4.8vh,38px); font-weight:800; letter-spacing:-.035em; line-height:1.1; color:#0f172a; margin:0; }
+        .auth-btn { width:100%; display:flex; align-items:center; justify-content:center; gap:12px;
+          height: clamp(44px,6.6vh,50px); border-radius:12px; font-size:14px; font-weight:700; cursor:pointer;
+          transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease; }
+        .auth-btn:disabled { opacity:.6; cursor:default; }
+        .auth-btn-google { background:#fff; color:#0f172a; border:1.5px solid #e2e8f0; box-shadow:0 1px 2px rgba(15,23,42,.05); }
+        .auth-btn-google:not(:disabled):hover { border-color:#F06535; box-shadow:0 8px 20px -10px rgba(232,90,44,.45); transform:translateY(-1px); }
+        .auth-btn-apple { background:#000; color:#fff; border:1.5px solid #000; }
+        .auth-btn-apple:not(:disabled):hover { background:#1a1a1a; transform:translateY(-1px); }
+        .auth-tab { flex:1; padding:8px 0; font-size:13px; font-weight:700; border:none; cursor:pointer; border-radius:9px; transition:all .18s; }
+        .auth-home { position:absolute; top:20px; right:24px; z-index:2; display:flex; align-items:center; gap:6px;
+          background:#fff; border:1px solid #e2e8f0; border-radius:999px; padding:7px 14px;
+          font-size:12.5px; font-weight:600; color:#475569; cursor:pointer; transition:all .15s; }
+        .auth-home:hover { border-color:#F06535; color:#F06535; }
+        .auth-link { color:#F06535; background:none; border:none; cursor:pointer; font-weight:700; font-size:inherit; padding:0; }
+        .auth-link:hover { text-decoration:underline; }
+        @media (max-width:767px) {
+          .auth-web { height:auto; min-height:100dvh; overflow:visible; }
+          .auth-left, .auth-home { display:none; }
+        }
+/* dark mode for the class-based colours above */        html.dark .auth-web { background: var(--bg); }        html.dark .auth-h1 { color: var(--fg); }        html.dark .auth-btn-google { background: var(--surface); color: var(--fg); border-color: var(--border); }        html.dark .auth-home { background: var(--surface); border-color: var(--border); color: var(--fg2); }        html.dark .auth-web [style*="background: rgb(238, 242, 246)"] { background: var(--surface-2) !important; }
+        /* admin email/password sign-in */
+        .auth-email { margin-top: 14px; }
+        .auth-divider { display:flex; align-items:center; gap:10px; }
+        .auth-divider > span { flex:1; height:1px; background:#e2e8f0; }
+        .auth-divider-btn { font-size:11.5px; font-weight:600; color:#94a3b8; background:none; border:none; cursor:pointer; white-space:nowrap; padding:2px 4px; font-family:inherit; }
+        .auth-divider-btn:hover { color:#F06535; }
+        .auth-email-form { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+        .auth-input { width:100%; height:44px; padding:0 14px; border-radius:12px; border:1.5px solid #e2e8f0; background:#fff; font-size:14px; color:#0f172a; outline:none; font-family:inherit; box-sizing:border-box; transition:border-color .15s, box-shadow .15s; }
+        .auth-input:focus { border-color:#F06535; box-shadow:0 0 0 3px rgba(240,101,53,.15); }
+        .auth-email-row { display:flex; justify-content:flex-end; }
+        .auth-ok { margin:0; font-size:12px; color:#15803d; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:8px 10px; }
+        .auth-err { margin:0; font-size:12px; color:#dc2626; font-weight:600; }
+        .auth-btn-dark { background:#111827; color:#fff; border:1.5px solid #111827; }
+        .auth-btn-dark:not(:disabled):hover { background:#1f2937; transform:translateY(-1px); }
+        /* email sign-in polish: divider label, forgot link, brand-orange Sign in button */
+        .auth-email { margin-top: 0; }
+        .auth-email .auth-divider { margin: 18px 0 16px; }
+        .auth-divider-txt { font-style:normal; font-size:11.5px; font-weight:600; color:#94a3b8; white-space:nowrap; letter-spacing:.02em; }
+        .auth-email-form { gap: 12px; margin-top: 0; }
+        .auth-email-row { margin-top:-4px; }
+        .auth-forgot { font-size:12.5px; font-weight:600; }
+        .auth-btn-primary { background:#F06535; color:#fff; border:1.5px solid #F06535; box-shadow:0 8px 20px -10px rgba(232,90,44,.55); }
+        .auth-btn-primary:not(:disabled):hover { background:#e85a2c; border-color:#e85a2c; transform:translateY(-1px); box-shadow:0 12px 24px -10px rgba(232,90,44,.6); }
+        .auth-input::placeholder { color:#94a3b8; }
+        html.dark .auth-divider > span { background: var(--border); }
+        html.dark .auth-input { background: var(--bg2); border-color: var(--border); color: var(--fg); }
+      `}</style>
 
-      {/* ── LEFT PANEL ── */}
-      <div className="hidden md:flex md:w-[46%] flex-col justify-center p-10 relative overflow-y-auto h-full"
-        style={{ background: '#ffffff', borderRight: '1px solid #e8eaed' }}>
+      {/* ── LEFT: brand panel (desktop/tablet only) ── */}
+      <div className="auth-left">
+        {/* decorative orbit rings + glows */}
+        <div aria-hidden="true" style={{ position:'absolute', inset:0, zIndex:-1, pointerEvents:'none' }}>
+          <div style={{ position:'absolute', left:'-10%', top:'-20%', width:'60%', paddingBottom:'60%', borderRadius:'50%', background:'radial-gradient(circle,rgba(232,90,44,.14) 0%,transparent 65%)' }}/>
+          <div style={{ position:'absolute', right:'-20%', bottom:'-25%', width:'80%', paddingBottom:'80%', borderRadius:'50%', background:'radial-gradient(circle,rgba(232,90,44,.12) 0%,transparent 62%)' }}/>
+          <div style={{ position:'absolute', right:'-38%', bottom:'-48%', width:'115%', paddingBottom:'115%', borderRadius:'50%', border:'1px solid rgba(255,255,255,.08)' }}/>
+          <div style={{ position:'absolute', right:'-18%', bottom:'-28%', width:'75%', paddingBottom:'75%', borderRadius:'50%', border:'1px solid rgba(255,255,255,.10)' }}/>
+          <div style={{ position:'absolute', right:'30%', bottom:'26%', width:12, height:12, borderRadius:'50%', background:'#F06535', boxShadow:'0 0 0 6px rgba(232,90,44,.18), 0 0 22px rgba(232,90,44,.8)' }}/>
+          <div style={{ position:'absolute', right:'14%', bottom:'9%', width:9, height:9, borderRadius:'50%', background:'#ffb38a', boxShadow:'0 0 0 5px rgba(255,179,138,.15), 0 0 16px rgba(255,179,138,.6)' }}/>
+        </div>
+
+        {/* logo */}
+        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+          <div style={{ width:44, height:44, borderRadius:12, background:'linear-gradient(135deg,#F06535,#ff8a5f)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 8px 22px -6px rgba(232,90,44,.65)' }}>
+            <span style={{ color:'#fff', fontWeight:900, fontSize:14, letterSpacing:'-.02em' }}>MT</span>
+          </div>
+          <div>
+            <div style={{ fontWeight:800, fontSize:20, letterSpacing:'-.02em', lineHeight:1 }}>MockTest</div>
+            <div style={{ fontSize:9, color:'#ff9a7a', letterSpacing:'.12em', textTransform:'uppercase', fontStyle:'italic', fontWeight:700, marginTop:4 }}>Your World of Mock Tests</div>
+          </div>
+        </div>
+
+        {/* headline */}
+        <div style={{ maxWidth:560 }}>
+          <div style={{ fontSize:12, fontWeight:800, letterSpacing:'.16em', textTransform:'uppercase', color:'#ff9a7a', marginBottom:'clamp(10px,2.4vh,20px)' }}>
+            Competitive exam prep platform
+          </div>
+          <h1 style={{ fontSize:'clamp(34px,7.4vh,66px)', fontWeight:800, lineHeight:1.03, letterSpacing:'-.045em', margin:0 }}>
+            Ace your next<br/>
+            <span style={{ background:'linear-gradient(90deg,#F06535,#ffb38a)', WebkitBackgroundClip:'text', backgroundClip:'text', color:'transparent' }}>competitive exam.</span>
+          </h1>
+          <p style={{ fontSize:'clamp(14px,2.3vh,17px)', lineHeight:1.65, color:'rgba(226,232,240,.78)', margin:'clamp(12px,2.6vh,22px) 0 0', maxWidth:440 }}>
+            Expert-crafted mock tests, category-aware cut-off tracking and a study plan that tells you exactly what to study next.
+          </p>
+        </div>
+
+        {/* stats */}
+        <div style={{ display:'flex', gap:'clamp(24px,4vw,56px)', flexWrap:'wrap' }}>
+          {stats.filter(s => s.label !== 'Exam Sections').map(s => (
+            <div key={s.label}>
+              <div style={{ fontSize:'clamp(20px,3.8vh,30px)', fontWeight:800, letterSpacing:'-.03em', lineHeight:1 }}>{s.value}</div>
+              <div style={{ fontSize:12.5, color:'#94a3b8', marginTop:6 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── RIGHT: sign-in form ── */}
+      <div className="auth-right">
 
         {onBack && (
-          <button onClick={onBack} style={{
-            position: 'absolute', top: 24, left: 32,
-            display: 'flex', alignItems: 'center', gap: 6,
-            background: 'none', border: '1px solid #e5e7eb',
-            borderRadius: 8, padding: '6px 12px',
-            cursor: 'pointer', color: '#6b7280',
-            fontSize: 13, fontWeight: 500, transition: 'all .15s',
-          }}
-          onMouseOver={e => { e.currentTarget.style.borderColor='#F06535'; e.currentTarget.style.color='#F06535'; e.currentTarget.style.background='rgba(232,90,44,.04)' }}
-          onMouseOut={e => { e.currentTarget.style.borderColor='#e5e7eb'; e.currentTarget.style.color='#6b7280'; e.currentTarget.style.background='none' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          <button className="auth-home" onClick={onBack}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             Home
           </button>
         )}
 
-        <div className="absolute inset-0 pointer-events-none">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="absolute rounded-full" style={{
-              width: `${180 + i * 100}px`, height: `${180 + i * 100}px`,
-              top: `${-60 + i * 15}px`, right: `${-80 + i * 10}px`,
-              background: i % 2 === 0 ? 'rgba(232,90,44,.04)' : 'rgba(232,90,44,.02)',
-              border: '1px solid rgba(232,90,44,.06)',
-            }} />
-          ))}
-        </div>
-
-        <div className="relative z-10">
-          <div className="mb-2" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 40, height: 40, background: '#F06535', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: '#fff', fontWeight: 900, fontSize: 13 }}>MT</span>
-            </div>
-            <div>
-              <div style={{ fontWeight: 800, color: '#111', fontSize: 16, lineHeight: 1 }}>MockTest</div>
-              <div style={{ fontSize: 9, color: '#F06535', letterSpacing: '.10em', textTransform: 'uppercase', fontStyle: 'italic', marginTop: 2 }}>Your World of Mock Tests</div>
-            </div>
-          </div>
-
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#111', lineHeight: 1.25, marginBottom: 12, marginTop: 28 }}>
-            Ace your next<br />
-            <span style={{ color: '#F06535' }}>competitive exam</span>
-          </h1>
-
-          <p style={{ color: '#666', fontSize: 14, lineHeight: 1.8, marginBottom: 32, maxWidth: 430 }}>
-            India's first fully expert-crafted competitive exam platform.
-            Category-aware cut-off tracking for UR, OBC, SC, ST, EWS and PwBD candidates.
-          </p>
-
-          <div className="grid grid-cols-2 gap-3 mb-8">
-            {stats.map(s => (
-              <div key={s.label} style={{ background: '#fff', border: '1px solid #e8eaed', borderRadius: 12, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,.04)' }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#F06535' }}>{s.value}</div>
-                <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {features.map(({ Svg, text }) => (
-              <div key={text} className="flex items-center gap-3">
-                <div style={{ width: 28, height: 28, background: '#fff', border: '1px solid #e8eaed', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#F06535' }}>
-                  <Svg />
-                </div>
-                <span style={{ color: '#444', fontSize: 13 }}>{text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="relative z-10 mt-10" style={{ background: '#fff', border: '1px solid #e8eaed', borderRadius: 12, padding: 16, boxShadow: '0 2px 12px rgba(0,0,0,.05)' }}>
-          <p style={{ color: '#555', fontSize: 13, fontStyle: 'italic', lineHeight: 1.7 }}>
-            "The only platform where the system tells you exactly what to study next — not just your score."
-          </p>
-          <div className="flex items-center gap-2 mt-3">
-            <div style={{ width: 28, height: 28, background: '#F06535', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: '#fff', fontSize: 10, fontWeight: 800 }}>AK</span>
-            </div>
-            <span style={{ color: '#888', fontSize: 11 }}>Arkaserve Team</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── RIGHT PANEL ── */}
-      <div className="flex-1 flex flex-col min-h-0 h-full" style={{ background: '#ffffff' }}>
-
         {/* Mobile top bar */}
-        <div className="md:hidden flex items-center justify-between px-6 py-4 border-b border-gray-100" style={{ background: '#ffffff' }}>
+        <div className="md:hidden flex items-center justify-between px-6 py-4 border-b border-gray-100" style={{ background:'#ffffff' }}>
           <div className="flex items-center gap-2">
-            <div style={{ width: 32, height: 32, background: '#F06535', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: '#fff', fontWeight: 900, fontSize: 11 }}>MT</span>
+            <div style={{ width:32, height:32, background:'#F06535', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <span style={{ color:'#fff', fontWeight:900, fontSize:11 }}>MT</span>
             </div>
-            <span style={{ color: '#111', fontWeight: 700, fontSize: 14 }}>MockTest</span>
+            <span style={{ color:'#111', fontWeight:700, fontSize:14 }}>MockTest</span>
           </div>
-          {!isNative && onBack && <button onClick={onBack} style={{ color: '#999', fontSize: 13 }}>Back</button>}
+          {!isNative && onBack && <button onClick={onBack} style={{ color:'#999', fontSize:13 }}>Back</button>}
         </div>
 
-        <div className="flex-1 min-h-0 flex flex-col items-center justify-center px-5 sm:px-8 py-8 w-full">
-          <div className="w-full max-w-[400px]">
+        <div className="auth-form">
+          <div style={{ fontSize:11.5, fontWeight:800, letterSpacing:'.14em', textTransform:'uppercase', color:'#F06535', marginBottom:'clamp(8px,1.6vh,14px)' }}>
+            Welcome to MockTest
+          </div>
+          <h2 className="auth-h1">{mode === 'login' ? 'Welcome back' : 'Create your account'}</h2>
+          <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, margin:'clamp(8px,1.4vh,12px) 0 clamp(16px,3vh,26px)' }}>
+            {/* QA FIX #4: "New here?" link so new users aren't stuck on "Welcome back". */}
+            {mode === 'login'
+              ? <>Sign in to continue your prep journey. New here?{' '}
+                  <button type="button" className="auth-link" onClick={() => switchMode('signup')}>Create an account</button>
+                </>
+              : 'Start your exam prep journey today — it’s free to begin.'}
+          </p>
 
-            <div className="bg-white rounded-2xl border border-gray-200"
-              style={{ boxShadow: '0 4px 24px rgba(0,0,0,.06)', padding: '28px 28px 24px' }}>
+          {/* QA FIX #2: why the user landed here (protected page redirect, e.g. Topic-wise Practice) */}
+          {notice && (
+            <div role="status" style={{ display:'flex', gap:8, alignItems:'flex-start', background:'#FFF3EE', border:'1px solid #fec9b0', borderRadius:12, padding:'10px 12px', marginBottom:14, fontSize:12.5, color:'#9a3412', lineHeight:1.5 }}>
+              <span aria-hidden="true">🔒</span>
+              <span>{notice}</span>
+            </div>
+          )}
 
-              {/* MockTest wordmark */}
-              <div style={{ textAlign: 'center', marginBottom: 22 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 16 }}>
-                  <div style={{ width: 42, height: 42, background: '#F06535', borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <span style={{ color: '#fff', fontWeight: 900, fontSize: 13 }}>MT</span>
-                  </div>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontWeight: 800, color: '#111', fontSize: 18, lineHeight: 1 }}>MockTest</div>
-                    <div style={{ fontSize: 9, color: '#F06535', letterSpacing: '.09em', textTransform: 'uppercase', fontStyle: 'italic', marginTop: 3 }}>Your World of Mock Tests</div>
-                  </div>
-                </div>
-                <h2 style={{ fontSize: 19, fontWeight: 800, color: '#111', marginBottom: 4 }}>
-                  {mode === 'login' ? 'Welcome back' : 'Create your account'}
-                </h2>
-                <p style={{ color: '#6b7280', fontSize: 13, lineHeight: 1.5 }}>
-                  {mode === 'login' ? 'Sign in to continue.' : 'Start your exam prep journey today.'}
-                </p>
+          {/* QA FIX #4: show the plan chosen on the landing page (was not displayed) */}
+          {selectedPlan && (
+            <div style={{ background:'#FFF3EE', border:'1.5px solid #F06535', borderRadius:14, padding:'10px 12px', marginBottom:14, display:'flex', alignItems:'center', gap:12 }}>
+              <div style={{ width:42, height:42, borderRadius:10, background:'linear-gradient(135deg,#F06535,#ff8a5f)', color:'#fff', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flexShrink:0, lineHeight:1 }}>
+                <span style={{ fontSize:15, fontWeight:900 }}>{selectedPlan.days}</span>
+                <span style={{ fontSize:8.5, fontWeight:700, marginTop:2 }}>DAYS</span>
               </div>
+              <div style={{ minWidth:0, flex:1 }}>
+                <div style={{ fontSize:10.5, fontWeight:700, color:'#F06535', textTransform:'uppercase', letterSpacing:'.06em' }}>Selected plan</div>
+                <div style={{ fontSize:14, fontWeight:800, color:'#0f172a' }}>{selectedPlan.label}</div>
+                {selectedPlan.sub && <div style={{ fontSize:12, color:'#64748b', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{selectedPlan.sub}</div>}
+              </div>
+              <button type="button" className="auth-link" onClick={onBack} style={{ fontSize:12, flexShrink:0 }}>Change</button>
+            </div>
+          )}
 
-              {/* Login / Sign Up tab toggle */}
-              <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: 10, padding: 3, marginBottom: 20 }}>
-                {['login', 'signup'].map(m => (
-                  <button key={m} type="button" onClick={() => switchMode(m)}
-                    style={{
-                      flex: 1, padding: '7px 0', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer', borderRadius: 8, transition: 'all .18s',
-                      background: mode === m ? '#fff' : 'transparent',
-                      color: mode === m ? '#111' : '#6b7280',
-                      boxShadow: mode === m ? '0 1px 4px rgba(0,0,0,.10)' : 'none',
-                    }}>
-                    {m === 'login' ? 'Login' : 'Sign Up'}
+          {/* Login / Sign Up tab toggle */}
+          <div style={{ display:'flex', background:'#eef2f6', borderRadius:12, padding:4, marginBottom:'clamp(12px,2.4vh,18px)' }}>
+            {['login', 'signup'].map(m => (
+              <button key={m} type="button" className="auth-tab" onClick={() => switchMode(m)}
+                style={{
+                  background: mode === m ? '#fff' : 'transparent',
+                  color: mode === m ? '#0f172a' : '#64748b',
+                  boxShadow: mode === m ? '0 1px 3px rgba(15,23,42,.10)' : 'none',
+                }}>
+                {m === 'login' ? 'Login' : 'Sign Up'}
+              </button>
+            ))}
+          </div>
+
+          {/* Email / password sign-in (logic from main: handleEmailLogin / handleForgotPassword, unchanged).
+              Shown FIRST on the Login tab (web) so admins created by the super admin can sign in with
+              email + password; "Continue with Google" follows below the "or" divider.
+              Previously only when redirected from /admin, behind a toggle, under the Google button. */}
+          {(showEmail || mode === 'login') && (
+            <div className="auth-email">
+              <form onSubmit={handleEmailLogin} className="auth-email-form">
+                <input type="email" className="auth-input" value={emailVal} onChange={e => setEmailVal(e.target.value)}
+                  placeholder="Email address" autoComplete="email" aria-label="Email address"/>
+                <input type="password" className="auth-input" value={passVal} onChange={e => setPassVal(e.target.value)}
+                  placeholder="Password" autoComplete="current-password" aria-label="Password"/>
+                <div className="auth-email-row">
+                  <button type="button" className="auth-link auth-forgot" onClick={handleForgotPassword} disabled={resetLoad}>
+                    {resetLoad ? 'Sending…' : 'Forgot password?'}
                   </button>
-                ))}
+                </div>
+                {resetSent && <p className="auth-ok">✓ Password reset link sent — check your inbox (and spam folder).</p>}
+                {emailErr && <p className="auth-err" role="alert">{emailErr}</p>}
+                <button type="submit" disabled={emailLoad} className="auth-btn auth-btn-primary">
+                  {emailLoad ? <><Spinner /><span>Signing in…</span></> : 'Sign in'}
+                </button>
+              </form>
+              <div className="auth-divider">
+                <span/>
+                <em className="auth-divider-txt">or continue with</em>
+                <span/>
               </div>
+            </div>
+          )}
 
-              {/* Social sign-in buttons */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {/* Google */}
-                <button onClick={handleGoogle} disabled={googleLoad || appleLoad}
-                  className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-xl py-3.5 text-sm font-semibold text-gray-700 bg-white disabled:opacity-60"
-                  style={{ boxShadow: '0 1px 4px rgba(0,0,0,.06)', cursor: 'pointer', transition: 'background .15s' }}
-                  onMouseOver={e => !googleLoad && (e.currentTarget.style.background = '#f9fafb')}
-                  onMouseOut={e => !googleLoad && (e.currentTarget.style.background = '#fff')}>
-                  {googleLoad ? <Spinner /> : (
-                    <svg width="18" height="18" viewBox="0 0 48 48">
-                      <path fill="#4285F4" d="M46.145 24.503c0-1.633-.138-3.205-.397-4.712H24v8.924h12.441a10.6 10.6 0 01-4.602 6.958v5.782h7.45c4.358-4.013 6.856-9.924 6.856-16.952z"/>
-                      <path fill="#34A853" d="M24 47c6.237 0 11.466-2.07 15.29-5.592l-7.45-5.782c-2.073 1.391-4.72 2.211-7.84 2.211-6.027 0-11.131-4.07-12.951-9.535H3.38v5.974C7.189 42.018 15.02 47 24 47z"/>
-                      <path fill="#FBBC05" d="M11.049 28.302a13.71 13.71 0 01-.716-4.302c0-1.493.257-2.944.716-4.302v-5.974H3.38A23.986 23.986 0 001 24c0 3.868.924 7.527 2.38 10.276l7.669-5.974z"/>
-                      <path fill="#EA4335" d="M24 9.8c3.397 0 6.444 1.168 8.84 3.461l6.624-6.624C35.462 2.973 30.234.8 24 .8 15.02.8 7.189 5.782 3.38 13.724l7.669 5.974C12.869 14.132 17.973 9.8 24 9.8z"/>
+          {/* Social sign-in buttons */}
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            <button onClick={handleGoogle} disabled={googleLoad || appleLoad} className="auth-btn auth-btn-google">
+              {googleLoad ? <Spinner /> : (
+                <svg width="18" height="18" viewBox="0 0 48 48">
+                  <path fill="#4285F4" d="M46.145 24.503c0-1.633-.138-3.205-.397-4.712H24v8.924h12.441a10.6 10.6 0 01-4.602 6.958v5.782h7.45c4.358-4.013 6.856-9.924 6.856-16.952z"/>
+                  <path fill="#34A853" d="M24 47c6.237 0 11.466-2.07 15.29-5.592l-7.45-5.782c-2.073 1.391-4.72 2.211-7.84 2.211-6.027 0-11.131-4.07-12.951-9.535H3.38v5.974C7.189 42.018 15.02 47 24 47z"/>
+                  <path fill="#FBBC05" d="M11.049 28.302a13.71 13.71 0 01-.716-4.302c0-1.493.257-2.944.716-4.302v-5.974H3.38A23.986 23.986 0 001 24c0 3.868.924 7.527 2.38 10.276l7.669-5.974z"/>
+                  <path fill="#EA4335" d="M24 9.8c3.397 0 6.444 1.168 8.84 3.461l6.624-6.624C35.462 2.973 30.234.8 24 .8 15.02.8 7.189 5.782 3.38 13.724l7.669 5.974C12.869 14.132 17.973 9.8 24 9.8z"/>
+                </svg>
+              )}
+              <span>{googleLoad ? 'Redirecting…' : (mode === 'login' ? 'Continue with Google' : 'Sign up with Google')}</span>
+            </button>
+
+            {/* Apple — only shown on Apple platforms (iOS native, iPhone/iPad browsers, macOS Safari) */}
+            {isApplePlatform && (
+              <>
+                <button onClick={handleApple} disabled={appleLoad || googleLoad} className="auth-btn auth-btn-apple">
+                  {appleLoad ? <Spinner /> : (
+                    <svg width="17" height="17" viewBox="0 0 814 1000" fill="white">
+                      <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 383.3 46 341.4 46 339.2c0-157.3 98.4-240.5 195-240.5 57.8 0 106.9 38.2 143.4 38.2 35.2 0 89.1-38.2 154.2-38.2 27.1 0 108.2 2.6 168.2 75.8zm-295-10.3c6.4-28.8 10.3-56.3 10.3-82.9 0-32.1-5.8-63.5-16.8-91.7-41.5 7.7-81.4 46.3-101.8 91.7-14.7 35.7-21 70.7-21 105.3 0 28.2 4.5 56.3 15.6 80.5 49.3 4.5 100.5-28.2 113.7-103z"/>
                     </svg>
                   )}
-                  <span>{googleLoad ? 'Redirecting…' : (mode === 'login' ? 'Continue with Google' : 'Sign up with Google')}</span>
+                  <span>{appleLoad ? 'Redirecting…' : (mode === 'login' ? 'Continue with Apple' : 'Sign up with Apple')}</span>
                 </button>
-
-                {/* Apple — only shown on Apple platforms (iOS native, iPhone/iPad browsers, macOS Safari) */}
-                {isApplePlatform && (
-                  <>
-                    <button onClick={handleApple} disabled={appleLoad || googleLoad}
-                      className="w-full flex items-center justify-center gap-3 rounded-xl py-3.5 text-sm font-semibold text-white disabled:opacity-60"
-                      style={{ background: '#000', border: '1px solid #000', boxShadow: '0 1px 4px rgba(0,0,0,.15)', cursor: 'pointer', transition: 'background .15s' }}
-                      onMouseOver={e => !appleLoad && (e.currentTarget.style.background = '#1a1a1a')}
-                      onMouseOut={e => !appleLoad && (e.currentTarget.style.background = '#000')}>
-                      {appleLoad ? <Spinner /> : (
-                        <svg width="17" height="17" viewBox="0 0 814 1000" fill="white">
-                          <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 383.3 46 341.4 46 339.2c0-157.3 98.4-240.5 195-240.5 57.8 0 106.9 38.2 143.4 38.2 35.2 0 89.1-38.2 154.2-38.2 27.1 0 108.2 2.6 168.2 75.8zm-295-10.3c6.4-28.8 10.3-56.3 10.3-82.9 0-32.1-5.8-63.5-16.8-91.7-41.5 7.7-81.4 46.3-101.8 91.7-14.7 35.7-21 70.7-21 105.3 0 28.2 4.5 56.3 15.6 80.5 49.3 4.5 100.5-28.2 113.7-103z"/>
-                        </svg>
-                      )}
-                      <span>{appleLoad ? 'Redirecting…' : (mode === 'login' ? 'Continue with Apple' : 'Sign up with Apple')}</span>
-                    </button>
-                    {appleErr && (
-                      <p style={{ fontSize: 12, color: '#dc2626', textAlign: 'center', marginTop: -2 }}>{appleErr}</p>
-                    )}
-                  </>
+                {appleErr && (
+                  <p style={{ fontSize:12, color:'#dc2626', textAlign:'center', marginTop:-2 }}>{appleErr}</p>
                 )}
-              </div>
+              </>
+            )}
+          </div>
 
-              {/* Email / password — admin flow only */}
-              <div style={{ marginTop: 16 }}>{isAdminFlow && <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: showEmail ? 12 : 0 }}>
-                  <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
-                  <button type="button" onClick={() => { setShowEmail(v => !v); setEmailErr('') }}
-                    style={{ fontSize: 11, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', padding: '0 4px' }}>
-                    {showEmail ? '▲ Hide email login' : '▼ Sign in with email'}
-                  </button>
-                  <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
-                </div>
+          {/* Bottom mode switch */}
+          <p style={{ textAlign:'center', fontSize:13, color:'#64748b', marginTop:'clamp(12px,2.4vh,18px)' }}>
+            {mode === 'login' ? (
+              <>Don't have an account?{' '}
+                <button type="button" className="auth-link" onClick={() => switchMode('signup')}>Sign up free</button>
+              </>
+            ) : (
+              <>Already have an account?{' '}
+                <button type="button" className="auth-link" onClick={() => switchMode('login')}>Sign in</button>
+              </>
+            )}
+          </p>
 
-                {showEmail && (
-                  <form onSubmit={handleEmailLogin} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <input
-                      type="email" value={emailVal} onChange={e => setEmailVal(e.target.value)}
-                      placeholder="Email address" autoComplete="email"
-                      style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1px solid #d1d5db', borderRadius: 10, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
-                      onFocus={e => e.target.style.borderColor = '#F06535'}
-                      onBlur={e => e.target.style.borderColor = '#d1d5db'}
-                    />
-                    <input
-                      type="password" value={passVal} onChange={e => setPassVal(e.target.value)}
-                      placeholder="Password" autoComplete="current-password"
-                      style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1px solid #d1d5db', borderRadius: 10, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
-                      onFocus={e => e.target.style.borderColor = '#F06535'}
-                      onBlur={e => e.target.style.borderColor = '#d1d5db'}
-                    />
-                    {isAdminFlow && (
-                      <div style={{ display:'flex', justifyContent:'flex-end' }}>
-                        <button type="button" onClick={handleForgotPassword} disabled={resetLoad}
-                          style={{ fontSize: 11.5, color: '#F06535', background: 'none', border: 'none', cursor: resetLoad ? 'not-allowed' : 'pointer', padding: 0, fontFamily: 'inherit' }}>
-                          {resetLoad ? 'Sending…' : 'Forgot / Set password?'}
-                        </button>
-                      </div>
-                    )}
-                    {resetSent && (
-                      <p style={{ fontSize: 12, color: '#16a34a', margin: 0, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '8px 10px' }}>
-                        ✓ Password reset link sent — check your inbox (and spam folder).
-                      </p>
-                    )}
-                    {emailErr && <p style={{ fontSize: 12, color: '#dc2626', margin: 0 }}>{emailErr}</p>}
-                    <button type="submit" disabled={emailLoad}
-                      style={{ width: '100%', padding: '11px 0', fontSize: 13.5, fontWeight: 700, background: emailLoad ? '#f3f4f6' : '#111827', color: emailLoad ? '#9ca3af' : '#fff', border: 'none', borderRadius: 10, cursor: emailLoad ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                      {emailLoad ? <><Spinner /><span>Signing in…</span></> : 'Sign in'}
-                    </button>
-                  </form>
-                )}
-              </>}</div>
-
-              {/* Bottom mode switch */}
-              <p style={{ textAlign: 'center', fontSize: 12.5, color: '#6b7280', marginTop: 18 }}>
-                {mode === 'login' ? (
-                  <>Don't have an account?{' '}
-                    <button type="button" onClick={() => switchMode('signup')} style={{ color: '#F06535', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 'inherit' }}>Sign up free</button>
-                  </>
-                ) : (
-                  <>Already have an account?{' '}
-                    <button type="button" onClick={() => switchMode('login')} style={{ color: '#F06535', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 'inherit' }}>Sign in</button>
-                  </>
-                )}
-              </p>
-
-              <p style={{ fontSize: 10.5, color: '#b0b8c4', textAlign: 'center', marginTop: 12, lineHeight: 1.6 }}>
-                By continuing you agree to our{' '}
-                <button onClick={() => handleNav('terms')} style={{ color: '#F06535', background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit', textDecoration: 'underline' }}>Terms</button>
-                {' '}and{' '}
-                <button onClick={() => handleNav('privacy')} style={{ color: '#F06535', background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit', textDecoration: 'underline' }}>Privacy Policy</button>.
-              </p>
-            </div>
-
+          {/* Terms + secure note */}
+          <div style={{ marginTop:'clamp(14px,3vh,26px)', paddingTop:'clamp(12px,2.2vh,18px)', borderTop:'1px solid #e2e8f0', display:'flex', alignItems:'flex-start', gap:10 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0, marginTop:1 }}>
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>
+            </svg>
+            <p style={{ fontSize:11.5, color:'#94a3b8', lineHeight:1.6, margin:0 }}>
+              Secure sign-in. By continuing you agree to our{' '}
+              <button onClick={() => handleNav('terms')} className="auth-link" style={{ fontWeight:600, textDecoration:'underline' }}>Terms</button>
+              {' '}and{' '}
+              <button onClick={() => handleNav('privacy')} className="auth-link" style={{ fontWeight:600, textDecoration:'underline' }}>Privacy Policy</button>.
+            </p>
           </div>
         </div>
       </div>

@@ -13,6 +13,8 @@ import Footer              from './components/Footer.jsx'
 import ToastHost           from './components/ToastHost.jsx'
 import CookieConsent       from './components/CookieConsent.jsx'
 import InstallPrompt       from './components/InstallPrompt.jsx'
+import { fetchMyAccess }   from './access/accessApi.js'   // module access (super admin / domain admin)
+const SetPasswordScreen = lazy(() => import('./components/admin/SetPasswordScreen.jsx'))   // admin on a temporary password
 
 // Landing page loads eagerly (first paint); everything else is code-split and
 // loaded on demand so the initial bundle stays tiny and the site loads fast.
@@ -83,8 +85,25 @@ const PAGE_PATH = {
 const PATH_PAGE = Object.fromEntries(Object.entries(PAGE_PATH).map(([k,v]) => [v,k]))
 const pathToPage = (p) => PATH_PAGE[p] || (p === '/' ? 'home' : null)
 const pageToPath = (p) => PAGE_PATH[p] || '/'
+// QA FIX #2: friendly names for protected destinations, shown on the auth screen so the
+// user knows why they were asked to sign in.
+const PROTECTED_LABELS = {
+  mocktest: 'Full Mock Tests', 'topic-practice': 'Topic-wise Practice',
+  dashboard: 'your Dashboard', examhome: 'Mock Tests',
+  results: 'your Results', performance: 'your Performance', prediction: 'Score Prediction',
+  planner: 'your Study Plan', studyplan: 'your Study Plan', subscriptions: 'Subscriptions',
+  profile: 'your Profile', settings: 'Settings', billing: 'Billing',
+  'how-prediction-works': 'Score Prediction',
+}
 const IDLE_TIMEOUT  = 15 * 60 * 1000
 const IDLE_WARNING  = 60 * 1000
+
+/* UI (TEMP, development): these accounts are treated as super_admin without a row in the
+   Supabase `user_access` table (renamed from user_roles) — they land on the Admin panel after login and get admin access.
+   Front-end only: Supabase row-level security still applies to admin data. Remove an email
+   (or empty the list) to take the access away. */
+const HARDCODED_SUPER_ADMINS = ['nagaraj2k06@gmail.com', 'arkaaserve@gmail.com']
+const isHardcodedSuperAdmin = (u) => HARDCODED_SUPER_ADMINS.includes((u?.email || '').trim().toLowerCase())
 
 export default function App() {
   // In native APK: start at category-select on first launch, auth on subsequent launches
@@ -99,6 +118,10 @@ export default function App() {
   useSEO(page)
   const [user,        setUser]        = useState(null)
   const [userRole,    setUserRole]    = useState('student')
+  // Module access: exam domains a domain admin may manage (super admins: all). See src/access/.
+  const [adminDomains, setAdminDomains] = useState([])
+  const [mustChangePw, setMustChangePw] = useState(false)   // admin on a temporary password (from the admin access server)
+  const isAdminRole = userRole === 'super_admin' || userRole === 'admin'   // can open the admin panel
   const [testData,    setTestData]    = useState(null)
   const [resultData,  setResultData]  = useState(null)
   const [resultFromPage, setResultFromPage] = useState('dashboard')
@@ -111,6 +134,9 @@ export default function App() {
   const [dashTab,       setDashTab]       = useState('home')
   const [studentScores, setStudentScores] = useState({})
   const [resumeState,   setResumeState]   = useState(null)
+  // QA FIX #4: context for the auth screen: { mode: 'login'|'signup', plan, notice }
+  // (which tab to open, the plan picked on the landing page, why the user was redirected).
+  const [authCtx,       setAuthCtx]       = useState({})
 
   const [darkMode, setDarkMode] = useState(() => {
     try { return localStorage.getItem('mt-dark') === '1' } catch { return false }
@@ -278,20 +304,35 @@ export default function App() {
     initNotifications()
   }, [user?.id])  // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch role from user_roles table whenever the logged-in user changes.
+  // Fetch role from user_access table (renamed from user_roles) whenever the logged-in user changes.
   // Falls back to 'student' on any error so the app never breaks.
   useEffect(() => {
     // Keep roleLoaded=false when user is null — only mark loaded after a real DB fetch.
     // This prevents a stale roleLoaded=true from a previous null-user run from letting
     // the admin guard fire before the role is actually fetched for the signed-in user.
-    if (!user) { setUserRole('student'); setRoleLoaded(false); return }
-    supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .single()
-      .then(({ data }) => { setUserRole(data?.role || 'student'); setRoleLoaded(true) })
-      .catch(() => { setUserRole('student'); setRoleLoaded(true) })
+    if (!user) { setUserRole('student'); setAdminDomains([]); setMustChangePw(false); setRoleLoaded(false); return }
+    let cancelled = false
+    ;(async () => {
+      // 1) Module access: when the admin access server is configured (VITE_ACCESS_API_URL),
+      //    it decides role (super_admin | admin | student) + the admin's domains.
+      const access = await fetchMyAccess()
+      if (cancelled) return
+      if (access) {
+        setUserRole(access.role || 'student'); setAdminDomains(access.domains || []); setMustChangePw(!!access.mustChangePassword); setRoleLoaded(true); return
+      }
+      // 2) Fallback (server not configured / unreachable) — previous behaviour, unchanged.
+      setAdminDomains([])
+      // UI (TEMP): hard-coded super admins — see HARDCODED_SUPER_ADMINS near the top of this file
+      if (isHardcodedSuperAdmin(user)) { setUserRole('super_admin'); setRoleLoaded(true); return }
+      supabase
+        .from('user_access')
+        .select('role')
+        .eq('user_id', user.id)
+        .single()
+        .then(({ data }) => { if (!cancelled) { setUserRole(data?.role || 'student'); setRoleLoaded(true) } })
+        .catch(() => { if (!cancelled) { setUserRole('student'); setRoleLoaded(true) } })
+    })()
+    return () => { cancelled = true }
   }, [user?.id])
 
   const resetIdleTimer = useCallback(() => {
@@ -390,9 +431,13 @@ export default function App() {
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const resolvePostAuthPage = async (u) => {
+    // Module access server (when configured): super admins AND domain admins land on the admin panel.
+    const access = await fetchMyAccess()
+    if (access) return ['admin', 'super_admin'].includes(access.role) ? 'admin' : 'dashboard'
+    if (isHardcodedSuperAdmin(u)) return 'admin'   // UI (TEMP): hard-coded super admins go to the admin panel
     try {
       const { data } = await supabase
-        .from('user_roles')
+        .from('user_access')
         .select('role')
         .eq('user_id', u.id)
         .single()
@@ -512,7 +557,7 @@ export default function App() {
       skipPushRef.current = true
       // Logged in: Back always returns to the Dashboard (never a blank/loading
       // page or a stranded public/test screen). Super-admin goes to admin page.
-      if (user) { setPage(userRole === 'super_admin' ? 'admin' : 'dashboard'); return }
+      if (user) { setPage(isAdminRole ? 'admin' : 'dashboard'); return }   // super admins + domain admins
       // Logged out: restore the previous page, else Home.
       setPage(target || 'home')
     }
@@ -589,7 +634,9 @@ export default function App() {
     return true
   }
 
-  const nav = (target, examId) => {
+  // QA FIX #4: `opts` (optional, only meaningful for target === 'auth'):
+  //   { mode: 'login' | 'signup', plan: { days, label, sub } }
+  const nav = (target, examId, opts) => {
     // In native mode, web-only marketing/landing pages should never render.
     // Redirect silently to dashboard instead of showing website content.
     const NATIVE_BLOCKED = new Set([...LANDING_TABS, 'courses', 'contact', 'blog', 'us-score-prediction'])
@@ -597,7 +644,19 @@ export default function App() {
       setDashTab('home'); setPage('dashboard'); return
     }
 
-    const publicList = [...LANDING_TABS,'courses','contact','privacy','terms','auth','practice','cutoffs','papers','exams','exams-banking','exams-insurance','exams-ssc','exams-railway','exams-engineering','exams-medical','blog','us-exams','us-score-prediction','current-affairs','examhome','syllabus','exam-dates']
+    // QA FIX #2: 'refund', 'disclaimer', 'cookies' added — they were missing, so the
+    // footer links were treated as protected pages and redirected to the login page.
+    const publicList = [...LANDING_TABS,'courses','contact','privacy','terms','refund','disclaimer','cookies','auth','practice','cutoffs','papers','exams','exams-banking','exams-insurance','exams-ssc','exams-railway','exams-engineering','exams-medical','blog','us-exams','us-score-prediction','current-affairs','examhome','syllabus','exam-dates']
+
+    // QA FIX #4: remember which tab to open and the selected plan for the auth screen.
+    if (target === 'auth') {
+      const plan = opts?.plan || null
+      setAuthCtx({ mode: opts?.mode || (plan ? 'signup' : 'login'), plan })
+      try {
+        if (plan) sessionStorage.setItem('selectedStudyPlan', JSON.stringify(plan))
+        else sessionStorage.removeItem('selectedStudyPlan')
+      } catch {}
+    }
 
     // When user clicks "Sign In" from us-exams, preserve that context so
     // they return to the US Exams page (not the generic dashboard) after login.
@@ -609,6 +668,10 @@ export default function App() {
     if (!user && !publicList.includes(target)) {
       const region = (page === 'us-exams' || (examId && examId.startsWith('sat_'))) ? 'us' : 'in'
       _savePendingNav(target, examId, region)
+      // QA FIX #2: explain why the user is on the login page (was a silent redirect).
+      const label = PROTECTED_LABELS[target]
+      setAuthCtx({ mode: 'login', notice: `Please log in or sign up to access ${label || 'this page'}.` })
+      window.scrollTo({ top: 0, behavior: 'instant' })
       setPage('auth')
       return
     }
@@ -620,7 +683,7 @@ export default function App() {
                         explore:'explore', billing:'billing',
                         performance:'performance', prediction:'prediction' }
     // Super-admin never lands on the student dashboard
-    if (userRole === 'super_admin' && (target === 'dashboard' || DASH_TABS[target])) {
+    if (isAdminRole && (target === 'dashboard' || DASH_TABS[target])) {   // admins live in the admin panel
       setPage('admin'); window.scrollTo(0, 0); return
     }
 
@@ -640,7 +703,10 @@ export default function App() {
       window.scrollTo(0, 0)
       return
     }
-    window.scrollTo(0, 0)
+    // QA FIX #4: 'instant' — the global `scroll-behavior: smooth` otherwise animates this
+    // scroll, and it gets cut short when the shorter page mounts, leaving the
+    // new page (e.g. the auth screen) partially scrolled down.
+    window.scrollTo({ top: 0, behavior: 'instant' })
     setPage(target)
   }
 
@@ -777,14 +843,29 @@ export default function App() {
     )
   }
 
+  // Admin created by the super admin still on the TEMPORARY password → must set a permanent one first.
+  // (Flag lives in Supabase app_metadata, which only the admin access server can change.)
+  if (user && mustChangePw) {   // decided by the admin server (current), not the stored session
+    return (
+      <Suspense fallback={null}>
+        <SetPasswordScreen user={user} onLogout={handleLogout}
+          onDone={() => { setMustChangePw(false); toast('Password saved — welcome!', 'success') }}/>
+      </Suspense>
+    )
+  }
+
   const appEnv = import.meta.env.VITE_APP_ENV
 
+  const showEnvBanner = !!appEnv && appEnv !== 'production'
+
   return (
-    <div className="min-h-screen flex flex-col dark:bg-gray-900 dark:text-gray-100">
+    // --env-banner-h: height of the dev/staging banner (0 in production). Full-screen layouts such as the
+    // admin panel subtract it, so banner + layout = exactly one screen (no extra window scrollbar).
+    <div className="min-h-screen flex flex-col dark:bg-gray-900 dark:text-gray-100" style={{ '--env-banner-h': showEnvBanner ? '22px' : '0px' }}>
 
       {/* Staging environment banner — only visible on non-production builds */}
-      {appEnv && appEnv !== 'production' && (
-        <div style={{ background: appEnv === 'staging' ? '#7c3aed' : '#1d4ed8', color: '#fff', textAlign: 'center', fontSize: 12, fontWeight: 700, padding: '4px 16px', letterSpacing: '.05em', zIndex: 9998, position: 'relative' }}>
+      {showEnvBanner && (
+        <div style={{ background: appEnv === 'staging' ? '#7c3aed' : '#1d4ed8', color: '#fff', textAlign: 'center', fontSize: 12, fontWeight: 700, padding: '4px 16px', height: 22, lineHeight: '14px', boxSizing: 'border-box', overflow: 'hidden', whiteSpace: 'nowrap', letterSpacing: '.05em', zIndex: 9998, position: 'relative' }}>
           {appEnv === 'staging' ? '⚠ STAGING BUILD — not for public use' : 'DEV BUILD — localhost'}
         </div>
       )}
@@ -839,7 +920,9 @@ export default function App() {
         {page === 'current-affairs'   && <CurrentAffairsPage onNav={nav} />}
         {page === 'syllabus'          && <SyllabusPage onNav={nav} />}
         {page === 'exam-dates'        && <ExamDatesPage onNav={nav} />}
-        {page === 'auth' && !user  && <AuthScreen onAuth={handleAuth} onBack={() => setPage('home')} onNav={nav} />}
+        {/* QA FIX #4: pass the tab, selected plan and redirect message to the auth screen. */}
+        {page === 'auth' && !user  && <AuthScreen onAuth={handleAuth} onBack={() => setPage('home')} onNav={nav}
+                                        initialMode={authCtx.mode} selectedPlan={authCtx.plan} notice={authCtx.notice} />}
         {page === 'onboarding' && isNative && user && (
           <OnboardingWizard
             user={user}
@@ -863,7 +946,7 @@ export default function App() {
             onBack={() => setPage('dashboard')}
           />
         )}
-        {page === 'dashboard' && userRole !== 'super_admin' && (
+        {page === 'dashboard' && !isAdminRole && (
           <Dashboard
             user={user}
             isAdmin={false}
@@ -884,6 +967,8 @@ export default function App() {
             onOpenResult={openSavedResult}
             onTabChange={setDashTab}
             onResumeTest={resumeTest}
+            darkMode={darkMode}                          // UI: header dark-mode switch
+            onToggleDark={() => setDarkMode(d => !d)}
           />
         )}
         {page === 'practice'       && (
@@ -958,8 +1043,9 @@ export default function App() {
                 user={user}
               />
         })()}
-        {page === 'admin'          && authChecked && (!user || roleLoaded) && (userRole === 'super_admin'
-          ? <AdminPage onBack={() => setPage('dashboard')} onLogout={handleLogout} />
+        {page === 'admin'          && authChecked && (!user || roleLoaded) && (isAdminRole
+          ? <AdminPage onBack={() => setPage('dashboard')} onLogout={handleLogout}
+              access={{ role: userRole, domains: adminDomains, email: user?.email }} />
           : (() => {
               // Not logged in → save 'admin' as pending nav so post-login routing lands here
               // Logged-in non-admin → redirect to dashboard
@@ -968,9 +1054,11 @@ export default function App() {
         )}
 		{page === 'how-prediction-works' && <PredictionExplainer user={user} onNav={nav} />}
         {page === 'us-score-prediction' && <USPredictionExplainer />}
+        {/* QA FIX #2: 'refund', 'disclaimer', 'cookies', 'syllabus', 'exam-dates' added so the
+            404 page no longer renders underneath those pages. */}
         {![
           ...LANDING_TABS,
-          'courses','contact','privacy','terms','cutoffs','papers',
+          'courses','contact','privacy','terms','refund','disclaimer','cookies','cutoffs','papers',
           'exams','exams-banking','exams-insurance','exams-ssc','exams-railway','exams-engineering','exams-medical',
           'blog',
           'auth','onboarding','reset-password','payment','dashboard','practice','topic-practice','examhome','exam',

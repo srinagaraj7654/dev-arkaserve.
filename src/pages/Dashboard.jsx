@@ -11,6 +11,7 @@ import PredictionPage from './PredictionPage.jsx'
 const DashHelpTab          = lazy(() => import('./DashHelpTab.jsx'))
 const DashSubscriptionsTab = lazy(() => import('./DashSubscriptionsTab.jsx'))
 const DashBillingTab       = lazy(() => import('./DashBillingTab.jsx'))
+import { DateField, SelectField } from '../components/ui/Popovers.jsx' // UI: styled calendar + dropdown (Study Planner)
 import {
   LineChart, Line, BarChart, Bar, RadarChart, Radar,
   PolarGrid, PolarAngleAxis, XAxis, YAxis, CartesianGrid,
@@ -38,7 +39,7 @@ const DIcEdit    = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {
 /* ─────────────────────────────────────────────
    CONSTANTS  (merged from both files)
 ───────────────────────────────────────────── */
-// Admin status is passed as a prop from App.jsx (resolved via user_roles DB table)
+// Admin status is passed as a prop from App.jsx (resolved via user_access DB table)
 
 export const EXAM_GROUPS = [
   {
@@ -244,17 +245,41 @@ const SAT_MODES = [
   { id:'section', label:'Section Test',      desc:'Reading & Writing or Math only · focused timer · great for targeted revision',     Icon:SvgTimer,  bg:'bg-emerald-600', light:'bg-emerald-50', text:'text-emerald-700', border:'border-emerald-200' },
 ]
 
+/* UI: modern DUOTONE sidebar icons, each matching its menu title. Used ONLY by SIDEBAR_NAV
+   below — the older Svg* icons are still used elsewhere and are left unchanged.
+   Shapes with className "nf" get a soft tinted fill and "ns" a solid fill (see index.css
+   ".db-nav-svg"), giving a two-tone look that reads better than thin outlines. */
+const NavIc = ({ children }) => (
+  <svg className="db-nav-svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>
+)
+const NavDashboard   = () => <NavIc><rect className="nf" x="3" y="3" width="7.5" height="9" rx="2"/><rect className="nf" x="13.5" y="3" width="7.5" height="5.5" rx="2"/><rect className="nf" x="13.5" y="11.5" width="7.5" height="9.5" rx="2"/><rect className="nf" x="3" y="15" width="7.5" height="6" rx="2"/></NavIc>
+const NavExplore     = () => <NavIc><circle className="nf" cx="12" cy="12" r="9.5"/><path className="ns" d="m15.8 8.2-2.1 5.5-5.5 2.1 2.1-5.5z"/></NavIc>
+const NavPlanner     = () => <NavIc><rect className="nf" x="3" y="4.5" width="18" height="16.5" rx="3"/><path d="M8 2.5v4M16 2.5v4M3 9.5h18"/><path d="m9 15 2 2 4-4"/></NavIc>
+const NavPerformance = () => <NavIc><rect className="nf" x="3.5" y="12.5" width="4" height="8" rx="1.2"/><rect className="nf" x="10" y="8" width="4" height="12.5" rx="1.2"/><rect className="nf" x="16.5" y="3.5" width="4" height="17" rx="1.2"/></NavIc>
+const NavPrediction  = () => <NavIc><path className="nf" d="M10.2 3.8a.8.8 0 0 1 1.5 0l1.2 3.5a3 3 0 0 0 1.9 1.9l3.5 1.2a.8.8 0 0 1 0 1.5l-3.5 1.2a3 3 0 0 0-1.9 1.9l-1.2 3.5a.8.8 0 0 1-1.5 0l-1.2-3.5a3 3 0 0 0-1.9-1.9l-3.5-1.2a.8.8 0 0 1 0-1.5l3.5-1.2a3 3 0 0 0 1.9-1.9z"/><path d="M19 2.5v3M20.5 4h-3"/></NavIc>
+const NavWeakAreas   = () => <NavIc><circle className="nf" cx="12" cy="12" r="9.5"/><circle cx="12" cy="12" r="5.5"/><circle className="ns" cx="12" cy="12" r="1.8"/></NavIc>
+const NavSubs        = () => <NavIc><path className="nf" d="M3.5 8.2 7.8 11l3.4-5.6a1 1 0 0 1 1.6 0l3.4 5.6 4.3-2.8a.6.6 0 0 1 .9.7L19.2 17H4.8L2.6 8.9a.6.6 0 0 1 .9-.7z"/><path d="M5 20.5h14"/></NavIc>
+const NavProfile     = () => <NavIc><circle className="nf" cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.8 18.6a6 6 0 0 1 10.4 0"/></NavIc>
+const NavBilling     = () => <NavIc><rect className="nf" x="2.5" y="5" width="19" height="14" rx="3"/><path d="M2.5 9.5h19M6.5 15h3.5"/></NavIc>
+const NavSettings    = () => <NavIc><path className="nf" d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></NavIc>
+
+/* UI FIX: expand 3-digit hex (#111) to 6 digits (#111111) so appending an alpha
+   suffix like "40" gives a valid colour. "#111"+"40" = "#11140" is invalid and the
+   browser drops it — that is why the SBI exam chips had no border/background. */
+const hex6 = (h) => (/^#[0-9a-f]{3}$/i.test(h || "") ? "#" + h.slice(1).split("").map(c => c + c).join("") : h)
+
 const SIDEBAR_NAV = [
-  { id:'home',          Icon:SvgHome,  label:'Dashboard'     },
-  { id:'explore',       Icon:SvgDoc,   label:'Explore Exams' },
-  { id:'studyplan',     Icon:SvgCal,   label:'Study Planner' },
-  { id:'performance',   Icon:SvgTrend, label:'My Performance' },
-  { id:'prediction',    Icon:SvgBolt,  label:'AI Prediction'  },
-  { id:'weakareas',     Icon:SvgFlame, label:'Weak Areas'    },
-  { id:'subscriptions', Icon:SvgClip,  label:'Subscriptions' },
-  { id:'profile',       Icon:SvgUser,  label:'Profile'       },
-  { id:'billing',       Icon:SvgCard,  label:'Billing'       },
-  { id:'settings',      Icon:SvgGear,  label:'Settings'      },
+  { id:'home',          Icon:NavDashboard,   label:'Dashboard'      },  // UI: grid layout
+  { id:'explore',       Icon:NavExplore,     label:'Explore Exams'  },  // UI: compass
+  { id:'studyplan',     Icon:NavPlanner,     label:'Study Planner'  },  // UI: calendar with tick
+  { id:'performance',   Icon:NavPerformance, label:'My Performance' },  // UI: rising bar chart
+  { id:'prediction',    Icon:NavPrediction,  label:'AI Prediction'  },  // UI: AI sparkle (was lightning bolt)
+  { id:'weakareas',     Icon:NavWeakAreas,   label:'Weak Areas'     },  // UI: focus target (was map pin)
+  { id:'subscriptions', Icon:NavSubs,        label:'Subscriptions'  },  // UI: crown / premium (was blank clipboard)
+  { id:'profile',       Icon:NavProfile,     label:'Profile'        },  // UI: user in circle
+  { id:'billing',       Icon:NavBilling,     label:'Billing'        },  // UI: credit card
+  { id:'settings',      Icon:NavSettings,    label:'Settings'       },  // UI: real gear (was sun-like)
 ]
 
 // Build-time flag set when building for APK (VITE_IS_NATIVE=true npm run build)
@@ -751,7 +776,7 @@ function PlanScheduleView({ plan, onStartTest, onTopicPractice, onRebuild, compl
 }
 
 
-export default function Dashboard({ user, isAdmin = false, planData, onStartTest, onLogout, onNav, onOpenResult, initialTab = 'home', examRegion = 'in', onTabChange, onResumeTest }) {
+export default function Dashboard({ user, isAdmin = false, planData, onStartTest, onLogout, onNav, onOpenResult, initialTab = 'home', examRegion = 'in', onTabChange, onResumeTest, darkMode = false, onToggleDark }) {  // UI: darkMode/onToggleDark → header dark-mode switch
 
   /* ── existing state ── */
   const [inProgressTest, setInProgressTest] = useState(() => {
@@ -764,6 +789,35 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
   })
   const [history,    setHistory]   = useState([])
   const [panelOpen,  setPanelOpen] = useState(false)
+
+  /* ── UI: collapsible sidebar state ──
+     sbPinned: stays open at 260px + content reflows (persisted in localStorage 'app-sidebar-pinned')
+     sbHover : temporary overlay expand — only for real mouse/trackpad devices (hover:hover, pointer:fine)
+     sbFocus : temporary expand while KEYBOARD focus is inside (mouse clicks don't count) */
+  const [sbPinned, setSbPinned] = useState(() => {
+    try { return localStorage.getItem('app-sidebar-pinned') === '1' } catch { return false }
+  })
+  const [sbHover, setSbHover] = useState(false)
+  const [sbFocus, setSbFocus] = useState(false)
+  const sbExpanded = sbPinned || sbHover || sbFocus
+  const sbCanHover = () => {
+    try { return window.matchMedia('(hover: hover) and (pointer: fine)').matches } catch { return true }
+  }
+  useEffect(() => {
+    try { localStorage.setItem('app-sidebar-pinned', sbPinned ? '1' : '0') } catch {}
+  }, [sbPinned])
+  // Mobile drawer (web): Esc closes it, and the page behind can't scroll while it's open.
+  useEffect(() => {
+    if (!panelOpen || isNative) return
+    const onKey = (e) => { if (e.key === 'Escape') setPanelOpen(false) }
+    window.addEventListener('keydown', onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [panelOpen])
   const [userMenuOpen, setUserMenuOpen] = useState(false)
 
   /* ── new sidebar state ── */
@@ -888,6 +942,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
   const [profileReferral, setProfileReferral] = useState(user?.user_metadata?.referral_source || '')
   const [profileSaving,   setProfileSaving]   = useState(false)
   const [profileMsg,      setProfileMsg]      = useState('')
+  const [profileErr,      setProfileErr]      = useState({})     // Edit Profile: per-field errors
   // educational status
   const [profileCategory, setProfileCategory] = useState(user?.user_metadata?.category || 'UR')
   const [profileState,    setProfileState]    = useState(user?.user_metadata?.state || '')
@@ -945,6 +1000,25 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
       goBackTab()
     }
   }, [showNotifPanel, profileEdit, privacyView, showPlanBuilder, exploreExam, goBackTab])
+
+  /* UI: Study Planner → exam-category tab row. Whenever the selected category changes (click,
+     keyboard, or opening the page), slide ONLY the tab row so the selected tab sits in the
+     middle. The page itself never scrolls; the browser clamps at the first/last tab. */
+  const planTabRowRef = useRef(null)
+  useEffect(() => {
+    if (activeTab !== 'studyplan') return
+    const id = requestAnimationFrame(() => {
+      const row = planTabRowRef.current
+      const btn = row?.querySelector('.sp-tab.is-active')
+      if (!row || !btn) return
+      const b = btn.getBoundingClientRect(), r = row.getBoundingClientRect()
+      const target = row.scrollLeft + (b.left + b.width / 2) - (r.left + r.width / 2)
+      let smooth = true
+      try { smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches } catch {}
+      row.scrollTo({ left: Math.max(0, target), behavior: smooth ? 'smooth' : 'auto' })
+    })
+    return () => cancelAnimationFrame(id)
+  }, [planExamTab, activeTab, showPlanBuilder, savedPlan, planLoading])
 
   /* ── selected / target exam state ── */
   const [selectedExamId, setSelectedExamId] = useState(
@@ -1081,6 +1155,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
   const generic  = ['admin','test','user','testuser','administrator']
   const userName = generic.includes(rawName.toLowerCase()) ? (user?.email?.split('@')[0] || rawName) : rawName
   const adminUser = isAdmin
+  /* UI: License management (Settings) — super admins, plus the preview account(s) below. */
   const today    = new Date().toISOString().split('T')[0]
   // Free users can't plan past their trial expiry; everyone is capped at 7 days.
   const trialCap = (!isPro && trialActive) ? trialEnd.toISOString().split('T')[0] : ''
@@ -1340,18 +1415,35 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
     setTimeout(() => setPlanSaved(false), 3000)
   }
 
+  // Phone → the 10 local digits (drops +91 / leading 0 and spaces) — Edit Profile shows +91 separately.
+  const phoneDigits = (p) => { let d = String(p || '').replace(/\D/g, ''); if (d.length === 12 && d.startsWith('91')) d = d.slice(2); if (d.length === 11 && d.startsWith('0')) d = d.slice(1); return d.slice(0, 10) }
+
   const handleSaveProfile = async () => {
+    // Validate (Edit Profile): name required; phone optional but must be a valid Indian mobile; DOB complete if started.
+    const fullName = profileName.trim()
+    const digits = phoneDigits(profilePhone)
+    const errs = {}
+    if (fullName.length < 2) errs.name = 'Enter your full name'
+    if (digits && !/^[6-9]\d{9}$/.test(digits)) errs.phone = 'Enter a valid 10-digit mobile number'
+    if (profileDob && (profileDob < '1950-01-01' || profileDob > new Date().toISOString().slice(0, 10))) errs.dob = 'Enter a valid date of birth'
+    setProfileErr(errs)
+    if (Object.keys(errs).length) return
+    const phone = digits ? `+91 ${digits.slice(0, 5)} ${digits.slice(5)}` : ''   // same format as the old placeholder
+    setProfileName(fullName); setProfilePhone(phone)
+
     setProfileSaving(true); setProfileMsg('')
+    // category is now saved here too (it was shown in this form but only saved by the Education section)
     await supabase.auth.updateUser({ data: {
-      full_name: profileName, phone: profilePhone,
-      dob: profileDob, gender: profileGender, referral_source: profileReferral,
+      full_name: fullName, phone,
+      dob: profileDob, gender: profileGender, referral_source: profileReferral, category: profileCategory,
     }})
     try {
       await supabase.from('profiles').upsert({
-        id: user.id, full_name: profileName, phone: profilePhone,
+        id: user.id, full_name: fullName, phone,
         dob: profileDob || null, gender: profileGender || null, referral_source: profileReferral || null,
+        category: profileCategory,
       }, { onConflict: 'id' })
-      await supabase.from('student_onboarding').upsert({ student_id: user.id, phone: profilePhone, updated_at: new Date().toISOString() }, { onConflict: 'student_id' })
+      await supabase.from('student_onboarding').upsert({ student_id: user.id, phone, updated_at: new Date().toISOString() }, { onConflict: 'student_id' })
     } catch (_) {}
     setProfileSaving(false); setProfileEdit(false)
     setProfileMsg('✓ Saved'); setTimeout(() => setProfileMsg(''), 2500)
@@ -1589,6 +1681,21 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
               Last updated {new Date(history[0].created_at).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
             </div>
           )}
+          {/* UI: dark-mode switch — sits between the Upgrade button and the profile menu.
+              Uses the same App-level darkMode state as the public navbar toggle. */}
+          {onToggleDark && (
+            <button onClick={onToggleDark}
+              aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+              title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+              aria-pressed={darkMode}
+              className="db-theme-toggle w-9 h-9 flex items-center justify-center rounded-xl flex-shrink-0">
+              {darkMode ? (
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+              ) : (
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
+              )}
+            </button>
+          )}
           {/* User dropdown — desktop */}
           <div className="relative hidden md:block">
             {userMenuOpen && <div style={{position:'fixed',inset:0,zIndex:40}} onClick={()=>setUserMenuOpen(false)}/>}
@@ -1664,9 +1771,9 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
               </div>
             )}
           </div>
-          {/* Mobile: hamburger only */}
-          <button onClick={() => setPanelOpen(true)} aria-label="Menu"
-            className="w-9 h-9 flex md:hidden flex-col items-center justify-center gap-[5px] rounded-xl transition-colors"
+          {/* Mobile/tablet: hamburger — UI: shown below 900px (.db-burger), opens the left drawer */}
+          <button onClick={() => setPanelOpen(true)} aria-label="Open menu" aria-expanded={panelOpen}
+            className="db-burger w-9 h-9 flex flex-col items-center justify-center gap-[5px] rounded-xl transition-colors"
             style={{background:'#f3f4f6',border:'1px solid #e5e7eb'}}>
             <span className="w-4 h-0.5 rounded-full" style={{background:'#374151'}}/>
             <span className="w-4 h-0.5 rounded-full" style={{background:'#374151'}}/>
@@ -1675,32 +1782,69 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
         </div>
       </header>}
 
-      <div className="flex flex-1 min-h-0">
+      {/* UI: wrapper class drives the content offset — 'sidebar-is-collapsed' (80px rail) unless pinned.
+          Hover never changes it, so the page doesn't shift on hover. Must keep overflow visible. */}
+      <div className={`flex flex-1 min-h-0 ${sbPinned ? 'sidebar-is-pinned' : 'sidebar-is-collapsed'}`}>
 
-        {/* ══ LEFT SIDEBAR — web only ══ */}
-        {!isNative && <aside className="w-60 flex-shrink-0 hidden md:flex flex-col overflow-y-auto"
-          style={{position:'sticky',top:64,height:'calc(100vh - 64px)',background:'#f8fafc',borderRight:'1px solid #e5e7eb'}}>
+        {/* ══ LEFT SIDEBAR — web only ══
+            UI: collapsible sidebar (styles: "UI: Dashboard collapsible sidebar" in index.css).
+            .db-rail       = in-flow spacer column: 80px (icon rail) or 260px (pinned) → <main> reflows on pin.
+            .db-rail-panel = sticky panel: 78px rail, expands to 260px OVER the page on mouse hover
+                             (main does not move) or stays open when pinned. Hidden below 900px —
+                             there the header hamburger opens the left drawer instead. */}
+        {!isNative && (
+          <aside className="db-rail">
+            <div
+              className={`db-rail-panel${sbExpanded ? ' is-expanded' : ''}${sbPinned ? ' is-pinned' : ''}${!sbPinned && (sbHover || sbFocus) ? ' is-overlay' : ''}`}
+              onMouseEnter={() => { if (sbCanHover()) setSbHover(true) }}
+              onMouseLeave={() => setSbHover(false)}
+              onFocus={e => { try { if (e.target.matches(':focus-visible')) setSbFocus(true) } catch {} }}
+              onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setSbFocus(false) }}>
 
-          {/* Nav items */}
-          <nav className="flex-1 py-4 px-3">
-            {SIDEBAR_NAV.map(item => (
-              <button key={item.id} onClick={() => setActiveTab(item.id)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm mb-0.5 transition-all"
-                style={activeTab === item.id
-                  ? { background:'rgba(232,90,44,.1)', color:'#F06535', fontWeight:700, boxShadow:'inset 3px 0 0 #F06535' }
-                  : { color:'#6b7280', fontWeight:500 }}
-                onMouseOver={e=>{ if(activeTab!==item.id){ e.currentTarget.style.background='#f0f0f0'; e.currentTarget.style.color='#374151' } }}
-                onMouseOut={e=>{ if(activeTab!==item.id){ e.currentTarget.style.background=''; e.currentTarget.style.color='#6b7280' } }}>
-                <span className="flex-shrink-0 opacity-80"><item.Icon /></span>
-                {item.label}
-                {item.badge && activeTab !== item.id && (
-                  <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ background:'#F06535' }}>{item.badge}</span>
-                )}
-              </button>
-            ))}
-          </nav>
+              {/* Pin button — visible in both states (centred in the rail) */}
+              <div className="db-rail-top">
+                <span className="db-rail-label db-rail-toplabel">Menu</span>
+                <button type="button" className={`db-pin${sbPinned ? ' is-active' : ''}`}
+                  onClick={() => { setSbPinned(p => !p); setSbHover(false) }}
+                  aria-pressed={sbPinned}
+                  aria-label={sbPinned ? 'Unpin sidebar' : 'Pin sidebar'}
+                  title={sbPinned ? 'Unpin sidebar' : 'Pin sidebar'}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill={sbPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <line x1="12" y1="17" x2="12" y2="22"/>
+                    <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/>
+                  </svg>
+                </button>
+              </div>
 
-        </aside>}
+              <nav className="db-rail-nav" aria-label="Main navigation">
+                {[
+                  { title:'Prepare', items: SIDEBAR_NAV.slice(0, 6) },   // Dashboard → Weak Areas
+                  { title:'Account', items: SIDEBAR_NAV.slice(6) },      // Subscriptions → Settings
+                ].map(sec => (
+                  <div key={sec.title} className="db-rail-section">
+                    {/* Section title — shown when expanded; in the rail it is just empty spacing (UI: the "—" divider was removed on request) */}
+                    <div className="db-rail-title">
+                      <span className="db-rail-label">{sec.title}</span>
+                    </div>
+                    {sec.items.map(item => {
+                      const act = activeTab === item.id
+                      return (
+                        <button key={item.id} type="button" onClick={() => setActiveTab(item.id)}
+                          className={`db-rail-item${act ? ' is-active' : ''}`}
+                          aria-current={act ? 'page' : undefined}
+                          title={!sbExpanded ? item.label : undefined}>
+                          <span className="db-rail-icon"><item.Icon /></span>
+                          <span className="db-rail-label">{item.label}</span>
+                          {item.badge && !act && <span className="db-rail-badge">{item.badge}</span>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                ))}
+              </nav>
+            </div>
+          </aside>
+        )}
 
         {/* ══ MAIN CONTENT ══ */}
         <main ref={mainScrollRef} className="flex-1 min-w-0 overflow-y-auto flex flex-col" style={{overflowX:'clip',background: isNative?(cd?'#000':'#f2f2f7'):'#fff'}}>
@@ -3098,7 +3242,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                 {planLoading && !savedPlan ? (
                   <div className="flex items-center justify-center py-20">
                     <div className="text-center">
-                      <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"/>
+                      <div className="w-10 h-10 border-4 rounded-full animate-spin mx-auto mb-4" style={{borderColor:'#fed7c2',borderTopColor:'#F06535'}}/>{/* UI: orange spinner (MockTest palette) */}
                       <div className="text-sm text-gray-500">Loading your study plan...</div>
                     </div>
                   </div>
@@ -3116,7 +3260,8 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                   />
                 ) : (
                   /* ── Plan builder form ── */
-                  <div className="w-full sp-form">
+                  /* UI: sp-page = style hook for the Study Planner web styles in index.css (team banner kept) */
+                  <div className="w-full sp-form sp-page">
                     {/* ── Study Planner hero banner ── */}
                     <div style={{background:'linear-gradient(135deg,#F06535 0%,#f06030 58%,#d95020 100%)',borderRadius:isNative?18:20,padding:isNative?'18px 18px 16px':'22px 24px 20px',marginBottom:20,position:'relative',overflow:'hidden'}}>
                       <div style={{position:'absolute',top:-28,right:-18,width:110,height:110,borderRadius:'50%',background:'rgba(255,255,255,.09)',pointerEvents:'none'}}/>
@@ -3151,40 +3296,41 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                       <div className="sp-card" style={{background:'#fff',border:'1px solid #e5e7eb',borderRadius:16,marginBottom:16,width:'100%',minWidth:0,boxSizing:'border-box'}}>
                         {/* Header */}
                         <div className="sp-header" style={{padding:'14px 20px',borderBottom:'1px solid #f3f4f6',display:'flex',alignItems:'center',gap:8}}>
-                          <DIcGrad s={18} c='#374151'/>
+                          <DIcGrad s={18} c='#F06535'/>{/* UI: orange header icon */}
                           <span style={{fontSize:13.5,fontWeight:700,color:'#111827'}}>Select your target exam</span>
                           {planExam && (() => {
                             const g = ACTIVE_GROUPS.find(gr => gr.exams.find(e => e.id === planExam))
                             const e = g?.exams.find(e => e.id === planExam)
                             return e ? (
-                              <span style={{marginLeft:'auto',fontSize:11,fontWeight:800,padding:'3px 10px',borderRadius:99,background:`${g.hex}18`,color:g.hex,flexShrink:0}}>
+                              <span style={{marginLeft:'auto',fontSize:11,fontWeight:800,padding:'3px 10px',borderRadius:99,background:`${hex6(g.hex)}18` /* UI FIX: hex6 so #111 stays valid */,color:g.hex,flexShrink:0}}>
                                 ✓ {e.name}
                               </span>
                             ) : null
                           })()}
                         </div>
                         {/* Category tabs — horizontally scrollable; pan-x prevents Android vertical scroll from claiming the gesture */}
-                        <div style={{overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none',WebkitOverflowScrolling:'touch',touchAction:'pan-x',width:'100%',minWidth:0,boxSizing:'border-box',borderBottom:'1px solid #f3f4f6'}}>
+                        {/* UI: planTabRowRef — the selected tab is auto-centred in this row (see effect near avatarInputRef) */}
+                        <div ref={planTabRowRef} style={{overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none',WebkitOverflowScrolling:'touch',touchAction:'pan-x',width:'100%',minWidth:0,boxSizing:'border-box',borderBottom:'1px solid #f3f4f6'}}>
                           <div style={{display:'flex',minWidth:'max-content',padding:'10px 16px',gap:8}}>
                             {VISIBLE_GROUPS.map(g => {
                               const isTab = (planExamTab||VISIBLE_GROUPS[0].id) === g.id
                               const hasSelected = g.exams.some(e => e.id === planExam)
                               return (
-                                <button key={g.id}
+                                <button key={g.id} className={`sp-tab ${isTab ? 'is-active' : ''}`} /* UI: hover in index.css */
                                   onClick={() => setPlanExamTab(g.id)}
                                   style={{
                                     padding:'6px 14px',
                                     fontSize:12,fontWeight:700,
                                     whiteSpace:'nowrap',
                                     borderRadius:20,
-                                    border: isTab ? 'none' : `1.5px solid ${hasSelected ? g.hex+'80' : '#e5e7eb'}`,
-                                    background: isTab ? g.hex : hasSelected ? g.hex+'14' : '#f9fafb',
+                                    border: isTab ? 'none' : `1.5px solid ${hasSelected ? hex6(g.hex)+'80' : '#e5e7eb'}`, /* UI FIX: hex6 */
+                                    background: isTab ? g.hex : hasSelected ? hex6(g.hex)+'14' : '#f9fafb', /* UI FIX: hex6 */
                                     color: isTab ? '#fff' : hasSelected ? g.hex : '#6b7280',
                                     cursor:'pointer',
                                     transition:'all .15s',
                                     position:'relative',
                                     touchAction:'manipulation',
-                                    boxShadow: isTab ? `0 2px 8px ${g.hex}50` : 'none',
+                                    boxShadow: isTab ? `0 2px 8px ${hex6(g.hex)}50` : 'none', /* UI FIX: hex6 */
                                   }}>
                                   {g.label.replace(' Exams','').replace(' Exam','')}
                                   {hasSelected && !isTab && (
@@ -3201,13 +3347,13 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                             {activeGrp.exams.map(e => {
                               const sel = planExam === e.id
                               return (
-                                <button key={e.id} onClick={() => setPlanExam(e.id)}
+                                <button key={e.id} onClick={() => setPlanExam(e.id)} className={`sp-exam-chip ${sel ? 'is-sel' : ''}`} /* UI: hover in index.css */
                                   style={{
                                     padding:'8px 10px',
                                     borderRadius:10,
                                     fontSize:12,fontWeight:600,
-                                    border:`1.5px solid ${sel ? activeGrp.hex : activeGrp.hex+'40'}`,
-                                    background: sel ? activeGrp.hex : `${activeGrp.hex}0d`,
+                                    border:`1.5px solid ${sel ? activeGrp.hex : hex6(activeGrp.hex)+'40'}`, /* UI FIX: was '#11140' (invalid) for SBI → no border */
+                                    background: sel ? activeGrp.hex : `${hex6(activeGrp.hex)}0d`, /* UI FIX: hex6 so 3-digit colours (#111) stay valid */
                                     color: sel ? '#fff' : activeGrp.hex,
                                     textAlign:'left',cursor:'pointer',
                                     transition:'all .12s',
@@ -3232,14 +3378,14 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden sp-card">
                       <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between sp-header">
                         <div className="flex items-center gap-2">
-                          <DIcBolt s={16} c='#374151'/>
+                          <DIcBolt s={16} c='#F06535'/>{/* UI: orange header icon (MockTest palette) */}
                           <div>
                             <span className="text-sm font-bold text-gray-900">Select and arrange weak topics</span>
                             <p className="text-xs text-gray-400 mt-0.5">These get extra days in your plan · {weakTopics.length} selected</p>
                           </div>
                         </div>
                         {weakTopics.length > 0 && (
-                          <button onClick={() => setWeakTopics([])} className="text-xs text-red-500 font-semibold">Clear all</button>
+                          <button onClick={() => setWeakTopics([])} className="text-xs text-red-500 font-semibold sp-clear">Clear all</button>
                         )}
                       </div>
                       {(() => {
@@ -3251,7 +3397,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                                 const sel = weakTopics.includes(t)
                                 return (
                                   <button key={t} onClick={() => toggleTopic(t)}
-                                    className="px-3 py-1 rounded-full text-xs font-semibold border transition-all hover:shadow-sm text-center truncate"
+                                    className={`px-3 py-1 rounded-full text-xs font-semibold border text-center truncate sp-chip ${sel ? 'is-sel' : ''}`} /* UI: hover styles in index.css (.sp-chip) */
                                     style={sel
                                       ? {borderColor:group.color, background:group.color, color:'#fff', fontWeight:700, boxShadow:`0 2px 8px ${group.color}44`}
                                       : {borderColor:group.color, background:`${group.color}BB`, color:'#fff'}}>
@@ -3265,7 +3411,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                         return (<>
                           {/* Mobile: tap to expand */}
                           <details className="sm:hidden border-t border-gray-100">
-                            <summary className="px-5 py-3 text-sm font-semibold text-blue-600 cursor-pointer select-none list-none flex items-center justify-between">
+                            <summary className="sp-summary px-5 py-3 text-sm font-semibold text-blue-600 cursor-pointer select-none list-none flex items-center justify-between">
                               <span>{weakTopics.length ? `${weakTopics.length} topic${weakTopics.length>1?'s':''} selected` : 'Tap to choose weak topics'}</span>
                               <span className="text-gray-400">▾</span>
                             </summary>
@@ -3284,28 +3430,25 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden sp-card">
                       <div className="px-5 py-3.5 border-b border-gray-100 sp-header">
                         <div className="flex items-center gap-2">
-                          <DIcCal s={18} c='#374151'/>
+                          <span className="flex" style={{color:'#F06535'}}><NavPlanner /></span>{/* UI: same calendar-with-tick icon as the sidebar's Study Planner item */}
                           <span className="text-sm font-bold text-gray-900">Choose your start and end dates</span>
                         </div>
                         <p className="text-xs text-gray-400 mt-1 ml-6">Based on your selections, we'll evenly distribute topics across your plan</p>
                       </div>
                       <div className="px-5 py-4">
-                        <div className="border border-gray-200 rounded-xl overflow-hidden flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-gray-200 focus-within:border-blue-500">
-                          <div className="flex-1 px-3 py-2.5">
-                            <label className="flex items-center gap-1 text-xs font-semibold text-gray-500 mb-1">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                              Start date
-                            </label>
-                            <input type="date" min={today} max={startMax || undefined} value={startDate} onChange={e=>setStartDate(e.target.value)}
-                              className="w-full text-sm text-gray-700 bg-transparent outline-none border-0 p-0"/>
+                        {/* UI: two separate input boxes (label above, mm/dd/yyyy + calendar icon inside).
+                            Type the date (mm → dd → yyyy, auto-advances) or click the calendar icon to pick one. Styles: .sp-date in index.css */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="min-w-0">
+                            <label className="block text-xs font-semibold text-gray-500 mb-1.5">Start date</label>
+                            {/* UI: typeable date + MockTest-styled calendar pop-up (components/ui/Popovers.jsx) */}
+                            <DateField label="start date" min={today} max={startMax || undefined} value={startDate} onChange={setStartDate}
+                              className={`sp-date w-full text-sm ${startDate ? '' : 'sp-date-empty'}`}/>
                           </div>
-                          <div className="flex-1 px-3 py-2.5">
-                            <label className="flex items-center gap-1 text-xs font-semibold text-gray-500 mb-1">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                              End date <span className="text-gray-300 font-normal ml-1">{(!isPro && trialActive) ? `(within your ${trialDaysLeft}-day trial)` : '(max 7 days)'}</span>
-                            </label>
-                            <input type="date" min={minEnd} max={maxEnd || undefined} value={endDate} onChange={e=>setEndDate(e.target.value)}
-                              className="w-full text-sm text-gray-700 bg-transparent outline-none border-0 p-0"/>
+                          <div className="min-w-0">
+                            <label className="block text-xs font-semibold text-gray-500 mb-1.5">End date <span className="text-gray-300 font-normal">{(!isPro && trialActive) ? `(within your ${trialDaysLeft}-day trial)` : '(max 7 days)'}</span></label>
+                            <DateField label="end date" min={minEnd} max={maxEnd || undefined} value={endDate} onChange={setEndDate}
+                              className={`sp-date w-full text-sm ${endDate ? '' : 'sp-date-empty'}`}/>
                           </div>
                         </div>
                         {startDate && endDate && (
@@ -3314,7 +3457,8 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                           </p>
                         )}
                         {(!startDate || !endDate) && (
-                          <p className="text-xs text-gray-400 mt-2">Pick both a start and end date to enable Create Plan.</p>
+                          /* UI: hint shown as a soft info note (styles: .sp-hint in index.css) */
+                          <p className="text-xs mt-3 sp-hint">Pick both a start and end date to enable Create Plan.</p>
                         )}
                       </div>
                     </div>
@@ -3323,27 +3467,31 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden sp-card">
                       <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between sp-header">
                         <div className="flex items-center gap-2">
-                          <span>⏰</span>
+                          {/* UI: clock icon replaces the ⏰ emoji */}
+                          <span className="flex"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F06535" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
                           <span className="text-sm font-bold text-gray-900">Select your study days and hours</span>
                         </div>
                         <span className="text-xs font-semibold text-gray-400">hh:mm</span>
                       </div>
-                      <div className="px-5 py-4 space-y-2.5">
+                      {/* UI: each day is a soft rounded row (tinted when on), custom slider that fills
+                          as you drag (--fill), hh:mm shown as a pill. Styles: .sp-day* in index.css */}
+                      <div className="px-3 py-3 space-y-1">
                         {WEEK_DISPLAY.map(d => {
                           const on  = studyDays.includes(d)
                           const hrs = on ? (Number(dayHours[d]) || 0) : 0
                           const hh  = String(Math.floor(hrs)).padStart(2,'0')
                           const mm  = String(Math.round((hrs % 1) * 60)).padStart(2,'0')
                           return (
-                            <div key={d} className="flex items-center gap-3">
-                              <label className="flex items-center gap-2 w-16 flex-shrink-0 cursor-pointer">
-                                <input type="checkbox" checked={on} onChange={()=>toggleDay(d)} className="w-4 h-4 accent-sky-400"/>
+                            <div key={d} className={`sp-day flex items-center gap-3 ${on ? 'is-on' : ''}`}>
+                              <label className="flex items-center gap-2.5 w-[72px] flex-shrink-0 cursor-pointer">
+                                <input type="checkbox" checked={on} onChange={()=>toggleDay(d)} className="sp-day-check"/>
                                 <span className={`text-sm font-semibold ${on?'text-gray-900':'text-gray-400'}`}>{d}</span>
                               </label>
                               <input type="range" min="0" max="12" step="0.5" value={hrs} disabled={!on}
                                 onChange={e=>setDayHour(d, Number(e.target.value))}
-                                className="flex-1 accent-sky-400 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"/>
-                              <span className={`w-14 text-right text-sm font-mono ${on?'text-sky-500 font-bold':'text-gray-300'}`}>{hh}:{mm}</span>
+                                style={{'--fill': `${(hrs/12)*100}%`}}
+                                className="sp-range flex-1"/>
+                              <span className={`sp-time ${on ? 'is-on' : ''}`}>{hh}:{mm}</span>
                             </div>
                           )
                         })}
@@ -3353,14 +3501,15 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     {/* Mark off unavailable days */}
                     <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden sp-card">
                       <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2 sp-header">
-                        <span style={{fontSize:16}}>🚫</span>
+                        {/* UI: calendar-off icon replaces the 🚫 emoji */}
+                        <span className="flex"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F06535" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M10 14l4 4M14 14l-4 4"/></svg></span>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-bold text-gray-900">Mark off unavailable days</div>
                           <div className="text-xs text-gray-400 mt-0.5">Tap any study day to block it — no tasks will be scheduled for those days</div>
                         </div>
                         {blockedDates.length > 0 && (
                           <button onClick={()=>setBlockedDates([])}
-                            className="text-xs font-semibold flex-shrink-0"
+                            className="text-xs font-semibold flex-shrink-0 sp-clear"
                             style={{color:'#ef4444'}}>
                             Clear all
                           </button>
@@ -3382,18 +3531,19 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                             const dayNum   = d.getDate()
                             const monthAb  = d.toLocaleDateString('en-IN',{month:'short'})
                             pills.push(
-                              <button key={dateStr}
+                              <button key={dateStr} className={`sp-daypill ${isStudy ? 'is-study' : ''} ${blocked ? 'is-blocked' : ''}`} /* UI: hover in index.css */
                                 onClick={()=>isStudy && toggleBlockedDate(dateStr)}
                                 title={isStudy ? (blocked ? 'Click to unblock' : 'Click to block') : 'Not a study day'}
                                 style={{
                                   position:'relative',
                                   padding:'8px 12px',
-                                  borderRadius:10,
+                                  borderRadius:12, /* UI: was 10 */
                                   textAlign:'center',
                                   minWidth:52,
                                   cursor: isStudy ? 'pointer' : 'default',
                                   border: `1.5px solid ${blocked ? '#fca5a5' : isStudy ? '#e5e7eb' : '#f3f4f6'}`,
-                                  background: blocked ? '#fee2e2' : isStudy ? '#f9fafb' : '#fafafa',
+                                  background: blocked ? '#fee2e2' : isStudy ? '#ffffff' : '#fafafa', /* UI: study day was #f9fafb */
+                                  boxShadow: isStudy && !blocked ? '0 1px 2px rgba(15,23,42,.06)' : 'none', /* UI: subtle lift */
                                   color: blocked ? '#ef4444' : isStudy ? '#374151' : '#d1d5db',
                                   transition:'all .12s',
                                   opacity: isStudy ? 1 : 0.5,
@@ -3441,7 +3591,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
 
                     {/* Catch-up buffer days */}
                     <div className="bg-white border border-gray-200 rounded-2xl mb-4 overflow-hidden sp-card">
-                      <div className="px-5 py-4 flex items-start gap-3">
+                      <div className="px-5 py-4 flex items-start gap-3 sp-toggle-row">{/* UI: row hover */}
                         <div style={{paddingTop:1}}>
                           <input type="checkbox" id="catchup-toggle" checked={catchupEnabled}
                             onChange={e=>setCatchupEnabled(e.target.checked)}
@@ -3452,21 +3602,17 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                           <div className="text-xs text-gray-400">Reserved days to catch up on overdue topics — no new content is scheduled</div>
                         </label>
                         {catchupEnabled && (
-                          <select value={catchupEvery} onChange={e=>setCatchupEvery(Number(e.target.value))}
-                            className="text-xs font-bold border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 outline-none flex-shrink-0"
-                            style={{cursor:'pointer'}}>
-                            <option value={2}>Every 2 days</option>
-                            <option value={3}>Every 3 days</option>
-                            <option value={4}>Every 4 days</option>
-                            <option value={5}>Every 5 days</option>
-                            <option value={7}>Every 7 days</option>
-                          </select>
+                          /* UI: styled dropdown (the browser's native <select> menu can't be styled) */
+                          <SelectField value={catchupEvery} onChange={setCatchupEvery} ariaLabel="Catch-up day frequency"
+                            className="flex-shrink-0"
+                            options={[2, 3, 4, 5, 7].map(n => ({ value: n, label: `Every ${n} days` }))}/>
                         )}
                       </div>
                       {catchupEnabled && (
-                        <div style={{margin:'0 16px 14px',padding:'10px 12px',borderRadius:8,
-                          background:'#f0f0ff',border:'1px solid #e0e0ff',
-                          fontSize:11,color:'#6366f1',fontWeight:600,display:'flex',alignItems:'center',gap:6}}>
+                        /* UI: info note in brand-orange tint (MockTest palette) */
+                        <div style={{margin:'0 16px 14px',padding:'10px 12px',borderRadius:12,
+                          background:'#FFF3EE',border:'1px solid #fec9b0',
+                          fontSize:11,color:'#c2410c',fontWeight:600,display:'flex',alignItems:'center',gap:6}}>
                           <span>📅</span>
                           A buffer day is inserted every {catchupEvery} scheduled days. No new topics — just time to catch up.
                         </div>
@@ -3480,10 +3626,12 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     <div className="mb-6">
                       <button onClick={handleGeneratePlan}
                         disabled={!startDate||!endDate||!studyDays.length||planSaving}
-                        className={`w-full py-3 rounded-xl text-sm font-bold transition-all ${
+                        /* UI: Create Plan = brand-orange gradient with glow (was blue→violet, which the
+                           brand override in index.css turned into an orange→black gradient) */
+                        className={`w-full py-3.5 rounded-[14px] text-sm font-bold tracking-wide transition-all ${
                           planSaved ? 'bg-green-600 text-white'
                           : (startDate&&endDate&&studyDays.length)
-                            ? 'bg-gradient-to-r from-blue-600 to-violet-600 text-white hover:shadow-lg'
+                            ? 'sp-cta text-white'
                             : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
                         {planSaving ? 'Creating your plan…' : planSaved ? '✓ Plan created — View below' : 'Create Plan'}
                       </button>
@@ -3499,7 +3647,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                             {label:'Mocks',     value:generatedPlan.mockDays,      icon:<DIcDoc s={20} c='#0891b2'/>,    cls:'text-cyan-600'},
                             {label:'Revision',  value:generatedPlan.revisionDays,  icon:<DIcRepeat s={20} c='#16a34a'/>, cls:'text-green-600'},
                           ].map(c=>(
-                            <div key={c.label} className="bg-white border border-gray-200 rounded-xl p-3 text-center">
+                            <div key={c.label} className="bg-white border border-gray-200 rounded-xl p-3 text-center sp-card">{/* UI: same card style */}
                               <div className="mb-1 flex justify-center">{c.icon}</div>
                               <div className={`text-xl font-black ${c.cls}`}>{c.value}</div>
                               <div className="text-xs text-gray-400 mt-0.5">{c.label}</div>
@@ -3666,7 +3814,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
               if (profileEdit) return (
                 <div style={{margin:'-14px'}}>
                   <div style={{background:_s,borderBottom:`1px solid ${_b}`,padding:'14px 16px',display:'flex',alignItems:'center',gap:10}}>
-                    <button onClick={()=>setProfileEdit(false)} style={{width:34,height:34,borderRadius:10,background:cd?'rgba(255,255,255,.08)':'#f3f4f6',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,touchAction:'manipulation'}}>
+                    <button onClick={()=>{setProfileEdit(false);setProfileErr({})}} style={{width:34,height:34,borderRadius:10,background:cd?'rgba(255,255,255,.08)':'#f3f4f6',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,touchAction:'manipulation'}}>
                       <svg width="16" height="16" fill="none" stroke={_t} strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
                     </button>
                     <span style={{fontSize:15,fontWeight:800,color:_t}}>Edit Profile</span>
@@ -3682,33 +3830,57 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                         </label>
                       </div>
                     </div>
-                    <div style={{background:_s,border:`1px solid ${_b}`,borderRadius:16,overflow:'hidden',marginBottom:16}}>
-                      {[
-                        {label:'Full Name',    value:profileName,  set:setProfileName,  type:'text', placeholder:'Your full name'},
-                        {label:'Phone Number', value:profilePhone, set:setProfilePhone, type:'tel',  placeholder:'+91 XXXXX XXXXX'},
-                        {label:'Date of Birth',value:profileDob,   set:setProfileDob,   type:'date', placeholder:''},
-                      ].map((f,i,arr)=>(
-                        <div key={f.label} style={{padding:'14px 20px',borderBottom:i<arr.length-1?`1px solid ${_b}`:'none'}}>
-                          <label style={{display:'block',fontSize:10.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>{f.label}</label>
-                          <input type={f.type} value={f.value} onChange={e=>f.set(e.target.value)} placeholder={f.placeholder}
-                            style={{width:'100%',background:'none',border:'none',outline:'none',fontSize:13.5,fontWeight:500,color:_t,padding:0}}/>
+                    {/* Edit Profile fields — every field is a boxed input (pf-* in index.css):
+                        name (required), phone (+91 + 10 digits), DOB (day/month/year), gender, category. */}
+                    {(() => {
+                      const dobMax = (() => { const d = new Date(); d.setFullYear(d.getFullYear() - 10); return d.toISOString().slice(0, 10) })()   // age 10+
+                      const box = (err) => ({ borderColor: err ? '#ef4444' : _b, backgroundColor: cd ? 'rgba(255,255,255,.04)' : '#fff', color: _t })   // backgroundColor (not background) keeps the select arrow image
+                      const Lbl = ({ htmlFor, children }) => <label htmlFor={htmlFor} className="pf-label" style={{ color: _m }}>{children}</label>
+                      const Err = ({ msg }) => msg ? <div className="pf-err" role="alert">{msg}</div> : null
+                      return (
+                        <div className="pf-card" style={{ background: _s, borderColor: _b }}>
+                          <div className="pf-row">
+                            <Lbl htmlFor="pf-name">Full name</Lbl>
+                            <input id="pf-name" className="pf-input" style={box(profileErr.name)} value={profileName} autoComplete="name"
+                              onChange={e => { setProfileName(e.target.value); setProfileErr(x => ({ ...x, name: undefined })) }} placeholder="Your full name"/>
+                            <Err msg={profileErr.name}/>
+                          </div>
+                          <div className="pf-row">
+                            <Lbl htmlFor="pf-phone">Phone number</Lbl>
+                            <div className="pf-phone" style={box(profileErr.phone)}>
+                              <span className="pf-prefix" style={{ color: _m, borderColor: _b }}>+91</span>
+                              <input id="pf-phone" type="tel" inputMode="numeric" autoComplete="tel-national" maxLength={10}
+                                value={phoneDigits(profilePhone)} placeholder="10-digit mobile number" style={{ color: _t }}
+                                onChange={e => { setProfilePhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setProfileErr(x => ({ ...x, phone: undefined })) }}/>
+                            </div>
+                            <Err msg={profileErr.phone}/>
+                          </div>
+                          <div className="pf-row">
+                            <Lbl>Date of birth</Lbl>
+                            {/* one field: type the date or pick it from the calendar (month + year dropdowns for quick jumps) */}
+                            <DateField label="date of birth" yearPicker min="1950-01-01" max={dobMax} value={profileDob}
+                              className="pf-input" onChange={v => { setProfileDob(v); setProfileErr(x => ({ ...x, dob: undefined })) }}/>
+                            <Err msg={profileErr.dob}/>
+                          </div>
+                          <div className="pf-grid2">
+                            <div className="pf-row">
+                              <Lbl htmlFor="pf-gender">Gender</Lbl>
+                              <select id="pf-gender" className="pf-input pf-select" style={box()} value={profileGender} onChange={e => setProfileGender(e.target.value)}>
+                                <option value="">Select gender</option>
+                                {['Male','Female','Non-binary','Prefer not to say'].map(g => <option key={g} value={g.toLowerCase()}>{g}</option>)}
+                              </select>
+                            </div>
+                            <div className="pf-row">
+                              <Lbl htmlFor="pf-cat">Category</Lbl>
+                              <select id="pf-cat" className="pf-input pf-select" style={box()} value={profileCategory} onChange={e => setProfileCategory(e.target.value)}>
+                                {['UR','OBC','SC','ST','EWS'].map(c => <option key={c} value={c}>{c}</option>)}
+                              </select>
+                            </div>
+                          </div>
                         </div>
-                      ))}
-                      <div style={{padding:'14px 20px',borderBottom:`1px solid ${_b}`}}>
-                        <label style={{display:'block',fontSize:10.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>Gender</label>
-                        <select value={profileGender} onChange={e=>setProfileGender(e.target.value)} style={{background:'none',border:'none',outline:'none',fontSize:13.5,fontWeight:500,color:_t,padding:0,width:'100%',cursor:'pointer'}}>
-                          <option value="">Select gender</option>
-                          {['Male','Female','Non-binary','Prefer not to say'].map(g=><option key={g} value={g.toLowerCase()}>{g}</option>)}
-                        </select>
-                      </div>
-                      <div style={{padding:'14px 20px'}}>
-                        <label style={{display:'block',fontSize:10.5,fontWeight:700,color:_m,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>Category</label>
-                        <select value={profileCategory} onChange={e=>setProfileCategory(e.target.value)} style={{background:'none',border:'none',outline:'none',fontSize:13.5,fontWeight:500,color:_t,padding:0,width:'100%',cursor:'pointer'}}>
-                          {['UR','OBC','SC','ST','EWS'].map(c=><option key={c} value={c}>{c}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                    <div style={{display:'flex',alignItems:'center',gap:12}}>
+                      )
+                    })()}
+                    <div className="pf-actions" style={{display:'flex',alignItems:'center',gap:12}}>
                       <button onClick={handleSaveProfile} disabled={profileSaving}
                         style={{background:_a,color:'#fff',border:'none',borderRadius:10,padding:'12px 28px',fontWeight:800,fontSize:13.5,cursor:profileSaving?'default':'pointer',opacity:profileSaving?.6:1}}>
                         {profileSaving ? 'Saving…' : 'Save Changes'}
@@ -4069,9 +4241,12 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
         <>
           <div className="fixed inset-0 bg-black/40 z-40" onClick={()=>setPanelOpen(false)}/>
 
-          {/* ── WEB panel: full nav (unchanged from original) ── */}
+          {/* ── WEB panel: full nav ──
+              UI: now a LEFT drawer (260px, slides in) for screens below 900px. Scrim click, a menu item
+              or the Esc key closes it; page scroll is locked while open (see sidebar state effect). */}
           {!isNative && (
-            <div className="fixed right-0 top-0 h-full w-72 z-50 flex flex-col overflow-y-auto shadow-2xl" style={{ background:'#fff' }}>
+            <div className="db-drawer fixed left-0 top-0 h-full z-50 flex flex-col overflow-y-auto shadow-2xl" style={{ background:'#fff' }}
+              role="dialog" aria-modal="true" aria-label="Main navigation">
               <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom:'1px solid #e5e7eb' }}>
                 <div className="flex items-center gap-2">
                   <div style={{ width:28, height:28, background:'#F06535', borderRadius:7, display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -4082,9 +4257,9 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
                     <div style={{fontSize:8.5,fontWeight:700,color:'#F06535',letterSpacing:'.10em',textTransform:'uppercase',fontStyle:'italic',marginTop:3,lineHeight:1}}>Your World of Mock Tests</div>
                   </div>
                 </div>
-                <button onClick={()=>setPanelOpen(false)} className="text-2xl w-8 h-8 flex items-center justify-center" style={{color:'#6b7280'}}>×</button>
+                <button onClick={()=>setPanelOpen(false)} aria-label="Close menu" className="text-2xl w-8 h-8 flex items-center justify-center" style={{color:'#6b7280'}}>×</button>
               </div>
-              <nav className="flex-1 py-3">
+              <nav className="flex-1 py-3" aria-label="Main navigation">
                 {SIDEBAR_NAV.map(item => (
                   <button key={item.id}
                     onClick={()=>{ setPanelOpen(false); setActiveTab(item.id) }}

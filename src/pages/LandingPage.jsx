@@ -408,7 +408,8 @@ function LandingPage({ onNav, initialTab='home' }) {
 
               {/* CTAs */}
               <div className="hero-ctas" style={{display:'flex',gap:14,flexWrap:'wrap'}}>
-                <button onClick={()=>onNav('auth')} className="btn-orange" style={{padding:'16px 36px',fontSize:16}}>
+                {/* QA FIX #4: open the Sign Up tab (new users should not see "Welcome back"). */}
+                <button onClick={()=>onNav('auth',null,{mode:'signup'})} className="btn-orange" style={{padding:'16px 36px',fontSize:16}}>
                   Start 7-Day Free Trial →
                 </button>
                 <button onClick={()=>setMegaMenuOpen(true)}
@@ -471,7 +472,9 @@ function LandingPage({ onNav, initialTab='home' }) {
                         <span style={{fontSize:14,color:'#374151'}}>{pt}</span>
                       </div>
                     ))}
-                    <button onClick={()=>onNav('auth')} style={{width:'100%',marginTop:12,padding:'12px 0',background:p.popular?'#111':'transparent',color:p.popular?'#fff':'#F06535',border:p.popular?'none':'2px solid #F06535',borderRadius:10,fontSize:14,fontWeight:700,cursor:'pointer',transition:'background .12s,color .12s'}}
+                    {/* QA FIX #4: pass the chosen plan to the login page and open the Sign Up tab. */}
+                    {/* QA FIX #3: 'plan-cta-popular' lets dark mode recolour the black "Get Started" button (see index.css). */}
+                    <button className={p.popular?'plan-cta-popular':undefined} onClick={()=>onNav('auth',null,{mode:'signup',plan:{days:p.days,label:p.label,sub:p.sub}})} style={{width:'100%',marginTop:12,padding:'12px 0',background:p.popular?'#111':'transparent',color:p.popular?'#fff':'#F06535',border:p.popular?'none':'2px solid #F06535',borderRadius:10,fontSize:14,fontWeight:700,cursor:'pointer',transition:'background .12s,color .12s'}}
                       onMouseOver={e=>{if(!p.popular){e.currentTarget.style.background='#F06535';e.currentTarget.style.color='#fff'}}}
                       onMouseOut={e=>{if(!p.popular){e.currentTarget.style.background='transparent';e.currentTarget.style.color='#F06535'}}}>
                       {p.popular?'Get Started →':'Choose Plan →'}
@@ -713,7 +716,8 @@ function LandingPage({ onNav, initialTab='home' }) {
             <div style={{marginTop:48,background:'#111',borderRadius:18,padding:32,textAlign:'center'}}>
               <div style={{fontSize:22,fontWeight:800,color:'#fff',marginBottom:10}}>Ready to start?</div>
               <div style={{fontSize:14,color:'rgba(255,255,255,.6)',marginBottom:24}}>Create a free account and take your first expert-crafted mock test right now.</div>
-              <button onClick={()=>onNav('auth')} className="btn-orange" style={{padding:'14px 32px',fontSize:15}}>Create Free Account →</button>
+              {/* QA FIX #4: open the Sign Up tab (new users should not see "Welcome back"). */}
+              <button onClick={()=>onNav('auth',null,{mode:'signup'})} className="btn-orange" style={{padding:'14px 32px',fontSize:15}}>Create Free Account →</button>
             </div>
           </div>
         </section>
@@ -735,7 +739,8 @@ function LandingPage({ onNav, initialTab='home' }) {
                 </div>
               ))}
             </div>
-            <button onClick={()=>onNav('auth')} className="btn-orange" style={{padding:'16px 36px',fontSize:16}}>Get Your Free Study Plan →</button>
+            {/* QA FIX #4: open the Sign Up tab (new users should not see "Welcome back"). */}
+            <button onClick={()=>onNav('auth',null,{mode:'signup'})} className="btn-orange" style={{padding:'16px 36px',fontSize:16}}>Get Your Free Study Plan →</button>
           </div>
         </section>
       )}
@@ -765,7 +770,8 @@ function LandingPage({ onNav, initialTab='home' }) {
               ))}
             </div>
             <div style={{textAlign:'center'}}>
-              <button onClick={()=>onNav('auth')} className="btn-orange" style={{padding:'15px 36px',fontSize:16}}>Start Free Mock Test →</button>
+              {/* QA FIX #4: open the Sign Up tab (new users should not see "Welcome back"). */}
+              <button onClick={()=>onNav('auth',null,{mode:'signup'})} className="btn-orange" style={{padding:'15px 36px',fontSize:16}}>Start Free Mock Test →</button>
             </div>
           </div>
         </section>
@@ -810,7 +816,8 @@ function LandingPage({ onNav, initialTab='home' }) {
               ))}
             </div>
             <div style={{marginTop:36}}>
-              <button onClick={()=>onNav('auth')} className="btn-orange" style={{padding:'15px 36px',fontSize:16}}>Try All Features Free →</button>
+              {/* QA FIX #4: open the Sign Up tab (new users should not see "Welcome back"). */}
+              <button onClick={()=>onNav('auth',null,{mode:'signup'})} className="btn-orange" style={{padding:'15px 36px',fontSize:16}}>Try All Features Free →</button>
             </div>
           </div>
         </section>
@@ -840,7 +847,8 @@ function LandingPage({ onNav, initialTab='home' }) {
               ))}
             </div>
             <div style={{marginTop:36,textAlign:'center'}}>
-              <button onClick={()=>onNav('auth')} className="btn-orange" style={{padding:'15px 36px',fontSize:16}}>Start Your Success Story →</button>
+              {/* QA FIX #4: open the Sign Up tab (new users should not see "Welcome back"). */}
+              <button onClick={()=>onNav('auth',null,{mode:'signup'})} className="btn-orange" style={{padding:'15px 36px',fontSize:16}}>Start Your Success Story →</button>
             </div>
           </div>
         </section>

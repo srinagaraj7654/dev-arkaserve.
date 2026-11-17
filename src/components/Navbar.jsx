@@ -249,9 +249,10 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole, d
   const openGroup  = (id) => { clearTimeout(closeTimer.current); setOpenGroupId(id) }
   const schedClose = ()   => { closeTimer.current = setTimeout(() => setOpenGroupId(null), 180) }
 
-  const navigate = (dest, examId) => {
+  // QA FIX #4: pass optional auth options (e.g. { mode: 'signup' }) through to App's nav().
+  const navigate = (dest, examId, opts) => {
     if (!dest) return
-    onNav(dest, examId)
+    onNav(dest, examId, opts)
     clearTimeout(closeTimer.current)
     setOpenGroupId(null)
     setMobileOpen(false)
@@ -389,7 +390,8 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole, d
                   onMouseOut={e => e.currentTarget.style.color = 'rgba(255,255,255,.7)'}>
                   Login
                 </button>
-                <button onClick={() => navigate('auth')}
+                {/* QA FIX #4: "Start Free" opens the Sign Up tab. */}
+                <button onClick={() => navigate('auth', null, { mode: 'signup' })}
                   className="text-white font-bold text-sm px-4 py-2 rounded-lg transition-all"
                   style={{ background: '#F06535' }}
                   onMouseOver={e => e.currentTarget.style.background = '#e5512f'}
@@ -541,7 +543,8 @@ export default function Navbar({ currentPage, onNav, user, onLogout, userRole, d
                 </>
               ) : (
                 <>
-                  <button onClick={() => navigate('auth')}
+                  {/* QA FIX #4: "Start Free" opens the Sign Up tab. */}
+                  <button onClick={() => navigate('auth', null, { mode: 'signup' })}
                     className="w-full text-white text-sm py-3 rounded-xl font-bold"
                     style={{ background: '#F06535', border: 'none', cursor: 'pointer' }}>
                     Start Free →

@@ -1,8 +1,18 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../api.js'
+// UI (module access): super admin / domain admin — see src/access/
+import { ACCESS_API_ENABLED, accessApi } from '../access/accessApi.js'
+import { DOMAINS, examInDomains, domainById, DOMAIN_ADMIN_MODULES } from '../access/domains.js'
+import AccessControl from '../components/admin/AccessControl.jsx'
+import LicenseManager from '../components/admin/LicenseManager.jsx'
+import { SelectField } from '../components/ui/Popovers.jsx'
 
 const ADMIN_KEY = import.meta.env.VITE_ADMIN_KEY || ''
-const headers   = { 'x-admin-key': ADMIN_KEY }
+// UI (module access): when VITE_ACCESS_API_URL is set, admin calls go through the admin access server
+// (Supabase login token → it checks role + domain and adds the admin key server-side). Otherwise unchanged.
+const adminApi  = ACCESS_API_ENABLED ? accessApi : api
+const AP        = ACCESS_API_ENABLED ? '/api' : ''
+const headers   = ACCESS_API_ENABLED ? {} : { 'x-admin-key': ADMIN_KEY }
 
 const BANKING_EXAM_IDS = new Set([
   'bank_clerk_prelims','bank_clerk_mains','bank_po_prelims','bank_po_mains',
@@ -34,6 +44,21 @@ const SCHEDULER_EXAMS = [
 ]
 
 // ── Donut chart (pure SVG, no library) ───────────────────────────
+/* Header title + subtitle for each admin page (tab id → [title, subtitle]) */
+const PAGE_HEADS = {
+  dashboard:     ['Admin Dashboard',     'Manage exams, content and scheduled tasks'],
+  access:        ['Admin Control',       'Create admins and choose which exam domains they manage'],
+  subscriptions: ['User Control',        'Subscribers, free trials and subscription plans'],
+  exams:         ['Exam Management',     'Question pools, seeding and readiness for each exam'],
+  write:         ['Write Questions',     'Manually author questions — saved directly as approved'],
+  upload:        ['Upload Syllabus PDF', 'Upload official syllabi to power RAG-grounded question generation'],
+  flagged:       ['Review Flagged',      'Approve, edit or delete flagged questions'],
+  ca:            ['Current Affairs',     'Recent current affairs generation runs and status'],
+  scheduler:     ['Scheduler',           'Manage automated CA generation and scheduled tasks'],
+  analytics:     ['Reports & Analytics', 'Question bank and exam statistics'],
+  settings:      ['Settings',            'Admin panel settings'],
+}
+
 function DonutChart({ segments, size = 120, stroke = 20 }) {
   const r = (size - stroke) / 2
   const circ = 2 * Math.PI * r
@@ -89,8 +114,9 @@ const Icons = {
   logout:      <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>,
 }
 
-export default function AdminPage({ onBack, onLogout }) {
-  const [tab,          setTab]         = useState('dashboard')
+export default function AdminPage({ onBack, onLogout, access = { role: 'super_admin', domains: [] } }) {
+  // UI (module access): domain admins start on Exam Management (they have no Dashboard)
+  const [tab,          setTab]         = useState(access?.role === 'admin' ? 'exams' : 'dashboard')
   const [stats,        setStats]       = useState(null)
   const [flagged,      setFlagged]     = useState([])
   const [loading,      setLoading]     = useState(true)
@@ -99,6 +125,7 @@ export default function AdminPage({ onBack, onLogout }) {
   const [uploadStatus, setUploadStatus]= useState('')
   const [seedStatus,   setSeedStatus]  = useState({})
   const [actionMsg,    setActionMsg]   = useState('')
+  const [overviewRange, setOverviewRange] = useState('30d')   // Dashboard → Questions Overview period dropdown
   const [editingQ,     setEditingQ]    = useState(null)
   const [editData,     setEditData]    = useState({})
   const [bulkLoading,  setBulkLoading] = useState(false)
@@ -119,10 +146,23 @@ export default function AdminPage({ onBack, onLogout }) {
   const [writeList,    setWriteList]   = useState([])
   const fileRef = useRef()
 
+  // ── UI (module access) ─────────────────────────────────────────────
+  // Super admin: everything. Domain admin: only DOMAIN_ADMIN_MODULES and only exams in their domains.
+  const isSuper     = access?.role !== 'admin'
+  const myDomains   = access?.domains || []
+  const canExam     = (id) => isSuper || examInDomains(id, myDomains)
+  const allowedTab  = (id) => isSuper || DOMAIN_ADMIN_MODULES.includes(id)
+  const MY_EXAM_IDS = EXAM_IDS.filter(canExam)
+  // Exam Management domain dropdown: super admin → all domains; domain admin → only their domains.
+  const examDomainOptions = isSuper ? DOMAINS.map(d => d.id) : myDomains
+  const [examDomain, setExamDomain] = useState(() => (examDomainOptions.includes('banking') ? 'banking' : examDomainOptions[0]) || 'banking')
+  // Banking keeps the original fixed exam list; other domains match by exam-id prefix (src/access/domains.js).
+  const inExamDomain = (id) => examDomain === 'banking' ? BANKING_EXAM_IDS.has(id) : examInDomains(id, [examDomain])
+
   // ── Data fetching ────────────────────────────────────────────────
   const fetchStats = async () => {
     try {
-      const r = await api.get('/admin/stats', { headers })
+      const r = await adminApi.get(AP + '/admin/stats', { headers })
       setStats(r.data)
     } catch { setStats({ exams: [], total_exams: 0, total_questions: 0 }) }
     finally { setLoading(false) }
@@ -130,8 +170,8 @@ export default function AdminPage({ onBack, onLogout }) {
   const fetchFlagged = async (examId = '') => {
     try {
       const url = examId ? `/admin/flagged?exam=${examId}` : '/admin/flagged'
-      const r   = await api.get(url, { headers })
-      setFlagged((r.data.flagged || []).filter(q => BANKING_EXAM_IDS.has(q.exam)))
+      const r   = await adminApi.get(AP + url, { headers })
+      setFlagged((r.data.flagged || []).filter(q => BANKING_EXAM_IDS.has(q.exam) && canExam(q.exam)))
     } catch(e) { console.error(e) }
   }
   useEffect(() => { fetchStats(); fetchFlagged(); fetchCaStatus(); fetchCaLog() }, [])
@@ -141,14 +181,14 @@ export default function AdminPage({ onBack, onLogout }) {
   // ── Question actions ─────────────────────────────────────────────
   const handleApprove = async (qid) => {
     try {
-      await api.put(`/admin/approve/${qid}`, {}, { headers })
+      await adminApi.put(AP + `/admin/approve/${qid}`, {}, { headers })
       setFlagged(f => f.filter(q => q.id !== qid))
       showMsg('Question approved ✓'); fetchStats()
     } catch(e) { showMsg('Error: ' + (e.response?.data?.error || e.message)) }
   }
   const handleDelete = async (qid) => {
     try {
-      await api.delete(`/admin/question/${qid}`, { headers })
+      await adminApi.delete(AP + `/admin/question/${qid}`, { headers })
       setFlagged(f => f.filter(q => q.id !== qid)); showMsg('Question deleted')
     } catch(e) { showMsg('Error: ' + (e.response?.data?.error || e.message)) }
   }
@@ -162,7 +202,7 @@ export default function AdminPage({ onBack, onLogout }) {
     setBulkLoading(true)
     let approved = 0, failed = 0
     for (const q of toApprove) {
-      try { await api.put(`/admin/approve/${q.id}`, {}, { headers }); approved++ }
+      try { await adminApi.put(AP + `/admin/approve/${q.id}`, {}, { headers }); approved++ }
       catch { failed++ }
     }
     setFlagged(f => examFilter ? f.filter(q => q.exam !== examFilter) : [])
@@ -181,13 +221,13 @@ export default function AdminPage({ onBack, onLogout }) {
   const handleSaveEdit = async (qid) => {
     setSavingEdit(true)
     try {
-      await api.put(`/admin/edit/${qid}`, editData, { headers })
-      await api.put(`/admin/approve/${qid}`, {}, { headers })
+      await adminApi.put(AP + `/admin/edit/${qid}`, editData, { headers })
+      await adminApi.put(AP + `/admin/approve/${qid}`, {}, { headers })
       setFlagged(f => f.filter(q => q.id !== qid))
       setEditingQ(null); showMsg('Edited & approved ✓'); fetchStats()
     } catch {
       try {
-        await api.put(`/admin/approve/${qid}`, {}, { headers })
+        await adminApi.put(AP + `/admin/approve/${qid}`, {}, { headers })
         setFlagged(f => f.filter(q => q.id !== qid))
         setEditingQ(null); showMsg('Approved ✓'); fetchStats()
       } catch(e2) { showMsg('Error: ' + (e2.response?.data?.error || e2.message)) }
@@ -202,7 +242,7 @@ export default function AdminPage({ onBack, onLogout }) {
     const form = new FormData()
     form.append('exam_id', uploadExam); form.append('file', uploadFile)
     try {
-      const r = await api.post('/admin/upload-syllabus', form, {
+      const r = await adminApi.post(AP + '/admin/upload-syllabus', form, {
         headers: { ...headers, 'Content-Type': 'multipart/form-data' }
       })
       setUploadStatus(`✓ Uploaded: ${r.data.filename} (${(r.data.size_bytes/1024).toFixed(0)} KB)`)
@@ -217,7 +257,7 @@ export default function AdminPage({ onBack, onLogout }) {
     if (!hasActive) return
     const interval = setInterval(async () => {
       try {
-        const r = await api.get('/admin/seed-status', { headers })
+        const r = await adminApi.get(AP + '/admin/seed-status', { headers })
         const active = r.data.active || {}
         setSeedStatus(prev => {
           const next = { ...prev }
@@ -232,7 +272,7 @@ export default function AdminPage({ onBack, onLogout }) {
 
   const handleCancelSeed = async (examId) => {
     try {
-      await api.post(`/admin/cancel-seed/${examId}`, {}, { headers })
+      await adminApi.post(AP + `/admin/cancel-seed/${examId}`, {}, { headers })
       setSeedStatus(s => ({ ...s, [examId]: 'cancelled' }))
       showMsg(`Seeding cancelled for ${examId}`)
       setTimeout(() => setSeedStatus(s => ({ ...s, [examId]: null })), 3000)
@@ -240,31 +280,36 @@ export default function AdminPage({ onBack, onLogout }) {
   }
   const handleIngest = async (examId) => {
     setSeedStatus(s => ({ ...s, [examId]: 'ingesting' }))
-    try { await api.post(`/admin/ingest/${examId}`, {}, { headers }); setSeedStatus(s => ({ ...s, [examId]: 'ingesting_bg' })) }
+    try { await adminApi.post(AP + `/admin/ingest/${examId}`, {}, { headers }); setSeedStatus(s => ({ ...s, [examId]: 'ingesting_bg' })) }
     catch(e) { setSeedStatus(s => ({ ...s, [examId]: 'error: ' + (e.response?.data?.error || e.message) })) }
   }
   const handleSeed = async (examId) => {
     setSeedStatus(s => ({ ...s, [examId]: 'seeding' }))
-    try { await api.post(`/admin/seed/${examId}`, {}, { headers }); setSeedStatus(s => ({ ...s, [examId]: 'seeding_bg' })) }
+    try { await adminApi.post(AP + `/admin/seed/${examId}`, {}, { headers }); setSeedStatus(s => ({ ...s, [examId]: 'seeding_bg' })) }
     catch { setSeedStatus(s => ({ ...s, [examId]: 'error' })) }
   }
 
   // ── CA Scheduler ─────────────────────────────────────────────────
   const fetchCaStatus = async () => {
-    try { const r = await api.get('/admin/ca-status', { headers }); setCaStatus(r.data); return r.data }
+    try { const r = await adminApi.get(AP + '/admin/ca-status', { headers }); setCaStatus(r.data); return r.data }
     catch {}
   }
   const fetchCaLog = async () => {
-    try { const r = await api.get('/admin/ca-log?limit=5', { headers }); setCaLog(r.data.runs || []) }
+    try { const r = await adminApi.get(AP + '/admin/ca-log?limit=5', { headers }); setCaLog(r.data.runs || []) }
     catch {}
   }
   const handleRunCa = async () => {
     setCaRunning(true); setElapsed(0)
     try {
-      const r = await api.post('/admin/run-ca', {}, { headers })
+      const r = await adminApi.post(AP + '/admin/run-ca', {}, { headers })
       showMsg(r.data.message || 'CA generation started')
       await fetchCaStatus()
-    } catch(e) { showMsg('Error: ' + (e.response?.data?.error || e.message)) }
+    } catch(e) {
+      // 404 = the MockTest API server has no Current Affairs endpoints deployed (checked: /admin/ca-status is 404 too)
+      showMsg(e.response?.status === 404
+        ? 'Error: Current Affairs generation is not available on the API server yet'
+        : 'Error: ' + (e.response?.data?.error || e.message))
+    }
     finally { setCaRunning(false) }
   }
   useEffect(() => {
@@ -275,7 +320,7 @@ export default function AdminPage({ onBack, onLogout }) {
   }, [caStatus?.running])
 
   // ── Computed metrics ─────────────────────────────────────────────
-  const bankingExams   = (stats?.exams || []).filter(e => BANKING_EXAM_IDS.has(e.exam_id))
+  const bankingExams   = (stats?.exams || []).filter(e => BANKING_EXAM_IDS.has(e.exam_id) && canExam(e.exam_id))
   const totalApproved  = bankingExams.reduce((s, e) => s + (e.approved || 0), 0)
   const ibpsCount = bankingExams.filter(e => e.exam_id.startsWith('bank_') || e.exam_id.startsWith('rrb_')).reduce((s,e) => s+(e.approved||0),0)
   const sbiCount  = bankingExams.filter(e => e.exam_id.startsWith('sbi_')).reduce((s,e) => s+(e.approved||0),0)
@@ -297,17 +342,20 @@ export default function AdminPage({ onBack, onLogout }) {
     : [{ pct: 100, color: '#E5E7EB', label: 'No data' }]
 
   // ── Sidebar nav items ────────────────────────────────────────────
+  // Sidebar. Dashboard, then Admin Control + User Control (super admin only — filtered by allowedTab).
+  // "Current Affairs" and "Review Flagged" were removed from the sidebar on request; their screens still
+  // exist (Review flagged opens from Exam Management → "Review flagged (n)").
   const navItems = [
     { id: 'dashboard', label: 'Dashboard',           icon: Icons.dashboard },
+    { id: 'access',        label: 'Admin Control', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={18} height={18}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg> },
+    { id: 'subscriptions', label: 'User Control',  icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={18} height={18}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
     { id: 'exams',     label: 'Exam Management',     icon: Icons.exam      },
     { id: 'write',     label: 'Write Questions',     icon: Icons.write     },
-    { id: 'ca',        label: 'Current Affairs',     icon: Icons.ca,       arrow: true },
     { id: 'upload',    label: 'Upload Syllabus PDF', icon: Icons.upload    },
-    { id: 'flagged',   label: 'Review Flagged',      icon: Icons.flagged,  badge: flagged.length || null },
     { id: 'scheduler', label: 'Scheduler',           icon: Icons.scheduler },
     { id: 'analytics', label: 'Reports & Analytics', icon: Icons.analytics, arrow: true },
     { id: 'settings',  label: 'Settings',            icon: Icons.settings  },
-  ]
+  ].filter(item => allowedTab(item.id))
 
   const inp = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
 
@@ -334,7 +382,8 @@ export default function AdminPage({ onBack, onLogout }) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 min-h-0 overflow-y-auto py-4 px-3 space-y-0.5">
+      {/* scrollbar-hide: menu still scrolls (wheel / touch) when it doesn't fit, without a 2nd visible scrollbar */}
+      <nav className="flex-1 min-h-0 overflow-y-auto scrollbar-hide py-4 px-3 space-y-0.5">
         {navItems.map(item => (
           <button key={item.id} onClick={() => goTab(item.id)}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all group
@@ -422,18 +471,9 @@ export default function AdminPage({ onBack, onLogout }) {
       return () => document.removeEventListener('mousedown', handler)
     }, [adminMenuOpen])
 
+    // Account menu: who is signed in + View Site + Logout. (Dashboard / Settings / Analytics are already in the
+    // sidebar, Current Affairs was removed on request, and "My Profile" did nothing — so they were removed here.)
     const menuItems = [
-      { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={15} height={15}><rect x={3} y={3} width={7} height={7} rx={1}/><rect x={14} y={3} width={7} height={7} rx={1}/><rect x={3} y={14} width={7} height={7} rx={1}/><rect x={14} y={14} width={7} height={7} rx={1}/></svg>,
-        label: 'Dashboard', action: () => { setTab('dashboard'); setAdminMenuOpen(false) } },
-      { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={15} height={15}><circle cx={12} cy={8} r={4}/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>,
-        label: 'My Profile', action: () => setAdminMenuOpen(false) },
-      { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={15} height={15}><circle cx={12} cy={12} r={3}/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
-        label: 'Settings', action: () => { setTab('settings'); setAdminMenuOpen(false) } },
-      { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={15} height={15}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1={16} y1={13} x2={8} y2={13}/><line x1={16} y1={17} x2={8} y2={17}/></svg>,
-        label: 'Current Affairs', action: () => { setTab('ca'); setAdminMenuOpen(false) } },
-      { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={15} height={15}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
-        label: 'Analytics', action: () => { setTab('analytics'); setAdminMenuOpen(false) } },
-      { divider: true },
       { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={15} height={15}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1={10} y1={14} x2={21} y2={3}/></svg>,
         label: 'View Site', action: () => { onBack && onBack(); setAdminMenuOpen(false) } },
       { icon: <svg viewBox="0 0 24 24" fill="currentColor" width={15} height={15}><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>,
@@ -446,8 +486,9 @@ export default function AdminPage({ onBack, onLogout }) {
           {Icons.menu}
         </button>
         <div className="hidden lg:block flex-shrink-0 min-w-0">
-          <h1 className="font-extrabold text-gray-900 leading-tight" style={{ fontSize: 22, letterSpacing: -0.8 }}>Admin Dashboard</h1>
-          <p className="text-xs" style={{ color: '#78859a', marginTop: 1 }}>Manage exams, content, current affairs, and scheduled tasks</p>
+          {/* Title + subtitle follow the open page (was always "Admin Dashboard") */}
+          <h1 className="font-extrabold text-gray-900 leading-tight" style={{ fontSize: 22, letterSpacing: -0.8 }}>{(PAGE_HEADS[tab] || PAGE_HEADS.dashboard)[0]}</h1>
+          <p className="text-xs" style={{ color: '#78859a', marginTop: 1 }}>{(PAGE_HEADS[tab] || PAGE_HEADS.dashboard)[1]}</p>
         </div>
         <div className="flex-1" />
 
@@ -485,8 +526,8 @@ export default function AdminPage({ onBack, onLogout }) {
             }}>
               {/* Header */}
               <div style={{ padding: '12px 14px 10px', borderBottom: '1px solid #f1f5f9' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b' }}>Administrator</div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>Super Admin · ArkaServe</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>{access?.email || 'Administrator'}</div>
+                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>{isSuper ? 'Super Admin' : 'Domain Admin'} · ArkaServe</div>
               </div>
               {/* Items */}
               <div style={{ padding: '6px 0' }}>
@@ -770,10 +811,9 @@ export default function AdminPage({ onBack, onLogout }) {
           <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-bold text-gray-900" style={{ fontSize: 15 }}>▥ Questions Overview</h3>
-              <select className="bg-white focus:outline-none focus:ring-2 focus:ring-orange-500" style={{ border: '1px solid #dce3ee', borderRadius: 8, padding: '5px 8px', color: '#34415b', font: '500 10px Inter' }}>
-                <option>Last 30 days</option>
-                <option>All Time</option>
-              </select>
+              {/* Styled dropdown (was the browser's plain <select>). Display only, as before — the chart is not filtered by it. */}
+              <SelectField value={overviewRange} onChange={setOverviewRange} ariaLabel="Questions overview period" className="adm-range-select"
+                options={[{ value: '30d', label: 'Last 30 days' }, { value: 'all', label: 'All Time' }]}/>
             </div>
             {/* 3-column grid: donut | legend | bar — no stretching, no gaps */}
             <div style={{ display: 'grid', gridTemplateColumns: '105px auto auto', alignItems: 'center', gap: '0 14px' }}>
@@ -856,7 +896,9 @@ export default function AdminPage({ onBack, onLogout }) {
         {/* Action message toast */}
         {actionMsg && (
           <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white text-sm px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2 animate-bounce-in">
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-green-400"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            {actionMsg.startsWith('Error')
+              ? <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-red-400"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+              : <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-green-400"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>}
             {actionMsg}
           </div>
         )}
@@ -864,24 +906,33 @@ export default function AdminPage({ onBack, onLogout }) {
     )
   }
 
-  // ── Exam Management view (existing) ──────────────────────────────
+  // ── Exam Management view (existing; + domain dropdown) ───────────
+  const domainLabel = domainById(examDomain)?.label || 'Banking'
+  const domainExams = (stats?.exams || []).filter(e => inExamDomain(e.exam_id) && canExam(e.exam_id))
   const ExamsView = () => (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">Exam Management</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Manage banking exam question pools</p>
+      <div className="flex items-center justify-end gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          {/* Domain dropdown — only when there is more than one domain to choose from */}
+          {examDomainOptions.length > 1 && (
+            <label className="flex items-center gap-2 text-sm text-gray-500">
+              <span className="hidden sm:inline">Domain</span>
+              {/* Styled dropdown (same as Study Planner) instead of the browser's plain <select> */}
+              <SelectField value={examDomain} onChange={setExamDomain} ariaLabel="Exam domain" className="adm-domain-select"
+                options={examDomainOptions.map(id => ({ value: id, label: domainById(id)?.label || id }))}/>
+            </label>
+          )}
+          <button onClick={fetchStats} className="flex items-center gap-1.5 text-sm text-orange-500 hover:text-orange-600 border border-orange-200 hover:border-orange-300 px-3 py-1.5 rounded-lg transition-colors">
+            {Icons.refresh} Refresh
+          </button>
         </div>
-        <button onClick={fetchStats} className="flex items-center gap-1.5 text-sm text-orange-500 hover:text-orange-600 border border-orange-200 hover:border-orange-300 px-3 py-1.5 rounded-lg transition-colors">
-          {Icons.refresh} Refresh
-        </button>
       </div>
       {stats && (
         <div className="grid grid-cols-3 gap-4">
           {(() => {
-            const be = (stats.exams || []).filter(e => BANKING_EXAM_IDS.has(e.exam_id))
+            const be = domainExams
             return [
-              [be.length, 'Banking Exams', 'bg-orange-50 text-orange-600'],
+              [be.length, `${domainLabel} Exams`, 'bg-orange-50 text-orange-600'],
               [be.reduce((s, e) => s + (e.approved || 0), 0), 'Approved Questions', 'bg-green-50 text-green-600'],
               [be.filter(e => e.ready).length, 'Live Exams', 'bg-blue-50 text-blue-600'],
             ].map(([val, label, cls]) => (
@@ -895,8 +946,8 @@ export default function AdminPage({ onBack, onLogout }) {
       )}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-          <h3 className="font-semibold text-gray-800 text-sm">Banking Exams</h3>
-          <span className="text-xs text-gray-400">{bankingExams.length} exams</span>
+          <h3 className="font-semibold text-gray-800 text-sm">{domainLabel} Exams</h3>
+          <span className="text-xs text-gray-400">{domainExams.length} exams</span>
         </div>
         {loading ? (
           <div className="p-10 text-center">
@@ -905,7 +956,7 @@ export default function AdminPage({ onBack, onLogout }) {
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {bankingExams.map(exam => (
+            {domainExams.map(exam => (
               <div key={exam.exam_id} className="px-5 py-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -977,16 +1028,12 @@ export default function AdminPage({ onBack, onLogout }) {
   // ── Upload Syllabus view (existing) ──────────────────────────────
   const UploadView = () => (
     <div className="max-w-xl space-y-4">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900">Upload Syllabus PDF</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Upload official syllabi to power RAG-grounded question generation</p>
-      </div>
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
         <div>
           <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Select Exam</label>
           <select value={uploadExam} onChange={e => setUploadExam(e.target.value)} className={inp}>
             <option value="">— Choose exam —</option>
-            {EXAM_IDS.map(id => (
+            {MY_EXAM_IDS.map(id => (
               <option key={id} value={id}>{EXAM_DISPLAY[id] || id.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase())}</option>
             ))}
           </select>
@@ -1052,14 +1099,13 @@ export default function AdminPage({ onBack, onLogout }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Review Flagged Questions</h2>
           <p className="text-sm text-gray-500 mt-0.5">{flagged.length} questions awaiting review</p>
         </div>
         <div className="flex items-center gap-2">
           <select onChange={e => fetchFlagged(e.target.value)}
             className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-500">
             <option value="">All exams</option>
-            {EXAM_IDS.map(id => <option key={id} value={id}>{EXAM_DISPLAY[id] || id.replace(/_/g,' ')}</option>)}
+            {MY_EXAM_IDS.map(id => <option key={id} value={id}>{EXAM_DISPLAY[id] || id.replace(/_/g,' ')}</option>)}
           </select>
           {flagged.length > 0 && (
             <button onClick={() => handleBulkApprove('')} disabled={bulkLoading}
@@ -1188,10 +1234,6 @@ export default function AdminPage({ onBack, onLogout }) {
 
     return (
       <div className="space-y-5">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">Scheduler</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Manage automated CA generation and scheduled tasks</p>
-        </div>
 
         {/* Trigger card */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
@@ -1334,10 +1376,6 @@ export default function AdminPage({ onBack, onLogout }) {
   // ── Current Affairs view ─────────────────────────────────────────
   const CAView = () => (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900">Current Affairs</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Recent CA generation runs and status</p>
-      </div>
       {caLog.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center shadow-sm">
           <div className="text-gray-400 text-sm">No run history available.</div>
@@ -1414,7 +1452,7 @@ export default function AdminPage({ onBack, onLogout }) {
         correct_answer: writeForm.correct_answer,
         explanation:   writeForm.explanation.trim() || null,
       }
-      const r = await api.post('/admin/question', payload, { headers })
+      const r = await adminApi.post(AP + '/admin/question', payload, { headers })
       const saved = { ...payload, id: r.data.id, saved_at: new Date() }
       setWriteList(l => [saved, ...l])
       showMsg('Question saved ✓')
@@ -1441,10 +1479,6 @@ export default function AdminPage({ onBack, onLogout }) {
     return (
       <div className="space-y-5">
         <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Write Questions</h2>
-            <p className="text-sm text-gray-500 mt-0.5">Manually author questions — saved directly as approved</p>
-          </div>
           <div className="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-4 py-2 text-xs font-medium text-orange-700">
             <svg viewBox="0 0 24 24" fill="currentColor" style={{width:14,height:14}}><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
             {writeList.length} saved this session
@@ -1464,7 +1498,7 @@ export default function AdminPage({ onBack, onLogout }) {
                   <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Exam *</label>
                   <select value={writeForm.exam} onChange={e => wf('exam', e.target.value)} className={inp2}>
                     <option value="">— Select Exam —</option>
-                    {EXAM_IDS.map(id => <option key={id} value={id}>{EXAM_DISPLAY[id] || id}</option>)}
+                    {MY_EXAM_IDS.map(id => <option key={id} value={id}>{EXAM_DISPLAY[id] || id}</option>)}
                   </select>
                 </div>
                 <div>
@@ -1581,7 +1615,8 @@ export default function AdminPage({ onBack, onLogout }) {
 
           {/* ── Right: Session history ── */}
           <div className="space-y-4">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" style={{ position: 'sticky', top: 16 }}>
+            {/* was position: sticky — it stayed pinned while scrolling and slid over the Tips box below */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                 <h3 className="font-semibold text-gray-800 text-sm">Session Questions</h3>
                 <span className="text-xs bg-orange-100 text-orange-700 font-semibold px-2 py-0.5 rounded-full">{writeList.length}</span>
@@ -1653,10 +1688,6 @@ export default function AdminPage({ onBack, onLogout }) {
   // ── Placeholder views ────────────────────────────────────────────
   const PlaceholderView = ({ title, desc }) => (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-        <p className="text-sm text-gray-500 mt-0.5">{desc}</p>
-      </div>
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
         <div className="w-16 h-16 bg-gray-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
           <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-gray-300"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
@@ -1669,7 +1700,9 @@ export default function AdminPage({ onBack, onLogout }) {
 
   // ── Render ───────────────────────────────────────────────────────
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    // Height = screen minus the dev/staging banner (--env-banner-h, set in App.jsx; 0 in production),
+    // so only the content area scrolls — no second window scrollbar.
+    <div className="flex bg-gray-50 overflow-hidden" style={{ height: 'calc(100dvh - var(--env-banner-h, 0px))' }}>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-20 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
@@ -1684,7 +1717,9 @@ export default function AdminPage({ onBack, onLogout }) {
         {/* Toast */}
         {actionMsg && (
           <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white text-sm px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2">
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-green-400 flex-shrink-0"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            {actionMsg.startsWith('Error')
+              ? <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-red-400 flex-shrink-0"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+              : <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-green-400 flex-shrink-0"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>}
             {actionMsg}
           </div>
         )}
@@ -1692,15 +1727,28 @@ export default function AdminPage({ onBack, onLogout }) {
         {/* Scrollable content */}
         <main className="flex-1 overflow-y-auto">
           <div className="w-full px-4 sm:px-6 lg:px-7 py-4" style={{ maxWidth: 1800, boxSizing: 'border-box' }}>
-            {tab === 'dashboard' && <DashboardView />}
-            {tab === 'exams'     && <ExamsView />}
-            {tab === 'write'     && <WriteQuestionsView />}
-            {tab === 'upload'    && <UploadView />}
-            {tab === 'flagged'   && <FlaggedView />}
-            {tab === 'scheduler' && <SchedulerView />}
-            {tab === 'ca'        && <CAView />}
-            {tab === 'analytics' && <PlaceholderView title="Reports & Analytics" desc="Performance analytics and question insights coming soon." />}
-            {tab === 'settings'  && <PlaceholderView title="Settings" desc="Admin configuration settings coming soon." />}
+            {/* UI (module access): domain admins see which domains they manage */}
+            {!isSuper && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 16, padding: '10px 14px', borderRadius: 12, background: '#FFF3EE', border: '1px solid #fec9b0', fontSize: 13 }}>
+                <b style={{ color: '#9a3412' }}>Your domains:</b>
+                {myDomains.length ? myDomains.map(id => (
+                  <span key={id} style={{ padding: '2px 10px', borderRadius: 999, background: '#fff', border: '1px solid #fec9b0', color: '#c2410c', fontWeight: 700, fontSize: 12 }}>{domainById(id)?.label || id}</span>
+                )) : <span style={{ color: '#9a3412' }}>none assigned yet — ask a super admin</span>}
+              </div>
+            )}
+            {/* Views are called as functions, not <View/>: as components they were re-created on every render, which remounted the forms and dropped the cursor after each typed letter. */}
+            {tab === 'dashboard' && DashboardView()}
+            {tab === 'exams'     && ExamsView()}
+            {tab === 'write'     && WriteQuestionsView()}
+            {tab === 'upload'    && UploadView()}
+            {tab === 'flagged'   && FlaggedView()}
+            {tab === 'scheduler' && SchedulerView()}
+            {tab === 'ca'        && CAView()}
+            {tab === 'analytics' && PlaceholderView({ title: 'Reports & Analytics', desc: 'Performance analytics and question insights coming soon.' })}
+            {tab === 'settings'  && PlaceholderView({ title: 'Settings', desc: 'Admin configuration settings coming soon.' })}
+            {/* UI (module access): super-admin-only modules */}
+            {tab === 'access'        && isSuper && <AccessControl />}
+            {tab === 'subscriptions' && isSuper && <LicenseManager isSuperAdmin />}
           </div>
         </main>
       </div>

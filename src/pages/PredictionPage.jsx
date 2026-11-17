@@ -187,7 +187,11 @@ export default function PredictionPage({ history = [], user, savedPlan, darkMode
   }, [user?.id])
 
   const usingML = !!(mlData && mlData.data_source === 'ml')
-  const hasData = history.length >= 2
+  /* UI: unlock after 2 completed MOCK tests (topic / practice tests don't count) — same rule as My Performance */
+  const UNLOCK_AT = 2
+  const mockCount = history.filter(r => !['topic_diagnostic', 'mini', 'concept_mini'].includes(r.test_type)).length
+  const hasData = mockCount >= UNLOCK_AT
+  const needMore = Math.max(0, UNLOCK_AT - mockCount)
 
   const avgScore = history.length
     ? Math.round(history.reduce((s,r)=>s+Number(r.percentage||0),0)/history.length) : 0
@@ -263,8 +267,39 @@ export default function PredictionPage({ history = [], user, savedPlan, darkMode
     return ((scores[scores.length-1] - scores[0]) / Math.max(1, scores.length-1)).toFixed(1)
   }, [history])
 
+  /* UI: locked → show ONLY the unlock card (no greyed-out preview of the prediction below it) */
+  if (!hasData) return (
+    <div style={{ color:txt, fontFamily:"'Plus Jakarta Sans','Inter',system-ui,sans-serif", minHeight:'100%' }}>
+      <div style={{ paddingBottom:56 }}>
+        <div style={{ background:card, border:`1px solid ${border}`, borderRadius:24, padding:'52px 32px', textAlign:'center',
+          boxShadow:`0 1px 0 rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,${dark?.1:.05}),0 16px 40px rgba(0,0,0,${dark?.08:.03})` }}>
+          <div style={{ fontSize:18, fontWeight:900, color:txt, marginBottom:8 }}>
+            {mockCount > 0 ? `Complete ${needMore} more mock test${needMore !== 1 ? 's' : ''}` : 'Unlock Your AI Prediction'}
+          </div>
+          <div style={{ fontSize:13, color:muted, maxWidth:400, margin:'0 auto', lineHeight:1.7 }}>
+            Take at least {UNLOCK_AT} mock tests to unlock your AI prediction, score projection, and personalised action plan.
+          </div>
+          {mockCount > 0 && (<>
+            <div style={{ width:220, maxWidth:'80%', height:8, borderRadius:99, background:dark?'rgba(255,255,255,.08)':'#eef2f7', margin:'18px auto 0', overflow:'hidden' }}
+              role="progressbar" aria-valuemin={0} aria-valuemax={UNLOCK_AT} aria-valuenow={mockCount} aria-label="Mock tests completed">
+              <div style={{ width:`${(mockCount / UNLOCK_AT) * 100}%`, height:'100%', borderRadius:99, background:`linear-gradient(90deg,${accent},#ff8a5f)` }}/>
+            </div>
+            <div style={{ fontSize:11.5, fontWeight:700, color:accent, marginTop:8 }}>{mockCount} / {UNLOCK_AT} mock tests</div>
+          </>)}
+          {onNav && (
+            <button onClick={()=>onNav('explore')} style={{ marginTop:24, background:accent, color:'#fff', border:'none', borderRadius:12, padding:'12px 28px', fontWeight:800, fontSize:14, cursor:'pointer', boxShadow:'0 4px 20px rgba(232,90,44,.35)' }}>
+              Start a Test →
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+
   return (
-    <div style={{ color:txt, fontFamily:"'Plus Jakarta Sans','Inter',system-ui,sans-serif", background:bg, minHeight:'100%' }}>
+    /* UI FIX: background was `bg` (#eef1f8 / #0b0f1a) — a square-cornered grey layer behind the rounded
+       cards (same issue fixed on My Performance). Transparent lets the dashboard background show through. */
+    <div style={{ color:txt, fontFamily:"'Plus Jakarta Sans','Inter',system-ui,sans-serif", background:'transparent', minHeight:'100%' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
         .pd-card{background:${card};border:1px solid ${border};border-radius:20px;box-shadow:0 1px 0 rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,${dark?.1:.05}),0 16px 40px rgba(0,0,0,${dark?.08:.03})}
@@ -281,23 +316,6 @@ export default function PredictionPage({ history = [], user, savedPlan, darkMode
 
       <div style={{ paddingBottom:56 }}>
 
-        {/* ── Empty state ── */}
-        {!hasData && (
-          <div style={{ background:card, border:`1px solid ${border}`, borderRadius:24, padding:60, textAlign:'center', marginBottom:20 }}>
-            <div style={{ width:72, height:72, borderRadius:22, background:dark?'rgba(255,255,255,.05)':'#f4f6fa', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 20px' }}>
-              <IcTrend s={36} c={muted}/>
-            </div>
-            <div style={{ fontSize:18, fontWeight:900, color:txt, marginBottom:8 }}>Unlock Your AI Prediction</div>
-            <div style={{ fontSize:13, color:muted, maxWidth:380, margin:'0 auto 24px', lineHeight:1.7 }}>
-              Take at least 2 mock tests to unlock your AI prediction, score projection, and personalised action plan.
-            </div>
-            {onNav && (
-              <button onClick={()=>onNav('explore')} style={{ background:accent, color:'#fff', border:'none', borderRadius:12, padding:'12px 28px', fontWeight:800, fontSize:14, cursor:'pointer', boxShadow:'0 4px 20px rgba(232,90,44,.35)' }}>
-                Start a Test →
-              </button>
-            )}
-          </div>
-        )}
 
         {/* ════ 1. HERO VERDICT CARD ════ */}
         <div className="pd-hero" style={{
