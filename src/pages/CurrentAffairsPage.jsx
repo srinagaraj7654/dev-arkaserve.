@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../supabase.js'
+import { currentAffairs, currentAffairsCount } from '../data/userData.js'
 
 /* ─── Icons ─────────────────────────────────────────────────────────────── */
 const _sv = (c,w) => ({fill:'none',stroke:c||'currentColor',strokeWidth:w||'1.5',strokeLinecap:'round',strokeLinejoin:'round'})
@@ -374,18 +375,11 @@ export default function CurrentAffairsPage({ onNav }) {
         else if (dateRange === 'week') from.setDate(from.getDate() - 7)
         else                           from.setDate(from.getDate() - 30)
 
-        let q = supabase
-          .from('current_affairs')
-          .select('*')
-          .gte('date', from.toISOString().split('T')[0])
-          .order('date', { ascending: false })
-          .order('created_at', { ascending: false })
-          .limit(200)
-
-        if (category !== 'all') q = q.eq('category', category)
-        if (examFilter !== 'all') q = q.contains('tags', [examFilter])
-
-        const { data, error: err } = await q
+        const { data, error: err } = await currentAffairs({
+          from: from.toISOString().split('T')[0],
+          category: category !== 'all' ? category : undefined,
+          exam: examFilter !== 'all' ? examFilter : undefined,
+        })
         if (err) throw err
         setItems(data || [])
       } catch (e) {
@@ -402,10 +396,7 @@ export default function CurrentAffairsPage({ onNav }) {
     async function fetchSnap() {
       const todayStr = new Date().toISOString().split('T')[0]
       try {
-        const { count } = await supabase
-          .from('current_affairs')
-          .select('id', { count: 'exact', head: true })
-          .eq('date', todayStr)
+        const { count } = await currentAffairsCount(todayStr)
         setSnapArticles(count ?? 0)
         // Approximate: 2 practice questions per article
         setSnapQuestions(count ? count * 2 : 0)

@@ -1,5 +1,6 @@
 // payments.js — Stripe Checkout flow for subscription plans.
-import { supabase } from './supabase.js'
+import { supabase, SERVER_MODE } from './supabase.js'
+import { syncPlanOnServer } from './data/userData.js'
 import { createCheckout, confirmCheckout } from './api.js'
 
 /**
@@ -44,7 +45,8 @@ export async function handleCheckoutReturn(user) {
     // 2) Activate using the user's OWN session (no backend service-role key
     //    required). The backend + webhook also record it authoritatively.
     try {
-      await supabase.auth.updateUser({ data: {
+      if (SERVER_MODE) await syncPlanOnServer()            // server reads the confirmed subscription (browser can't set plan)
+      else await supabase.auth.updateUser({ data: {
         plan,
         subscription: plan,
         plan_expires: res?.period_end || null,
@@ -60,7 +62,7 @@ export async function handleCheckoutReturn(user) {
     // than a scary server error.
     let activated = false
     try {
-      const { data } = await supabase.auth.refreshSession()
+      const { data } = SERVER_MODE ? { data: { user: await syncPlanOnServer() } } : await supabase.auth.refreshSession()
       const p = (data?.user?.user_metadata?.plan || '').toLowerCase()
       activated = !!p && !['free', '', 'none'].includes(p)
     } catch {}

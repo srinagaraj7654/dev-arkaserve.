@@ -14,6 +14,8 @@ import ToastHost           from './components/ToastHost.jsx'
 import CookieConsent       from './components/CookieConsent.jsx'
 import InstallPrompt       from './components/InstallPrompt.jsx'
 import { fetchMyAccess }   from './access/accessApi.js'   // module access (super admin / domain admin)
+import { SERVER_MODE } from './supabase.js'   // web + VITE_AUTH_MODE=server → auth/data through the Node server
+import { insertResult, topicStats, roleFromTable, syncPlanOnServer } from './data/userData.js'
 const SetPasswordScreen = lazy(() => import('./components/admin/SetPasswordScreen.jsx'))   // admin on a temporary password
 
 // Landing page loads eagerly (first paint); everything else is code-split and
@@ -102,7 +104,7 @@ const IDLE_WARNING  = 60 * 1000
    Supabase `user_access` table (renamed from user_roles) — they land on the Admin panel after login and get admin access.
    Front-end only: Supabase row-level security still applies to admin data. Remove an email
    (or empty the list) to take the access away. */
-const HARDCODED_SUPER_ADMINS = ['nagaraj2k06@gmail.com', 'arkaaserve@gmail.com']
+const HARDCODED_SUPER_ADMINS = ['nagaraj2k06@gmail.com', 'arkaaserve@gmail.com', 'chigullaakhil@gmail.com']
 const isHardcodedSuperAdmin = (u) => HARDCODED_SUPER_ADMINS.includes((u?.email || '').trim().toLowerCase())
 
 export default function App() {
@@ -324,11 +326,7 @@ export default function App() {
       setAdminDomains([])
       // UI (TEMP): hard-coded super admins — see HARDCODED_SUPER_ADMINS near the top of this file
       if (isHardcodedSuperAdmin(user)) { setUserRole('super_admin'); setRoleLoaded(true); return }
-      supabase
-        .from('user_access')
-        .select('role')
-        .eq('user_id', user.id)
-        .single()
+      roleFromTable(user.id)
         .then(({ data }) => { if (!cancelled) { setUserRole(data?.role || 'student'); setRoleLoaded(true) } })
         .catch(() => { if (!cancelled) { setUserRole('student'); setRoleLoaded(true) } })
     })()
@@ -436,11 +434,7 @@ export default function App() {
     if (access) return ['admin', 'super_admin'].includes(access.role) ? 'admin' : 'dashboard'
     if (isHardcodedSuperAdmin(u)) return 'admin'   // UI (TEMP): hard-coded super admins go to the admin panel
     try {
-      const { data } = await supabase
-        .from('user_access')
-        .select('role')
-        .eq('user_id', u.id)
-        .single()
+      const { data } = await roleFromTable(u.id)
       if (data?.role === 'super_admin') return 'admin'
     } catch {}
     return 'dashboard'
@@ -467,6 +461,13 @@ export default function App() {
       try {
         // Self-heal: verify any paid-but-pending sessions against Stripe first.
         try { await syncSubscriptions(user.id) } catch {}
+        if (SERVER_MODE) {
+          // Plan is stamped by the server from the subscriptions table (the browser can't set it).
+          const fresh = await syncPlanOnServer()
+          const a = user.user_metadata || {}, b = fresh?.user_metadata || {}
+          if (!cancelled && fresh && (a.plan !== b.plan || a.subscription !== b.subscription || a.plan_expires !== b.plan_expires)) setUser(fresh)
+          return
+        }
         const { data, error } = await supabase
           .from('subscriptions')
           .select('plan, period_end')
@@ -504,10 +505,7 @@ export default function App() {
   useEffect(() => {
     if (!user?.id) return
     let cancelled = false
-    supabase
-      .from('student_topic_stats')
-      .select('topic, last_accuracy, attempts, correct, total_questions')
-      .eq('student_id', user.id)
+    topicStats(user.id)
       .then(({ data }) => {
         if (cancelled || !data) return
         const scores = {}
@@ -787,13 +785,8 @@ export default function App() {
           test_id_str:    data.test_id       || '',
           result_json:    data,               // full result for re-opening later
         }
-        let { error } = await supabase.from('results').insert(payload)
-        if (error && /result_json/.test(error.message || '')) {
-          // DB doesn't have result_json yet — save the summary so history isn't lost
-          const { result_json, ...summary } = payload
-          ;({ error } = await supabase.from('results').insert(summary))
-          if (!error) console.warn('Saved result WITHOUT result_json — run the migration to enable question review.')
-        }
+        // (falls back to saving without result_json when the DB lacks that column — see src/data/userData.js)
+        const { error } = await insertResult(payload)
         if (error) console.error('Save result error:', error.message)
         else if (import.meta.env.DEV) console.log('✓ Result saved:', data.exam)
       } catch(e) {

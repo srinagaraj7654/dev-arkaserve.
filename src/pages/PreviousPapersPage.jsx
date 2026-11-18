@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from 'react'
 import { supabase } from '../supabase.js'
+import { previousPapers } from '../data/userData.js'
 import Footer from '../components/Footer.jsx'
 
 /* ──────────────────────────────────────────────────────────────
@@ -203,12 +204,7 @@ export default function PreviousPapersPage({ onNav, user, onLogout, isNative }) 
     let cancelled = false
     ;(async () => {
       try {
-        const { data, error } = await supabase
-          .from('previous_papers')
-          .select('*')
-          .eq('is_published', true)
-          .order('sort_order', { ascending: true })
-          .order('year', { ascending: false })
+        const { data, error } = await previousPapers()
         if (error || !data?.length || cancelled) return   // keep built-in list
         // MERGE per exam: if the DB has papers for an exam, use them (real years +
         // pdf links); otherwise keep the built-in catalog entry. This avoids any

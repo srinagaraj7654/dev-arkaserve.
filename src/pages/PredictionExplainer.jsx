@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { supabase } from '../supabase.js'
+import { latestResultForExam } from '../data/userData.js'
 
 const _sv = (c) => ({fill:'none',stroke:c||'currentColor',strokeWidth:'1.5',strokeLinecap:'round',strokeLinejoin:'round'})
 const PIcChart  = ({s=13,c}) => <svg width={s} height={s} viewBox="0 0 24 24" {..._sv(c)}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
@@ -341,14 +342,7 @@ export default function PredictionExplainer({ user, onNav }) {
     const examId = user.user_metadata?.chosen_exam
     if (!examId) { setLoading(false); setFetchErr('no_exam'); return }
 
-    supabase
-      .from('results')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('exam', examId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
+    latestResultForExam(user.id, examId)
       .then(({ data, error }) => {
         if (error || !data) { setFetchErr('no_results'); setLoading(false); return }
         try {

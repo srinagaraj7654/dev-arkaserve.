@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from 'react'
-import { supabase } from '../supabase.js'
+import { supabase, SERVER_MODE } from '../supabase.js'
 import { hashPassword, validatePassword } from '../crypto.js'
 
 export default function ResetPasswordPage({ onBack }) {
@@ -32,8 +32,10 @@ export default function ResetPasswordPage({ onBack }) {
     const pwErr=validatePassword(password)
     if(pwErr){setError(pwErr);return}
     setError('');setLoading(true)
-    const hashed=await hashPassword(password)
-    const{error:err}=await supabase.auth.updateUser({password:hashed})
+    // Server mode: send the password as typed — sign-in also uses the typed password (hashing here made
+    // reset passwords unusable). Direct (old) mode unchanged.
+    const newPassword=SERVER_MODE?password:await hashPassword(password)
+    const{error:err}=await supabase.auth.updateUser({password:newPassword})
     if(err){setError(err.message);setLoading(false);return}
     setSuccess(true);setLoading(false)
     setTimeout(async()=>{await supabase.auth.signOut();onBack()},3000)

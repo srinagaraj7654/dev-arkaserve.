@@ -2,6 +2,7 @@
 import { Capacitor } from '@capacitor/core'
 import { getPrefs as getNotifPrefs, savePrefs as saveNotifPrefs, scheduleAll, cancelAll as cancelAllNotifs } from '../notifications.js'
 import { supabase } from '../supabase.js'
+import { recentResults, loadStudyPlan, saveStudyPlanJson, replaceStudyPlan, upsertOnboarding, upsertProfile, uploadAvatar, deleteMyData } from '../data/userData.js'
 import { startCheckout } from '../payments.js'
 import { toast } from '../toast.js'
 import { getExamBlueprint } from '../api.js'
@@ -1229,10 +1230,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
   useEffect(() => {
     if (!user) return
 
-    supabase.from('results').select('*')
-      .eq('student_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(50)
+    recentResults(user.id, 50)
       .then(({ data }) => setHistory(data || []))
       .catch(() => {})
 
@@ -1244,10 +1242,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
       planFetchedRef.current = true
       // Safety timeout — show builder if Supabase doesn't respond in 8s
       const timeout = setTimeout(() => setPlanLoading(false), 8000)
-      supabase.from('study_plans').select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
+      loadStudyPlan(user.id)
         .then(({ data, error }) => {
           clearTimeout(timeout)
           if (error) console.error('Load plan error:', error.message)
@@ -1327,9 +1322,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
     debounceSaveRef.current = setTimeout(async () => {
       if (!user?.id || !savedPlanRef.current) return
       const { exam_id, exam_date, hours_per_day, weak_topics, created_at, completed_tasks: _ct, ...planContent } = savedPlanRef.current
-      await supabase.from('study_plans')
-        .update({ plan_json: { ...planContent, completed_tasks: completedTasksRef.current } })
-        .eq('user_id', user.id)
+      await saveStudyPlanJson(user.id, { ...planContent, completed_tasks: completedTasksRef.current })
     }, 800)
   }
 
@@ -1354,11 +1347,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
     setPlanSaving(true)
 
     // Delete old plans for this user first, then insert fresh
-    await supabase.from('study_plans').delete().eq('user_id', user.id)
-
-    const { data: inserted, error } = await supabase
-      .from('study_plans')
-      .insert({
+    const { data: inserted, error } = await replaceStudyPlan(user.id, {
         user_id:       user.id,
         exam_id:       planExam,
         exam_date:     endDate,
@@ -1367,8 +1356,6 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
         plan_json:     plan,
         created_at:    new Date().toISOString(),
       })
-      .select()
-      .single()
 
     if (error) {
       console.error('Plan save error:', error.message, error.details, error.hint)
@@ -1383,7 +1370,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
 
     // Capture the plan inputs into student_onboarding (one row per student)
     try {
-      await supabase.from('student_onboarding').upsert({
+      await upsertOnboarding({
         student_id:      user.id,
         exam_id:         planExam,
         selected_exams:  [planExam],
@@ -1392,7 +1379,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
         weak_topics:     groupWeakTopics(weakTopics, ACTIVE_TOPIC_GROUPS),
         onboarding_done: true,
         updated_at:      new Date().toISOString(),
-      }, { onConflict: 'student_id' })
+      })
     } catch (e) { console.error('student_onboarding (planner) save failed:', e?.message) }
 
     // Reflect the chosen exam on the dashboard immediately
@@ -1438,12 +1425,12 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
       dob: profileDob, gender: profileGender, referral_source: profileReferral, category: profileCategory,
     }})
     try {
-      await supabase.from('profiles').upsert({
+      await upsertProfile({
         id: user.id, full_name: fullName, phone,
         dob: profileDob || null, gender: profileGender || null, referral_source: profileReferral || null,
         category: profileCategory,
-      }, { onConflict: 'id' })
-      await supabase.from('student_onboarding').upsert({ student_id: user.id, phone, updated_at: new Date().toISOString() }, { onConflict: 'student_id' })
+      })
+      await upsertOnboarding({ student_id: user.id, phone, updated_at: new Date().toISOString() })
     } catch (_) {}
     setProfileSaving(false); setProfileEdit(false)
     setProfileMsg('✓ Saved'); setTimeout(() => setProfileMsg(''), 2500)
@@ -1455,14 +1442,8 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
     if (!file.type.startsWith('image/')) { toast('Please select an image file', 'error'); return }
     if (file.size > 5 * 1024 * 1024) { toast('Image must be under 5 MB', 'error'); return }
     setAvatarUploading(true)
-    const ext = file.name.split('.').pop()
-    const path = `${user.id}/avatar.${ext}`
-    const { error: upErr } = await supabase.storage
-      .from('avatars')
-      .upload(path, file, { upsert: true, contentType: file.type })
+    const { url: publicUrl, error: upErr } = await uploadAvatar(user.id, file)   // server mode: max 4 MB
     if (upErr) { setAvatarUploading(false); toast('Upload failed: ' + upErr.message, 'error'); return }
-    const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
-    await supabase.auth.updateUser({ data: { avatar_url: publicUrl } })
     setAvatarUrl(publicUrl)
     setAvatarUploading(false)
     toast('Photo updated!', 'success')
@@ -1475,8 +1456,8 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
       category: profileCategory, state: profileState, level: profileLevel, target_exam: profileExam,
     }})
     try {
-      await supabase.from('profiles').upsert({ id: user.id, category: profileCategory, state: profileState, target_exam: profileExam }, { onConflict: 'id' })
-      await supabase.from('student_onboarding').upsert({ student_id: user.id, exam_id: profileExam, selected_exams: [profileExam], level: profileLevel, updated_at: new Date().toISOString() }, { onConflict: 'student_id' })
+      await upsertProfile({ id: user.id, category: profileCategory, state: profileState, target_exam: profileExam })
+      await upsertOnboarding({ student_id: user.id, exam_id: profileExam, selected_exams: [profileExam], level: profileLevel, updated_at: new Date().toISOString() })
     } catch (_) {}
     setSelectedExamId(profileExam); setExamChosen(true)
     setEduSaving(false); setEduEdit(false)
@@ -1508,8 +1489,7 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
     setDeleting(true)
     try {
       // Delete user data from results/profiles before signing out
-      await supabase.from('results').delete().eq('student_id', user.id)
-      await supabase.from('profiles').delete().eq('id', user.id)
+      await deleteMyData(user.id)
       await supabase.auth.signOut()
       onLogout()
     } catch (e) {

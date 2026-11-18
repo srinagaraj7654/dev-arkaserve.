@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabase.js'
+import { usExamResults } from '../data/userData.js'
 
 /* ─────────────────── ICONS ─────────────────── */
 const _sv = (c) => ({fill:'none',stroke:c||'currentColor',strokeWidth:'1.5',strokeLinecap:'round',strokeLinejoin:'round'})
@@ -215,13 +216,7 @@ function ProgressDashboard({ user, onNav }) {
 
   useEffect(() => {
     if (!user) return
-    supabase
-      .from('results')
-      .select('exam,total_score,max_score,percentage,correct_count,wrong_count,section_scores,weak_topics,exam_readiness,created_at')
-      .eq('student_id', user.id)
-      .or('exam.like.sat%,exam.like.act%')
-      .order('created_at', { ascending: false })
-      .limit(30)
+    usExamResults(user.id)
       .then(({ data }) => {
         setResults(data || [])
         setLoading(false)
