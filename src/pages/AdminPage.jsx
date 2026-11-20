@@ -44,21 +44,6 @@ const SCHEDULER_EXAMS = [
 ]
 
 // ── Donut chart (pure SVG, no library) ───────────────────────────
-/* Header title + subtitle for each admin page (tab id → [title, subtitle]) */
-const PAGE_HEADS = {
-  dashboard:     ['Admin Dashboard',     'Manage exams, content and scheduled tasks'],
-  access:        ['Admin Control',       'Create admins and choose which exam domains they manage'],
-  subscriptions: ['User Control',        'Subscribers, free trials and subscription plans'],
-  exams:         ['Exam Management',     'Question pools, seeding and readiness for each exam'],
-  write:         ['Write Questions',     'Manually author questions — saved directly as approved'],
-  upload:        ['Upload Syllabus PDF', 'Upload official syllabi to power RAG-grounded question generation'],
-  flagged:       ['Review Flagged',      'Approve, edit or delete flagged questions'],
-  ca:            ['Current Affairs',     'Recent current affairs generation runs and status'],
-  scheduler:     ['Scheduler',           'Manage automated CA generation and scheduled tasks'],
-  analytics:     ['Reports & Analytics', 'Question bank and exam statistics'],
-  settings:      ['Settings',            'Admin panel settings'],
-}
-
 function DonutChart({ segments, size = 120, stroke = 20 }) {
   const r = (size - stroke) / 2
   const circ = 2 * Math.PI * r
@@ -446,18 +431,6 @@ export default function AdminPage({ onBack, onLogout, access = { role: 'super_ad
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="flex-shrink-0 px-5 py-4 border-t border-slate-800">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-slate-700 flex items-center justify-center flex-shrink-0">
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-slate-400"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
-          </div>
-          <div className="min-w-0">
-            <div className="text-white text-xs font-medium truncate">MockTest Platform</div>
-            <div className="text-slate-500 text-xs truncate">arkaserve.com • Internal Only</div>
-          </div>
-        </div>
-      </div>
     </aside>
   )
 
@@ -485,11 +458,7 @@ export default function AdminPage({ onBack, onLogout, access = { role: 'super_ad
         <button onClick={() => setSidebarOpen(true)} className="text-gray-500 hover:text-gray-700 lg:hidden flex-shrink-0">
           {Icons.menu}
         </button>
-        <div className="hidden lg:block flex-shrink-0 min-w-0">
-          {/* Title + subtitle follow the open page (was always "Admin Dashboard") */}
-          <h1 className="font-extrabold text-gray-900 leading-tight" style={{ fontSize: 22, letterSpacing: -0.8 }}>{(PAGE_HEADS[tab] || PAGE_HEADS.dashboard)[0]}</h1>
-          <p className="text-xs" style={{ color: '#78859a', marginTop: 1 }}>{(PAGE_HEADS[tab] || PAGE_HEADS.dashboard)[1]}</p>
-        </div>
+        {/* (page name removed from the top bar on request — sidebar shows where you are) */}
         <div className="flex-1" />
 
         {/* Admin dropdown */}

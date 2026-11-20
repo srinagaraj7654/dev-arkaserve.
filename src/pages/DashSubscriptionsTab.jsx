@@ -4,7 +4,11 @@ const PLAN_TIERS = [
   { id:'ultimate', name:'Ultimate', price:'₹1199', validity:'3 months', features:['Everything in Pro','All exam categories','Performance trends','WhatsApp reminders'] },
 ]
 
-export default function DashSubscriptionsTab({ cd, _t, _m, _s, _b, _a, isPro, plan, trialActive, trialDaysLeft, onNav }) {
+// Payments: with VITE_PAYMENT_PROVIDER=cashfree (web) "Get Started" starts checkout via onSubscribe;
+// otherwise the button keeps its previous behaviour (opens Subscriptions).
+import { PAYMENT_PROVIDER } from '../payments.js'
+
+export default function DashSubscriptionsTab({ cd, _t, _m, _s, _b, _a, isPro, plan, trialActive, trialDaysLeft, onNav, onSubscribe, payingPlan = '' }) {
   return (
     <div>
       <h2 className="text-xl font-black mb-1" style={{color:_t}}>Subscriptions</h2>
@@ -43,11 +47,14 @@ export default function DashSubscriptionsTab({ cd, _t, _m, _s, _b, _a, isPro, pl
                 </li>
               ))}
             </ul>
-            <button onClick={()=>onNav?.('subscriptions')}
+            <button disabled={!!payingPlan} onClick={()=>{
+                const canPay = PAYMENT_PROVIDER === 'cashfree' && onSubscribe && !(isPro && plan===tier.id)
+                if (canPay) onSubscribe(tier.id); else onNav?.('subscriptions')
+              }}
               style={{background:tier.popular?_a:'none',color:tier.popular?'#fff':_a,border:`2px solid ${_a}`,borderRadius:10,padding:'10px',fontWeight:800,fontSize:13,cursor:'pointer',transition:'all .15s',marginTop:'auto'}}
               onMouseOver={e=>{if(!tier.popular){e.currentTarget.style.background=_a;e.currentTarget.style.color='#fff'}}}
               onMouseOut={e=>{if(!tier.popular){e.currentTarget.style.background='none';e.currentTarget.style.color=_a}}}>
-              {isPro && plan===tier.id ? 'Current Plan' : 'Get Started'}
+              {isPro && plan===tier.id ? 'Current Plan' : payingPlan===tier.id ? 'Opening payment…' : 'Get Started'}
             </button>
           </div>
         ))}

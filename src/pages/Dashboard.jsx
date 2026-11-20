@@ -4200,7 +4200,8 @@ export default function Dashboard({ user, isAdmin = false, planData, onStartTest
             {activeTab === 'subscriptions' && (
               <Suspense fallback={null}>
                 <DashSubscriptionsTab cd={cd} _t={_t} _m={_m} _s={_s} _b={_b} _a={_a}
-                  isPro={isPro} plan={plan} trialActive={trialActive} trialDaysLeft={trialDaysLeft} onNav={onNav} />
+                  isPro={isPro} plan={plan} trialActive={trialActive} trialDaysLeft={trialDaysLeft} onNav={onNav}
+                  onSubscribe={handleSubscribe} payingPlan={payingPlan} />
               </Suspense>
             )}
 

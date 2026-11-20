@@ -1,17 +1,72 @@
-// payments.js — Stripe Checkout flow for subscription plans.
+// payments.js — subscription checkout: Stripe (default) or Cashfree (VITE_PAYMENT_PROVIDER=cashfree, web only).
 import { supabase, SERVER_MODE } from './supabase.js'
 import { syncPlanOnServer } from './data/userData.js'
+import { setServerUser } from './auth/serverAuth.js'
 import { createCheckout, confirmCheckout } from './api.js'
 
+/* ── Cashfree (through the Node server; price decided by the server) ──────────────────────────────
+   Off unless VITE_PAYMENT_PROVIDER=cashfree on the WEB build (the Android/iOS app keeps Stripe).
+   If Cashfree can't START a payment (server down/not configured, Cashfree error, SDK won't load),
+   checkout falls back to Stripe below — the student can always pay. */
+export const PAYMENT_PROVIDER = import.meta.env.VITE_IS_NATIVE !== 'true' && import.meta.env.VITE_PAYMENT_PROVIDER === 'cashfree' ? 'cashfree' : 'stripe'
+const PAY_API = (import.meta.env.VITE_ACCESS_API_URL || '').replace(/\/+$/, '')
+const CASHFREE_SDK = 'https://sdk.cashfree.com/js/v3/cashfree.js'
+
+class NoFallback extends Error {}            // the student must fix something (sign in / plan) — don't switch to Stripe
+
+async function payApi(path, body) {
+  const { data } = await supabase.auth.getSession()
+  const token = data?.session?.access_token
+  return fetch(PAY_API + path, {
+    method: 'POST', signal: AbortSignal.timeout(20_000),
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify(body),
+  })
+}
+
+function loadCashfreeSdk() {
+  if (window.Cashfree) return Promise.resolve(window.Cashfree)
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script')
+    s.src = CASHFREE_SDK; s.async = true
+    const t = setTimeout(() => reject(new Error('Cashfree SDK timed out')), 10_000)
+    s.onload = () => { clearTimeout(t); window.Cashfree ? resolve(window.Cashfree) : reject(new Error('Cashfree SDK missing')) }
+    s.onerror = () => { clearTimeout(t); reject(new Error('Cashfree SDK failed to load')) }
+    document.head.appendChild(s)
+  })
+}
+
+async function startCashfree(planId) {
+  const res = await payApi('/api/payments/cashfree/order', { plan: planId })
+  if ([400, 401, 403].includes(res.status)) {
+    const j = await res.json().catch(() => ({}))
+    throw new NoFallback(res.status === 401 ? 'Please log in to subscribe.' : (j.error || 'Could not start checkout.'))
+  }
+  if (!res.ok) throw new Error(`payment server answered ${res.status}`)
+  const { payment_session_id, mode } = await res.json()
+  if (!payment_session_id) throw new Error('no payment session')
+  const Cashfree = await loadCashfreeSdk()
+  const result = await Cashfree({ mode: mode === 'production' ? 'production' : 'sandbox' })
+    .checkout({ paymentSessionId: payment_session_id, redirectTarget: '_self' })   // leaves the site on success
+  if (result?.error) throw new Error(result.error.message || 'Cashfree checkout error')
+}
+
 /**
- * startCheckout — creates a Stripe Checkout Session on the backend and
- * redirects the browser to Stripe's hosted payment page (cards/UPI in test mode).
+ * startCheckout — Cashfree (when enabled, with Stripe fallback) or Stripe.
+ * Stripe: creates a Checkout Session on the backend and redirects to Stripe's hosted page.
  * On success Stripe redirects back to `/?sub=success&plan=...&session_id=...`,
  * which is handled by handleCheckoutReturn() on load.
  */
 export async function startCheckout({ user, plan }) {
   if (!user?.id) throw new Error('Please log in to subscribe.')
   const planId = (plan || '').toLowerCase()
+  if (PAYMENT_PROVIDER === 'cashfree' && PAY_API) {
+    try { await startCashfree(planId); return }
+    catch (e) {
+      if (e instanceof NoFallback) throw e
+      console.warn('[payments] Cashfree unavailable — falling back to Stripe:', e?.message)
+    }
+  }
   const { url } = await createCheckout(user.id, planId)
   if (!url) throw new Error('Could not start checkout.')
   window.location.href = url   // leave the SPA → Stripe hosted checkout
@@ -33,6 +88,26 @@ export async function handleCheckoutReturn(user) {
   }
 
   if (sub === 'cancel') { clean(); return { ok: false, cancelled: true } }
+
+  // Back from Cashfree: the server asks Cashfree whether the order is PAID and activates the plan.
+  if (sub === 'cf') {
+    const orderId = params.get('order_id')
+    clean()
+    if (!orderId) return null
+    try {
+      const res = await payApi('/api/payments/cashfree/verify', { order_id: orderId })
+      const j = await res.json().catch(() => ({}))
+      if (res.ok && j.ok) {
+        if (SERVER_MODE) setServerUser(j.user)
+        else { try { await supabase.auth.refreshSession() } catch {} }
+        return { ok: true, plan: j.plan }
+      }
+      if (res.ok && j.failed) return { ok: false, cancelled: true }        // not paid / expired — nothing charged
+      return { ok: false, pending: true }
+    } catch {
+      return { ok: false, pending: true }      // the Cashfree webhook still activates the plan on the server
+    }
+  }
 
   const sessionId = params.get('session_id')
   const plan = (params.get('plan') || '').toLowerCase()

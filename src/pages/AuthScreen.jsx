@@ -45,7 +45,7 @@ export default function AuthScreen({ onAuth, onBack, onNav, initialMode = 'login
   }, [])
 
   // Email / password login (for admin — web only)
-  const showEmail = isAdminFlow   // email form: always on the Login tab; also on Sign Up when coming from /admin
+  const showEmail = isAdminFlow   // email form only when coming from /admin (students: Google / Apple only)
   const [emailVal,   setEmailVal]   = useState('')
   const [passVal,    setPassVal]    = useState('')
   const [emailLoad,  setEmailLoad]  = useState(false)
@@ -600,10 +600,10 @@ export default function AuthScreen({ onAuth, onBack, onNav, initialMode = 'login
           </div>
 
           {/* Email / password sign-in (logic from main: handleEmailLogin / handleForgotPassword, unchanged).
-              Shown FIRST on the Login tab (web) so admins created by the super admin can sign in with
-              email + password; "Continue with Google" follows below the "or" divider.
-              Previously only when redirected from /admin, behind a toggle, under the Google button. */}
-          {(showEmail || mode === 'login') && (
+              Students: NOT shown — they sign in with Google (and Apple on Apple devices).
+              Only when redirected here from the website's /admin (isAdminFlow); admins normally use the
+              separate admin panel, which has its own email + password sign-in. */}
+          {showEmail && (
             <div className="auth-email">
               <form onSubmit={handleEmailLogin} className="auth-email-form">
                 <input type="email" className="auth-input" value={emailVal} onChange={e => setEmailVal(e.target.value)}
