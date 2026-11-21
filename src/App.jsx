@@ -16,6 +16,7 @@ import InstallPrompt       from './components/InstallPrompt.jsx'
 import { fetchMyAccess }   from './access/accessApi.js'   // module access (super admin / domain admin)
 import { SERVER_MODE } from './supabase.js'   // web + VITE_AUTH_MODE=server → auth/data through the Node server
 import { insertResult, topicStats, roleFromTable, syncPlanOnServer } from './data/userData.js'
+import { shouldShowWelcome } from './components/welcomeGuideRules.js'
 const SetPasswordScreen = lazy(() => import('./components/admin/SetPasswordScreen.jsx'))   // admin on a temporary password
 
 // Landing page loads eagerly (first paint); everything else is code-split and
@@ -44,6 +45,7 @@ const HomeScreen         = lazy(() => import('./pages/HomeScreen.jsx'))
 const ExamScreen         = lazy(() => import('./pages/ExamScreen.jsx'))
 const ResultScreen       = lazy(() => import('./pages/ResultScreen.jsx'))
 const OnboardingWizard   = lazy(() => import('./pages/OnboardingWizard.jsx'))
+const WelcomeGuide       = lazy(() => import('./components/WelcomeGuide.jsx'))   // first-time guide for new web users
 const PaymentComingSoon  = lazy(() => import('./pages/PaymentComingSoon.jsx'))
 const TopicPractice      = lazy(() => import('./pages/TopicPractice.jsx'))
 const USExamsPage             = lazy(() => import('./pages/USExamsPage.jsx'))
@@ -104,7 +106,7 @@ const IDLE_WARNING  = 60 * 1000
    Supabase `user_access` table (renamed from user_roles) — they land on the Admin panel after login and get admin access.
    Front-end only: Supabase row-level security still applies to admin data. Remove an email
    (or empty the list) to take the access away. */
-const HARDCODED_SUPER_ADMINS = ['nagaraj2k06@gmail.com', 'arkaaserve@gmail.com', 'chigullaakhil@gmail.com']
+const HARDCODED_SUPER_ADMINS = ['nagaraj2k06@gmail.com', 'arkaaserve@gmail.com', 'chigullaakhil@gmail.com', 'drn@arkaserve.com']
 const isHardcodedSuperAdmin = (u) => HARDCODED_SUPER_ADMINS.includes((u?.email || '').trim().toLowerCase())
 
 export default function App() {
@@ -150,6 +152,7 @@ export default function App() {
 
   const [idleWarning,       setIdleWarning]       = useState(false)
   const [showProfilePopup,  setShowProfilePopup]  = useState(false)
+  const [welcomeClosed,     setWelcomeClosed]     = useState(false)   // welcome guide finished this session
   const idleTimer    = useRef(null)
   const warningTimer = useRef(null)
   const notifInitDoneRef = useRef(false)   // prevent duplicate permission dialog
@@ -285,6 +288,7 @@ export default function App() {
   // Uses localStorage (not sessionStorage) so the dismissal persists across cold starts on Android.
   useEffect(() => {
     if (!user) return
+    if (shouldShowWelcome(user, { isNative })) return   // the welcome guide (with phone) comes first — never two pop-ups
     try { if (localStorage.getItem('profilePopupDismissed_' + user.id)) return } catch {}
     const m = user.user_metadata || {}
     const fields = [m.full_name, m.phone || m.mobile, m.dob, m.gender, m.category, m.target_exam, m.level, m.state]
@@ -1065,6 +1069,13 @@ export default function App() {
       {!isNative && <CookieConsent />}
       <ToastHost />
       {!isNative && <InstallPrompt />}
+
+      {/* ── First-time welcome guide (new web accounts): how to use MockTest + required mobile number ── */}
+      {user && page === 'dashboard' && !welcomeClosed && shouldShowWelcome(user, { isNative }) && (
+        <Suspense fallback={null}>
+          <WelcomeGuide user={user} onDone={(u) => { setWelcomeClosed(true); if (u) setUser(u) }} />
+        </Suspense>
+      )}
 
       {/* ── Profile completion popup — only on dashboard, never over onboarding/auth ── */}
       {showProfilePopup && user && page === 'dashboard' && (
